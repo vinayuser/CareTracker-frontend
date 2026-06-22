@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" role="img" aria-label="CareTracker">
+  <defs>
+    <linearGradient id="ct-bg" x1="8" y1="4" x2="40" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0055d4"/>
+      <stop offset="1" stop-color="#003d99"/>
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="12" fill="url(#ct-bg)"/>
+  <path
+    d="M10 28.5c3.5-8 8.5-12 14-12s10.5 4 14 12"
+    stroke="#ffffff"
+    stroke-width="2.75"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.35"
+  />
+  <path
+    d="M12 26.5 L17 26.5 L19.5 18 L22.5 32 L25.5 22 L28 26.5 L36 26.5"
+    stroke="#ffffff"
+    stroke-width="2.75"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <circle cx="36" cy="26.5" r="3.25" fill="#22c55e" stroke="#ffffff" stroke-width="1.5"/>
+</svg>

@@ -1,0 +1,96 @@
+export const OWNER_ONLY_MODULES = [
+  'AGENCY_HR_STAFF',
+  'AGENCY_USERS',
+  'AGENCY_ROLES',
+  'AGENCY_SETTINGS',
+  'AGENCY_BILLING',
+];
+
+export const HR_ASSIGNABLE_MODULES = [
+  'AGENCY_DASHBOARD',
+  'AGENCY_CLIENTS',
+  'AGENCY_ASSESSMENTS',
+  'AGENCY_CARE_PLANS',
+  'AGENCY_SERVICE_NOTES',
+  'AGENCY_MEDICATIONS',
+  'AGENCY_EMAR',
+  'AGENCY_SCHEDULE',
+  'AGENCY_VISIT_CALENDAR',
+  'AGENCY_SHIFT_MANAGEMENT',
+  'AGENCY_TIME_ATTENDANCE',
+  'AGENCY_CAREGIVERS',
+  'AGENCY_CAREGIVER_MATCHING',
+  'AGENCY_HIRING_PIPELINE',
+  'AGENCY_JOBS',
+  'AGENCY_CANDIDATES',
+  'AGENCY_TASKS',
+  'AGENCY_INCIDENTS',
+  'AGENCY_REPORTS',
+];
+
+export const DEFAULT_HR_MODULES = [
+  'AGENCY_DASHBOARD',
+  'AGENCY_CAREGIVERS',
+  'AGENCY_HIRING_PIPELINE',
+  'AGENCY_JOBS',
+  'AGENCY_CANDIDATES',
+  'AGENCY_TASKS',
+];
+
+export const MODULE_GROUPS = [
+  { title: 'Overview', keys: ['AGENCY_DASHBOARD'] },
+  {
+    title: 'Client Management',
+    keys: [
+      'AGENCY_CLIENTS',
+      'AGENCY_ASSESSMENTS',
+      'AGENCY_CARE_PLANS',
+      'AGENCY_SERVICE_NOTES',
+      'AGENCY_MEDICATIONS',
+      'AGENCY_EMAR',
+    ],
+  },
+  {
+    title: 'Scheduling',
+    keys: [
+      'AGENCY_SCHEDULE',
+      'AGENCY_VISIT_CALENDAR',
+      'AGENCY_SHIFT_MANAGEMENT',
+      'AGENCY_TIME_ATTENDANCE',
+    ],
+  },
+  {
+    title: 'Caregivers',
+    keys: ['AGENCY_CAREGIVERS', 'AGENCY_CAREGIVER_MATCHING'],
+  },
+  {
+    title: 'Human Resources',
+    keys: ['AGENCY_HIRING_PIPELINE', 'AGENCY_JOBS', 'AGENCY_CANDIDATES'],
+  },
+  {
+    title: 'Operations',
+    keys: ['AGENCY_TASKS', 'AGENCY_INCIDENTS', 'AGENCY_REPORTS'],
+  },
+];
+
+export const MODULE_LABELS = {
+  AGENCY_DASHBOARD: 'Dashboard',
+  AGENCY_CLIENTS: 'Clients',
+  AGENCY_ASSESSMENTS: 'Assessments',
+  AGENCY_CARE_PLANS: 'Care Plans',
+  AGENCY_SERVICE_NOTES: 'Service Notes',
+  AGENCY_MEDICATIONS: 'Medications',
+  AGENCY_EMAR: 'eMAR',
+  AGENCY_SCHEDULE: 'Schedule',
+  AGENCY_VISIT_CALENDAR: 'Visit Calendar',
+  AGENCY_SHIFT_MANAGEMENT: 'Shift Management',
+  AGENCY_TIME_ATTENDANCE: 'Time & Attendance',
+  AGENCY_CAREGIVERS: 'Caregivers',
+  AGENCY_CAREGIVER_MATCHING: 'Caregiver Matching',
+  AGENCY_HIRING_PIPELINE: 'Hiring Pipeline',
+  AGENCY_JOBS: 'Jobs',
+  AGENCY_CANDIDATES: 'Candidates',
+  AGENCY_TASKS: 'Tasks',
+  AGENCY_INCIDENTS: 'Incidents',
+  AGENCY_REPORTS: 'Reports',
+};
