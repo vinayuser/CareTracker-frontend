@@ -22,6 +22,8 @@ export const ROUTES = {
   AGENCY_CLIENTS: '/agency/clients',
   AGENCY_ASSESSMENTS: '/agency/assessments',
   AGENCY_CARE_PLANS: '/agency/care-plans',
+  AGENCY_CARE_PLANS_CREATE: '/agency/care-plans/create',
+  AGENCY_CARE_PLANS_EDIT: '/agency/care-plans/:id/edit',
   AGENCY_SERVICE_NOTES: '/agency/service-notes',
   AGENCY_MEDICATIONS: '/agency/medications',
   AGENCY_EMAR: '/agency/emar',

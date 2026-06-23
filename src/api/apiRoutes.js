@@ -63,6 +63,15 @@ const API_ROUTES = {
       STATS: '/agency/caregivers/stats',
       LIST: '/agency/caregivers',
     },
+    CLIENTS: {
+      STATS: '/agency/clients/stats',
+      LIST: '/agency/clients',
+    },
+    CARE_PLANS: {
+      OPTIONS: '/agency/care-plans/options',
+      STATS: '/agency/care-plans/stats',
+      LIST: '/agency/care-plans',
+    },
   },
   REGISTRATION: {
     CHECK_USER_ID: '/registration/check-user-id',

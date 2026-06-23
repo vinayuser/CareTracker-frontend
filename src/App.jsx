@@ -27,6 +27,9 @@ import CreateJob from './pages/agency/hiring/CreateJob';
 import EditJob from './pages/agency/hiring/EditJob';
 import Candidates from './pages/agency/hiring/Candidates';
 import Caregivers from './pages/agency/caregivers/Caregivers';
+import Clients from './pages/agency/clients/Clients';
+import CarePlans from './pages/agency/care-plans/CarePlans';
+import GenerateCarePlan from './pages/agency/care-plans/GenerateCarePlan';
 import CaregiverDashboard from './pages/caregiver/Dashboard';
 import CaregiverJobs from './pages/caregiver/Jobs';
 import CaregiverClock from './pages/caregiver/Clock';
@@ -89,9 +92,11 @@ export default function App() {
             <Route path={ROUTES.AGENCY_PREFIX} element={<Navigate to={ROUTES.AGENCY_DASHBOARD} replace />} />
             <Route element={<AgencyLayout />}>
               <Route path={ROUTES.AGENCY_DASHBOARD} element={<AgencyDashboard />} />
-              <Route path={ROUTES.AGENCY_CLIENTS} element={<AgencyModulePage />} />
+              <Route path={ROUTES.AGENCY_CLIENTS} element={<Clients />} />
               <Route path={ROUTES.AGENCY_ASSESSMENTS} element={<AgencyModulePage />} />
-              <Route path={ROUTES.AGENCY_CARE_PLANS} element={<AgencyModulePage />} />
+              <Route path={ROUTES.AGENCY_CARE_PLANS} element={<CarePlans />} />
+              <Route path={ROUTES.AGENCY_CARE_PLANS_CREATE} element={<GenerateCarePlan />} />
+              <Route path={ROUTES.AGENCY_CARE_PLANS_EDIT} element={<GenerateCarePlan />} />
               <Route path={ROUTES.AGENCY_SERVICE_NOTES} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_MEDICATIONS} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_EMAR} element={<AgencyModulePage />} />

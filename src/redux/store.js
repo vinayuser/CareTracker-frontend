@@ -9,6 +9,8 @@ import hiringPipelineReducer from './slices/hiringPipelineSlice';
 import jobsReducer from './slices/jobsSlice';
 import candidatesReducer from './slices/candidatesSlice';
 import caregiversReducer from './slices/caregiversSlice';
+import clientsReducer from './slices/clientsSlice';
+import carePlansReducer from './slices/carePlansSlice';
 
 const store = configureStore({
   reducer: {
@@ -22,6 +24,8 @@ const store = configureStore({
     jobs: jobsReducer,
     candidates: candidatesReducer,
     caregivers: caregiversReducer,
+    clients: clientsReducer,
+    carePlans: carePlansReducer,
   },
 });
 
