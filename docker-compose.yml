@@ -8,5 +8,5 @@ services:
     image: caretracker-admin:latest
     container_name: caretracker-admin
     ports:
-      - "${ADMIN_PORT:-5137}:5137"
+      - "${ADMIN_PORT:-5173}:5173"
     restart: unless-stopped

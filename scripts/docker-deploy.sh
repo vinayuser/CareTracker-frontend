@@ -25,7 +25,7 @@ if [ -z "$API_URL" ]; then
   exit 1
 fi
 
-PORT="${ADMIN_PORT:-5137}"
+PORT="${ADMIN_PORT:-5173}"
 IMAGE="caretracker-admin:latest"
 
 echo "Building image (API: $API_URL)..."
@@ -38,7 +38,7 @@ echo "Starting container on port $PORT..."
 docker run -d \
   --name caretracker-admin \
   --restart unless-stopped \
-  -p "${PORT}:5137" \
+  -p "${PORT}:5173" \
   "$IMAGE"
 
 echo ""
