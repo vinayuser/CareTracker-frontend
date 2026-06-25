@@ -27,8 +27,12 @@ export function formatInviteDate(isoString) {
 }
 
 export function getInviteUrl(token) {
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  return `${origin}/register?token=${encodeURIComponent(token)}`;
+  const origin =
+    typeof window !== 'undefined'
+      ? window.location.origin
+      : import.meta.env.VITE_APP_URL || 'https://caretraker.com';
+  const base = origin.trim().replace(/\/+$/, '');
+  return `${base}/register?token=${encodeURIComponent(token)}`;
 }
 
 export function getAllInvitations() {
