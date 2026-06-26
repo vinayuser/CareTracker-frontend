@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import CarePlanStepper from '../../../components/agency/care-plans/CarePlanStepper';
 import { CarePlanIconBadge } from '../../../components/agency/care-plans/carePlanIcons';
-import ClientFormDrawer from '../../../components/agency/clients/ClientFormDrawer';
 import {
   ASSESSMENT_FIELDS,
   CARE_OVERVIEW_CATEGORIES,
@@ -86,7 +85,6 @@ export default function GenerateCarePlan() {
   const [services, setServices] = useState(DEFAULT_SERVICES.map((s) => ({ ...s })));
   const [effectiveDate, setEffectiveDate] = useState(formatDisplayDate());
   const [reviewDate, setReviewDate] = useState(formatDisplayDate(addMonths(new Date(), 1)));
-  const [editClientOpen, setEditClientOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(isEdit);
 
@@ -215,13 +213,12 @@ export default function GenerateCarePlan() {
                         <p className="text-sm font-medium text-violet-600">{client.clientCode}</p>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setEditClientOpen(true)}
+                    <Link
+                      to={ROUTES.AGENCY_CLIENTS_EDIT.replace(':id', client.id)}
                       className="flex items-center gap-1.5 rounded-lg border border-violet-200 bg-white px-3 py-1.5 text-sm font-medium text-violet-700 hover:bg-violet-50"
                     >
                       <Pencil size={14} /> Edit
-                    </button>
+                    </Link>
                   </div>
 
                   <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -530,13 +527,6 @@ export default function GenerateCarePlan() {
           </div>
         </div>
       </div>
-
-      <ClientFormDrawer
-        open={editClientOpen}
-        onClose={() => setEditClientOpen(false)}
-        client={client}
-        onSuccess={() => dispatch(fetchClients())}
-      />
     </div>
   );
 }

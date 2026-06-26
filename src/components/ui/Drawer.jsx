@@ -7,6 +7,7 @@ export default function Drawer({ open, onClose, title, children, footer, width =
     lg: 'max-w-xl',
     xl: 'max-w-2xl',
     '2xl': 'max-w-3xl',
+    '3xl': 'max-w-5xl',
   }[width] ?? 'max-w-md';
   useEffect(() => {
     if (!open) return undefined;

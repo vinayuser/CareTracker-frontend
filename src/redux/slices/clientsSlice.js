@@ -64,7 +64,7 @@ export const deleteClient = createAsyncThunk('clients/delete', async (id, { reje
 
 const clientsSlice = createSlice({
   name: 'clients',
-  initialState: { list: [], selected: null, stats: { total: 0, active: 0, inactive: 0 }, loading: false },
+  initialState: { list: [], selected: null, stats: { total: 0, active: 0, inactive: 0, pending: 0 }, loading: false },
   reducers: { clearSelectedClient(state) { state.selected = null; } },
   extraReducers: (builder) => {
     builder

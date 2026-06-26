@@ -34,6 +34,10 @@ function getPageTitle(pathname) {
   if (pathname.includes('/agency/hr/staff/') && !pathname.endsWith('/staff')) {
     return 'HR Profile';
   }
+  if (pathname.includes('/agency/clients/intake')) return 'Client Intake';
+  if (pathname.includes('/agency/clients/') && pathname.endsWith('/edit')) return 'Edit Client';
+  if (pathname.includes('/agency/care-plans/create')) return 'Create Care Plan';
+  if (pathname.includes('/agency/care-plans/') && pathname.endsWith('/edit')) return 'Edit Care Plan';
   const segment = pathname.split('/').pop();
   return PAGE_TITLES[segment] ?? 'Agency Portal';
 }

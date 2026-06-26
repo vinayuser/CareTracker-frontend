@@ -64,7 +64,7 @@ const kpis = [
 ];
 
 const quickActions = [
-  { label: 'Add New Client', icon: UserPlus, route: ROUTES.AGENCY_CLIENTS },
+  { label: 'Add New Client', icon: UserPlus, route: ROUTES.AGENCY_CLIENTS_INTAKE },
   { label: 'Add Caregiver', icon: UserCheck, route: ROUTES.AGENCY_CAREGIVERS },
   { label: 'Schedule Visit', icon: Calendar, route: ROUTES.AGENCY_SCHEDULE },
   { label: 'Create Task', icon: CheckSquare, route: ROUTES.AGENCY_TASKS },

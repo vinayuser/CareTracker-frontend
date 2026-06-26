@@ -64,6 +64,7 @@ const API_ROUTES = {
       LIST: '/agency/caregivers',
     },
     CLIENTS: {
+      OPTIONS: '/agency/clients/options',
       STATS: '/agency/clients/stats',
       LIST: '/agency/clients',
     },

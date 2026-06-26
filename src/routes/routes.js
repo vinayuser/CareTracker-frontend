@@ -20,6 +20,8 @@ export const ROUTES = {
   // Agency owner / HR portal
   AGENCY_DASHBOARD: '/agency/dashboard',
   AGENCY_CLIENTS: '/agency/clients',
+  AGENCY_CLIENTS_INTAKE: '/agency/clients/intake',
+  AGENCY_CLIENTS_EDIT: '/agency/clients/:id/edit',
   AGENCY_ASSESSMENTS: '/agency/assessments',
   AGENCY_CARE_PLANS: '/agency/care-plans',
   AGENCY_CARE_PLANS_CREATE: '/agency/care-plans/create',
