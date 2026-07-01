@@ -11,6 +11,7 @@ import candidatesReducer from './slices/candidatesSlice';
 import caregiversReducer from './slices/caregiversSlice';
 import clientsReducer from './slices/clientsSlice';
 import carePlansReducer from './slices/carePlansSlice';
+import assessmentsReducer from './slices/assessmentsSlice';
 
 const store = configureStore({
   reducer: {
@@ -26,6 +27,7 @@ const store = configureStore({
     caregivers: caregiversReducer,
     clients: clientsReducer,
     carePlans: carePlansReducer,
+    assessments: assessmentsReducer,
   },
 });
 

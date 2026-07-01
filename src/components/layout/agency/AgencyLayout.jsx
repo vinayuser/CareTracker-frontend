@@ -34,6 +34,8 @@ function getPageTitle(pathname) {
   if (pathname.includes('/agency/hr/staff/') && !pathname.endsWith('/staff')) {
     return 'HR Profile';
   }
+  if (pathname.includes('/agency/assessments/new')) return 'New Assessment';
+  if (pathname.includes('/agency/assessments/') && pathname.endsWith('/edit')) return 'Client Assessment';
   if (pathname.includes('/agency/clients/intake')) return 'Client Intake';
   if (pathname.includes('/agency/clients/') && pathname.endsWith('/edit')) return 'Edit Client';
   if (pathname.includes('/agency/care-plans/create')) return 'Create Care Plan';

@@ -68,6 +68,11 @@ const API_ROUTES = {
       STATS: '/agency/clients/stats',
       LIST: '/agency/clients',
     },
+    ASSESSMENTS: {
+      OPTIONS: '/agency/assessments/options',
+      STATS: '/agency/assessments/stats',
+      LIST: '/agency/assessments',
+    },
     CARE_PLANS: {
       OPTIONS: '/agency/care-plans/options',
       STATS: '/agency/care-plans/stats',

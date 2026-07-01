@@ -23,6 +23,8 @@ export const ROUTES = {
   AGENCY_CLIENTS_INTAKE: '/agency/clients/intake',
   AGENCY_CLIENTS_EDIT: '/agency/clients/:id/edit',
   AGENCY_ASSESSMENTS: '/agency/assessments',
+  AGENCY_ASSESSMENTS_CREATE: '/agency/assessments/new',
+  AGENCY_ASSESSMENTS_EDIT: '/agency/assessments/:id/edit',
   AGENCY_CARE_PLANS: '/agency/care-plans',
   AGENCY_CARE_PLANS_CREATE: '/agency/care-plans/create',
   AGENCY_CARE_PLANS_EDIT: '/agency/care-plans/:id/edit',

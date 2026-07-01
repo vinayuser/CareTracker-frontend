@@ -29,6 +29,8 @@ import Candidates from './pages/agency/hiring/Candidates';
 import Caregivers from './pages/agency/caregivers/Caregivers';
 import Clients from './pages/agency/clients/Clients';
 import ClientIntake from './pages/agency/clients/ClientIntake';
+import Assessments from './pages/agency/assessments/Assessments';
+import ClientAssessmentForm from './pages/agency/assessments/ClientAssessmentForm';
 import CarePlans from './pages/agency/care-plans/CarePlans';
 import GenerateCarePlan from './pages/agency/care-plans/GenerateCarePlan';
 import CaregiverDashboard from './pages/caregiver/Dashboard';
@@ -96,7 +98,9 @@ export default function App() {
               <Route path={ROUTES.AGENCY_CLIENTS} element={<Clients />} />
               <Route path={ROUTES.AGENCY_CLIENTS_INTAKE} element={<ClientIntake />} />
               <Route path={ROUTES.AGENCY_CLIENTS_EDIT} element={<ClientIntake />} />
-              <Route path={ROUTES.AGENCY_ASSESSMENTS} element={<AgencyModulePage />} />
+              <Route path={ROUTES.AGENCY_ASSESSMENTS} element={<Assessments />} />
+              <Route path={ROUTES.AGENCY_ASSESSMENTS_CREATE} element={<ClientAssessmentForm />} />
+              <Route path={ROUTES.AGENCY_ASSESSMENTS_EDIT} element={<ClientAssessmentForm />} />
               <Route path={ROUTES.AGENCY_CARE_PLANS} element={<CarePlans />} />
               <Route path={ROUTES.AGENCY_CARE_PLANS_CREATE} element={<GenerateCarePlan />} />
               <Route path={ROUTES.AGENCY_CARE_PLANS_EDIT} element={<GenerateCarePlan />} />
