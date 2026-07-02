@@ -102,7 +102,7 @@ export default function Login() {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="admin@caretracker.com"
+                      placeholder="admin@caretraker.com"
                       className={inputClass}
                       autoComplete="email"
                     />

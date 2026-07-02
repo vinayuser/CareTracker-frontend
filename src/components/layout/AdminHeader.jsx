@@ -19,7 +19,7 @@ export default function AdminHeader({ collapsed, onToggleSidebar }) {
       <div className={`flex items-center gap-3 ${collapsed ? '' : 'ml-auto'}`}>
         <div className="text-right">
           <p className="text-sm font-semibold text-gray-900">{authUser?.name ?? 'Admin User'}</p>
-          <p className="text-xs text-gray-500">{authUser?.email ?? 'admin@caretracker.com'}</p>
+          <p className="text-xs text-gray-500">{authUser?.email ?? 'admin@caretraker.com'}</p>
         </div>
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">
           A

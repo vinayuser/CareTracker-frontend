@@ -46,7 +46,7 @@ export function CareTrackerWordmark({ size = 'md', light = false, className = ''
   return (
     <span className={`font-bold tracking-tight ${textClass} ${className}`}>
       <span className={light ? 'text-white' : 'text-slate-900'}>Care</span>
-      <span className={light ? 'text-emerald-300' : 'text-primary'}>Tracker</span>
+      <span className={light ? 'text-emerald-300' : 'text-primary'}>Traker</span>
     </span>
   );
 }

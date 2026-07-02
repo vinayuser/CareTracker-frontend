@@ -72,7 +72,7 @@ export default function Dashboard() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Welcome back, Admin User!</h1>
             <p className="mt-1 text-sm text-gray-600">
-              Here&apos;s what&apos;s happening across the CareTracker platform today.
+              Here&apos;s what&apos;s happening across the CareTraker platform today.
             </p>
           </div>
           <div className="hidden h-24 w-40 shrink-0 items-end justify-center rounded-xl bg-primary/5 sm:flex">

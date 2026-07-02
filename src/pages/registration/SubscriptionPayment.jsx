@@ -68,7 +68,7 @@ export default function SubscriptionPayment() {
         </div>
         <h1 className="mt-4 text-2xl font-bold text-gray-900">Payment Successful!</h1>
         <p className="mt-2 text-gray-500">
-          Your {plan?.name} subscription is now active. Welcome to CareTracker!
+          Your {plan?.name} subscription is now active. Welcome to CareTraker!
         </p>
         <p className="mt-1 text-sm text-gray-400">
           Amount charged: ${plan?.price}/{plan?.billingCycle}

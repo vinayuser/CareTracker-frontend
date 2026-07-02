@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, ClipboardList, FileText, UserCheck, DollarSign } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ClipboardList, FileText, UserCheck, DollarSign, Printer } from 'lucide-react';
 import AgencyKpiCard from '../../../components/agency/dashboard/AgencyKpiCard';
 import {
   acceptAssessmentQuote,
@@ -12,6 +12,7 @@ import {
 } from '../../../redux/slices/assessmentsSlice';
 import { ROUTES } from '../../../routes/routes';
 import { confirmAlert } from '../../../utils/swal';
+import { AssessorDetailCell } from '../../../components/ui/AssessorPhotoUpload';
 
 const STATUS_STYLES = {
   Enquiry: 'bg-blue-100 text-blue-700',
@@ -19,6 +20,14 @@ const STATUS_STYLES = {
   Accepted: 'bg-emerald-100 text-emerald-700',
   Declined: 'bg-gray-100 text-gray-600',
 };
+
+const actionBtn =
+  'inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold shadow-sm transition-colors';
+const actionBtnNeutral = `${actionBtn} border-gray-200 bg-white text-gray-700 hover:border-primary/30 hover:bg-gray-50 hover:text-primary`;
+const actionBtnAmber = `${actionBtn} border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100`;
+const actionBtnEmerald = `${actionBtn} border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100`;
+const actionBtnPrimary = `${actionBtn} border-primary/20 bg-primary/5 text-primary hover:bg-primary/10`;
+const actionBtnDanger = `${actionBtn} border-red-200 bg-white text-red-600 hover:bg-red-50`;
 
 function QuoteModal({ open, onClose, onSubmit, loading, defaultHours }) {
   const [hourlyRate, setHourlyRate] = useState('35');
@@ -156,7 +165,7 @@ export default function Assessments() {
                 <tr className="border-b bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
                   <th className="px-5 py-3">Client</th>
                   <th className="px-5 py-3">Assessment ID</th>
-                  <th className="px-5 py-3">Assessor</th>
+                  <th className="px-5 py-3">Assessor Details</th>
                   <th className="px-5 py-3">Date</th>
                   <th className="px-5 py-3">Status</th>
                   <th className="px-5 py-3">Actions</th>
@@ -170,25 +179,48 @@ export default function Assessments() {
                       <p className="text-xs text-gray-500">{a.clientPhone || a.clientEmail || ''}</p>
                     </td>
                     <td className="px-5 py-4">{a.assessmentCode}</td>
-                    <td className="px-5 py-4">{a.assessorName || '—'}</td>
+                    <td className="px-5 py-4">
+                      <AssessorDetailCell
+                        name={a.assessorName}
+                        title={a.assessorTitle}
+                        photo={a.assessorPhoto}
+                      />
+                    </td>
                     <td className="px-5 py-4">{a.assessmentDate || '—'}</td>
                     <td className="px-5 py-4">
                       <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[a.status] || STATUS_STYLES.Enquiry}`}>{a.status}</span>
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap items-center gap-2">
-                        <Link to={ROUTES.AGENCY_ASSESSMENTS_EDIT.replace(':id', a.id)} className="text-gray-500 hover:text-primary"><Pencil size={15} /></Link>
+                        <Link to={ROUTES.AGENCY_ASSESSMENTS_EDIT.replace(':id', a.id)} className={actionBtnNeutral}>
+                          <Pencil size={16} /> Edit
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => window.open(ROUTES.AGENCY_ASSESSMENTS_PRINT.replace(':id', a.id), '_blank')}
+                          className={actionBtnNeutral}
+                        >
+                          <Printer size={16} /> Print
+                        </button>
                         {a.status === 'Enquiry' && (
-                          <button type="button" onClick={() => setQuoteTarget(a)} className="text-xs font-medium text-amber-700 hover:underline">Quote</button>
+                          <button type="button" onClick={() => setQuoteTarget(a)} className={actionBtnAmber}>
+                            <DollarSign size={16} /> Quote
+                          </button>
                         )}
                         {a.status === 'Quoted' && (
-                          <button type="button" onClick={() => handleAccept(a)} className="text-xs font-medium text-emerald-700 hover:underline">Onboard</button>
+                          <button type="button" onClick={() => handleAccept(a)} className={actionBtnEmerald}>
+                            <UserCheck size={16} /> Onboard
+                          </button>
                         )}
                         {a.carePlanId && (
-                          <Link to={`${ROUTES.AGENCY_CARE_PLANS_EDIT.replace(':id', a.carePlanId)}`} className="text-xs font-medium text-primary hover:underline">View Plan</Link>
+                          <Link to={`${ROUTES.AGENCY_CARE_PLANS_EDIT.replace(':id', a.carePlanId)}`} className={actionBtnPrimary}>
+                            <FileText size={16} /> View Plan
+                          </Link>
                         )}
                         {a.status !== 'Accepted' && (
-                          <button type="button" onClick={() => handleDelete(a)} className="text-gray-400 hover:text-red-600"><Trash2 size={15} /></button>
+                          <button type="button" onClick={() => handleDelete(a)} className={actionBtnDanger}>
+                            <Trash2 size={16} /> Delete
+                          </button>
                         )}
                       </div>
                     </td>

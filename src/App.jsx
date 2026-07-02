@@ -31,8 +31,10 @@ import Clients from './pages/agency/clients/Clients';
 import ClientIntake from './pages/agency/clients/ClientIntake';
 import Assessments from './pages/agency/assessments/Assessments';
 import ClientAssessmentForm from './pages/agency/assessments/ClientAssessmentForm';
+import AssessmentPrintPage from './pages/agency/assessments/AssessmentPrintPage';
 import CarePlans from './pages/agency/care-plans/CarePlans';
 import GenerateCarePlan from './pages/agency/care-plans/GenerateCarePlan';
+import CarePlanPrintPage from './pages/agency/care-plans/CarePlanPrintPage';
 import CaregiverDashboard from './pages/caregiver/Dashboard';
 import CaregiverJobs from './pages/caregiver/Jobs';
 import CaregiverClock from './pages/caregiver/Clock';
@@ -92,6 +94,10 @@ export default function App() {
 
           {/* Agency Owner & HR — /agency/* */}
           <Route element={<RoleRoute allowedRoles={[ROLES.AGENCY_OWNER, ROLES.HR]} />}>
+            <Route path={ROUTES.AGENCY_ASSESSMENTS_PRINT} element={<AssessmentPrintPage />} />
+            <Route path={ROUTES.AGENCY_ASSESSMENTS_PRINT_DRAFT} element={<AssessmentPrintPage />} />
+            <Route path={ROUTES.AGENCY_CARE_PLANS_PRINT} element={<CarePlanPrintPage />} />
+            <Route path={ROUTES.AGENCY_CARE_PLANS_PRINT_DRAFT} element={<CarePlanPrintPage />} />
             <Route path={ROUTES.AGENCY_PREFIX} element={<Navigate to={ROUTES.AGENCY_DASHBOARD} replace />} />
             <Route element={<AgencyLayout />}>
               <Route path={ROUTES.AGENCY_DASHBOARD} element={<AgencyDashboard />} />

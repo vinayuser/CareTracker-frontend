@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, HeartHandshake, Users, UserX } from 'lucide-react';
+import { Search, Pencil, Trash2, HeartHandshake, Users, UserX } from 'lucide-react';
 import AgencyKpiCard from '../../../components/agency/dashboard/AgencyKpiCard';
 import { fetchClients, fetchClientStats, deleteClient } from '../../../redux/slices/clientsSlice';
 import { ROUTES } from '../../../routes/routes';
@@ -51,17 +51,9 @@ export default function Clients() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Clients</h1>
-          <p className="mt-1 text-sm text-gray-500">Manage client profiles and care assignments.</p>
-        </div>
-        <Link
-          to={ROUTES.AGENCY_CLIENTS_INTAKE}
-          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-hover"
-        >
-          <Plus size={16} /> Client Intake
-        </Link>
+      <div>
+        <h1 className="text-xl font-bold text-gray-900">Clients</h1>
+        <p className="mt-1 text-sm text-gray-500">View client profiles and manage care assignments.</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -88,11 +80,14 @@ export default function Clients() {
           <div className="p-12 text-center text-sm text-gray-500">Loading clients...</div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center">
-            <h3 className="text-base font-semibold text-gray-900">No clients yet</h3>
-            <p className="mt-2 text-sm text-gray-500">Add your first client to start creating care plans.</p>
-            <Link to={ROUTES.AGENCY_CLIENTS_INTAKE} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover">
-              <Plus size={16} /> Start Client Intake
-            </Link>
+            <h3 className="text-base font-semibold text-gray-900">
+              {list.length === 0 ? 'No clients yet' : 'No clients found'}
+            </h3>
+            <p className="mt-2 text-sm text-gray-500">
+              {list.length === 0
+                ? 'Clients appear here after they are onboarded through assessments.'
+                : 'Try adjusting your search or status filter.'}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">

@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, FileText, CheckCircle2, Archive } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, FileText, CheckCircle2, Archive, Printer } from 'lucide-react';
 import AgencyKpiCard from '../../../components/agency/dashboard/AgencyKpiCard';
 import { fetchCarePlans, fetchCarePlanStats, deleteCarePlan } from '../../../redux/slices/carePlansSlice';
 import { ROUTES } from '../../../routes/routes';
 import { confirmAlert } from '../../../utils/swal';
+import { AssessorDetailCell } from '../../../components/ui/AssessorPhotoUpload';
+
+const actionBtn = 'inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold shadow-sm transition-colors';
+const actionBtnNeutral = `${actionBtn} border-gray-200 bg-white text-gray-700 hover:border-primary/30 hover:bg-gray-50 hover:text-primary`;
+const actionBtnDanger = `${actionBtn} border-red-200 bg-white text-red-600 hover:bg-red-50`;
 
 function StatusBadge({ status }) {
   const styles = {
@@ -98,6 +103,7 @@ export default function CarePlans() {
                 <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
                   <th className="px-5 py-3">Plan</th>
                   <th className="px-5 py-3">Client</th>
+                  <th className="px-5 py-3">Assessor Details</th>
                   <th className="px-5 py-3">Effective Date</th>
                   <th className="px-5 py-3">Status</th>
                   <th className="px-5 py-3">Actions</th>
@@ -111,12 +117,30 @@ export default function CarePlans() {
                       <p className="font-medium text-gray-900">{plan.client?.fullName || '—'}</p>
                       <p className="text-xs text-gray-500">{plan.client?.clientCode}</p>
                     </td>
+                    <td className="px-5 py-4">
+                      <AssessorDetailCell
+                        name={plan.formData?.assessor?.name}
+                        title={plan.formData?.assessor?.title}
+                        photo={plan.formData?.assessor?.photo}
+                      />
+                    </td>
                     <td className="px-5 py-4 text-gray-700">{plan.effectiveDate || '—'}</td>
                     <td className="px-5 py-4"><StatusBadge status={plan.status} /></td>
                     <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <Link to={ROUTES.AGENCY_CARE_PLANS_EDIT.replace(':id', plan.id)} className="text-sm font-medium text-primary hover:underline">Edit</Link>
-                        <button type="button" onClick={() => handleDelete(plan)} className="text-gray-500 hover:text-red-600"><Trash2 size={15} /></button>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link to={ROUTES.AGENCY_CARE_PLANS_EDIT.replace(':id', plan.id)} className={actionBtnNeutral}>
+                          <Pencil size={16} /> Edit
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => window.open(ROUTES.AGENCY_CARE_PLANS_PRINT.replace(':id', plan.id), '_blank')}
+                          className={actionBtnNeutral}
+                        >
+                          <Printer size={16} /> Print
+                        </button>
+                        <button type="button" onClick={() => handleDelete(plan)} className={actionBtnDanger}>
+                          <Trash2 size={16} /> Delete
+                        </button>
                       </div>
                     </td>
                   </tr>

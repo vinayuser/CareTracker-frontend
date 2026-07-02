@@ -1,18 +1,21 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { ArrowLeft, ArrowRight, ClipboardList } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux';
+import { ArrowLeft, ArrowRight, ClipboardList, Printer, Save } from 'lucide-react';
 import AssessmentStepper from '../../../components/agency/assessments/AssessmentStepper';
 import { AssessmentStepOne, AssessmentStepTwo } from '../../../components/agency/assessments/AssessmentSteps';
 import { addAssessment, fetchAssessment, updateAssessment } from '../../../redux/slices/assessmentsSlice';
 import { EMPTY_ASSESSMENT, assessmentToForm } from '../../../utils/assessmentForm';
 import { ROUTES } from '../../../routes/routes';
+import { saveAssessmentPrintDraft } from './AssessmentPrintPage';
 
 export default function ClientAssessmentForm() {
   const { id } = useParams();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const authUser = useSelector((state) => state.auth.user);
+  const agencyName = authUser?.agencyName ?? '';
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(EMPTY_ASSESSMENT);
   const [errors, setErrors] = useState({});
@@ -59,6 +62,8 @@ export default function ClientAssessmentForm() {
     setSubmitting(true);
     const payload = {
       assessorName: form.assessorName,
+      assessorTitle: form.assessorTitle,
+      assessorPhoto: form.assessorPhoto,
       assessmentDate: form.assessmentDate,
       assessmentTypes: form.assessmentTypes,
       formData: form.formData,
@@ -71,6 +76,11 @@ export default function ClientAssessmentForm() {
     setSubmitting(false);
   };
 
+  const handlePrint = () => {
+    saveAssessmentPrintDraft(form, agencyName);
+    window.open(ROUTES.AGENCY_ASSESSMENTS_PRINT_DRAFT, '_blank');
+  };
+
   if (loading) return <div className="flex min-h-[40vh] items-center justify-center text-sm text-gray-500">Loading assessment...</div>;
 
   return (
@@ -78,34 +88,47 @@ export default function ClientAssessmentForm() {
       <Link to={ROUTES.AGENCY_ASSESSMENTS} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary">
         <ArrowLeft size={16} /> Back to Assessments
       </Link>
-      <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><ClipboardList size={22} /></div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{isEdit ? 'Edit Assessment' : 'New Client Assessment'}</h1>
-          <p className="text-sm text-gray-500">Evaluate client needs before generating a care plan quote</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><ClipboardList size={22} /></div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{isEdit ? 'Edit Assessment' : 'New Client Assessment'}</h1>
+            <p className="text-sm text-gray-500">Evaluate client needs before generating a care plan quote</p>
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={handlePrint}
+          className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:border-primary/30 hover:bg-gray-50 hover:text-primary"
+        >
+          <Printer size={18} /> Print Form
+        </button>
       </div>
 
       <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8">
         <AssessmentStepper currentStep={step} />
         {step === 1 ? (
-          <AssessmentStepOne form={form} onHeaderChange={onHeaderChange} onFormDataChange={onFormDataChange} errors={errors} />
+          <AssessmentStepOne form={form} onHeaderChange={onHeaderChange} onFormDataChange={onFormDataChange} errors={errors} agencyName={agencyName} />
         ) : (
           <AssessmentStepTwo form={form} onFormDataChange={onFormDataChange} />
         )}
         <div className="mt-8 flex justify-between border-t border-gray-100 pt-6">
           {step > 1 ? (
-            <button type="button" onClick={() => setStep(1)} className="rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">Back</button>
-          ) : (
-            <Link to={ROUTES.AGENCY_ASSESSMENTS} className="rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</Link>
-          )}
-          {step < 2 ? (
-            <button type="button" onClick={() => { if (validateStep1()) setStep(2); }} className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover">
-              Next: Functional Assessment <ArrowRight size={16} />
+            <button type="button" onClick={() => setStep(1)} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
+              <ArrowLeft size={18} /> Back
             </button>
           ) : (
-            <button type="button" disabled={submitting} onClick={handleSubmit} className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50">
-              {submitting ? 'Saving...' : 'Save Assessment'}
+            <Link to={ROUTES.AGENCY_ASSESSMENTS} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
+              Cancel
+            </Link>
+          )}
+          {step < 2 ? (
+            <button type="button" onClick={() => { if (validateStep1()) setStep(2); }} className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover">
+              Next: Functional Assessment <ArrowRight size={18} />
+            </button>
+          ) : (
+            <button type="button" disabled={submitting} onClick={handleSubmit} className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover disabled:opacity-50">
+              <Save size={18} /> {submitting ? 'Saving...' : 'Save Assessment'}
             </button>
           )}
         </div>

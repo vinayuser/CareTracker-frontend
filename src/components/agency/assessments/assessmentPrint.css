@@ -1,0 +1,570 @@
+/* Client Assessment Form — single-page print (matches official PDF) */
+
+.ap-page {
+  box-sizing: border-box;
+  width: 8.5in;
+  height: 11in;
+  max-height: 11in;
+  margin: 0 auto;
+  padding: 0.1in 0.12in 0.08in;
+  background: #fff;
+  color: #111;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 5.6pt;
+  line-height: 1.1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.ap-page *,
+.ap-page *::before,
+.ap-page *::after {
+  box-sizing: border-box;
+}
+
+/* ── Header ── */
+.ap-header {
+  display: grid;
+  grid-template-columns: 1.05in 1fr 1.2in;
+  gap: 0.06in;
+  align-items: start;
+  margin-bottom: 0.04in;
+  padding-bottom: 0.03in;
+  border-bottom: 1.5px solid #1a3a6c;
+}
+
+.ap-agency {
+  display: flex;
+  align-items: center;
+  gap: 0.04in;
+}
+
+.ap-logo {
+  display: flex;
+  height: 0.28in;
+  width: 0.28in;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6b4fd4, #8b6cf0);
+  color: #fff;
+  font-size: 10pt;
+  flex-shrink: 0;
+}
+
+.ap-agency-block .ap-agency-label {
+  font-size: 5.5pt;
+  font-weight: 700;
+  color: #1a3a6c;
+}
+
+.ap-agency-name {
+  font-size: 9pt;
+  font-weight: 800;
+  color: #1a3a6c;
+  line-height: 1.1;
+}
+
+.ap-title-block {
+  text-align: center;
+}
+
+.ap-main-title {
+  font-size: 11pt;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #1a3a6c;
+  line-height: 1.1;
+}
+
+.ap-assess-date {
+  margin-top: 0.02in;
+  font-size: 6.5pt;
+  font-weight: 700;
+  color: #1a3a6c;
+}
+
+.ap-assessor {
+  text-align: right;
+  font-size: 5.8pt;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.03in;
+}
+
+.ap-assessor-photo {
+  width: 0.55in;
+  height: 0.55in;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid #1a3a6c;
+  margin-bottom: 0.02in;
+}
+
+.ap-assessor-photo-empty {
+  background: #e8eef5;
+  border: 1.5px dashed #9eb4d4;
+}
+
+.ap-assessor-label {
+  font-weight: 700;
+  color: #1a3a6c;
+}
+
+.ap-assessor-name {
+  font-weight: 700;
+}
+
+.ap-assessor-role {
+  color: #555;
+  font-size: 5.5pt;
+}
+
+/* ── Assessment type ── */
+.ap-type-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.04in 0.1in;
+  margin-bottom: 0.04in;
+  padding: 0.02in 0.04in;
+  border: 1px solid #9eb4d4;
+  background: #f0f5fb;
+  font-size: 5.8pt;
+}
+
+.ap-type-label {
+  font-weight: 800;
+  color: #1a3a6c;
+}
+
+/* ── Main body: 2 columns ── */
+.ap-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.03in;
+  align-items: start;
+  align-content: start;
+}
+
+.ap-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.03in;
+}
+
+/* ── Triple-column rows (15-17, 18-20) ── */
+.ap-triple {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.04in;
+}
+
+.ap-full {
+  grid-column: 1 / -1;
+}
+
+/* ── Section ── */
+.ap-section {
+  border: 1px solid #7a9cc4;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.ap-section-head {
+  background: #1a3a6c;
+  color: #fff;
+  padding: 0.015in 0.04in;
+  font-size: 6pt;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+.ap-section-body {
+  padding: 0.02in 0.03in;
+}
+
+/* ── Fields ── */
+.ap-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.01in 0.06in;
+  margin-bottom: 0.02in;
+  align-items: baseline;
+}
+
+.ap-row.tight {
+  margin-bottom: 0.01in;
+}
+
+.ap-field {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.02in;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.ap-field.w100 { flex: 1 1 100%; }
+.ap-field.w50 { flex: 1 1 45%; }
+.ap-field.w33 { flex: 1 1 30%; }
+
+.ap-label {
+  font-weight: 700;
+  color: #1a3a6c;
+  white-space: nowrap;
+  font-size: 5.8pt;
+}
+
+.ap-value {
+  flex: 1;
+  border-bottom: 1px solid #333;
+  min-height: 0.1in;
+  padding: 0 0.01in;
+  word-break: break-word;
+  font-size: 5.8pt;
+}
+
+/* ── Checkboxes ── */
+.ap-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.01in 0.06in;
+  margin-bottom: 0.02in;
+}
+
+.ap-checks.cols-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.01in 0.04in;
+}
+
+.ap-checks.cols-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.01in 0.03in;
+}
+
+.ap-checks.cols-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.01in 0.02in;
+}
+
+.ap-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.015in;
+  font-size: 5.6pt;
+  white-space: nowrap;
+}
+
+.ap-box {
+  display: inline-block;
+  width: 0.085in;
+  height: 0.085in;
+  border: 1px solid #333;
+  text-align: center;
+  line-height: 0.08in;
+  font-size: 6pt;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.ap-box.on::after {
+  content: '✓';
+}
+
+.ap-inline-yn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.04in;
+  margin-right: 0.06in;
+  margin-bottom: 0.01in;
+}
+
+.ap-subhead {
+  font-size: 5.5pt;
+  font-weight: 800;
+  color: #1a3a6c;
+  margin: 0.015in 0 0.01in;
+}
+
+/* ── Medications table ── */
+.ap-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 5.5pt;
+}
+
+.ap-table th,
+.ap-table td {
+  border: 1px solid #9eb4d4;
+  padding: 0.01in 0.02in;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.ap-table th {
+  background: #dce8f5;
+  color: #1a3a6c;
+  font-weight: 800;
+  font-size: 5.5pt;
+}
+
+/* ── ADL table ── */
+.ap-adl-legend {
+  font-size: 5pt;
+  color: #333;
+  margin-bottom: 0.015in;
+  line-height: 1.2;
+}
+
+.ap-adl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 5.5pt;
+}
+
+.ap-adl-table th,
+.ap-adl-table td {
+  border: 1px solid #9eb4d4;
+  padding: 0.008in 0.015in;
+  text-align: center;
+}
+
+.ap-adl-table th {
+  background: #dce8f5;
+  color: #1a3a6c;
+  font-weight: 800;
+}
+
+.ap-adl-table td:first-child {
+  text-align: left;
+  font-weight: 700;
+  width: 0.62in;
+  font-size: 5.5pt;
+}
+
+.ap-adl-mark {
+  font-weight: 800;
+  color: #1a3a6c;
+}
+
+/* ── IADL 2-col grid ── */
+.ap-iadl-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.015in 0.04in;
+}
+
+.ap-iadl-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.02in;
+  font-size: 5.5pt;
+}
+
+.ap-iadl-name {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.ap-iadl-opts {
+  display: flex;
+  gap: 0.03in;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* ── Home safety 2-col ── */
+.ap-safety-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.01in 0.04in;
+}
+
+.ap-safety-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 5.5pt;
+}
+
+/* ── Text areas ── */
+.ap-textarea {
+  border: 1px solid #9eb4d4;
+  min-height: 0.22in;
+  padding: 0.02in;
+  font-size: 5.5pt;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ap-textarea.xs { min-height: 0.14in; }
+.ap-textarea.sm { min-height: 0.18in; }
+.ap-textarea.md { min-height: 0.2in; }
+
+/* ── Signatures ── */
+.ap-sigs {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.06in;
+}
+
+.ap-sig-block {
+  text-align: center;
+}
+
+.ap-sig-label {
+  font-size: 6pt;
+  font-weight: 800;
+  color: #1a3a6c;
+  margin-bottom: 0.02in;
+}
+
+.ap-sig-img {
+  height: 0.26in;
+  border-bottom: 1px solid #333;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  margin-bottom: 0.02in;
+}
+
+.ap-sig-img img {
+  max-height: 0.3in;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.ap-sig-line {
+  border-bottom: 1px solid #333;
+  height: 0.26in;
+  margin-bottom: 0.02in;
+}
+
+.ap-sig-date {
+  font-size: 5.5pt;
+  text-align: left;
+}
+
+/* ── Footer ── */
+.ap-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.03in;
+  margin-top: auto;
+  padding-top: 0.02in;
+  flex-shrink: 0;
+  font-size: 6pt;
+  color: #1a3a6c;
+}
+
+.ap-footer strong {
+  font-weight: 800;
+}
+
+.ap-footer-logo {
+  color: #0055d4;
+  font-size: 8pt;
+}
+
+/* ── Screen toolbar ── */
+.ap-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.ap-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.625rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ap-btn-print {
+  background: #0055d4;
+  color: #fff;
+  border: none;
+}
+
+.ap-btn-close {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  color: #374151;
+}
+
+.ap-screen-wrap {
+  min-height: 100vh;
+  background: #c8d0db;
+  padding: 1rem 0 2rem;
+}
+
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 0;
+  }
+
+  html, body {
+    width: 8.5in;
+    height: 11in;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print,
+  .ap-toolbar {
+    display: none !important;
+  }
+
+  .ap-screen-wrap {
+    background: #fff;
+    padding: 0;
+    min-height: 0;
+  }
+
+  .ap-page {
+    width: 8.5in;
+    height: 11in;
+    max-height: 11in;
+    margin: 0;
+    padding: 0.12in 0.14in 0.1in;
+    overflow: hidden;
+    page-break-after: avoid;
+    page-break-inside: avoid;
+  }
+
+  .ap-section-head {
+    background: #1a3a6c !important;
+    color: #fff !important;
+  }
+
+  .ap-table th,
+  .ap-adl-table th {
+    background: #dce8f5 !important;
+  }
+}

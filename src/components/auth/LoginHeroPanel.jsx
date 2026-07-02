@@ -59,7 +59,7 @@ export default function LoginHeroPanel() {
         </div>
 
         <p className="text-xs text-white/40">
-          &copy; {new Date().getFullYear()} CareTracker. All rights reserved.
+          &copy; {new Date().getFullYear()} CareTraker. All rights reserved.
         </p>
       </div>
     </div>

@@ -72,11 +72,15 @@ export const buildEmptyFormData = () => ({
     backupName: '', backupRelationship: '', backupPhone: '',
   },
   medicalHistory: [],
+  medicalHistoryOther: '',
   allergies: { types: [], details: '' },
   medications: Array.from({ length: 6 }, emptyMed),
   adls: emptyAdls(),
   adlComments: '',
-  iadls: Object.fromEntries(IADL_ITEMS.map((i) => [i, 'Independent'])),
+  iadls: {
+    ...Object.fromEntries(IADL_ITEMS.filter((i) => i !== 'Financial Management').map((i) => [i, 'Independent'])),
+    'Financial Management': 'Not Needed',
+  },
   medicationReminder: 'Not Needed',
   mobility: { ambulation: [], transferAssistance: [], fallHistory: false, fallCount: '' },
   cognitiveStatus: {
@@ -87,6 +91,7 @@ export const buildEmptyFormData = () => ({
   painAssessment: { painToday: false, painScore: '', location: '', painMedication: '' },
   mentalHealth: { depression: false, anxiety: false, behavioralConcerns: '' },
   clientGoals: [],
+  clientGoalsOther: '',
   requestedServices: [],
   schedule: { daysNeeded: [], preferredStart: '', preferredEnd: '' },
   coordinatorNotes: '',
@@ -105,6 +110,8 @@ export const todayIso = () => new Date().toISOString().split('T')[0];
 
 export const EMPTY_ASSESSMENT = {
   assessorName: '',
+  assessorTitle: 'Care Assessment Specialist',
+  assessorPhoto: '',
   assessmentDate: todayIso(),
   assessmentTypes: [],
   formData: buildEmptyFormData(),
@@ -114,6 +121,8 @@ export function assessmentToForm(assessment) {
   if (!assessment) return { ...EMPTY_ASSESSMENT, assessmentDate: todayIso(), formData: buildEmptyFormData() };
   return {
     assessorName: assessment.assessorName || '',
+    assessorTitle: assessment.assessorTitle || 'Care Assessment Specialist',
+    assessorPhoto: assessment.assessorPhoto || '',
     assessmentDate: assessment.assessmentDate || todayIso(),
     assessmentTypes: assessment.assessmentTypes || [],
     formData: { ...buildEmptyFormData(), ...assessment.formData },

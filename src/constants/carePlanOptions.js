@@ -187,10 +187,8 @@ export const ASSESSMENT_FIELDS = [
 ];
 
 export const WIZARD_STEPS = [
-  { id: 1, label: 'Client Information' },
-  { id: 2, label: 'Assessment' },
-  { id: 3, label: 'Service Details' },
-  { id: 4, label: 'Review & Generate' },
+  { id: 1, label: 'Client & Medical Info' },
+  { id: 2, label: 'Care Needs & Signatures' },
 ];
 
 export function buildDefaultAssessment() {
