@@ -6,6 +6,7 @@ export const AGENCY_NAV_GROUPS = [
     title: 'Client Management',
     items: [
       { key: 'AGENCY_CLIENTS', label: 'Clients', icon: 'Users' },
+      { key: 'AGENCY_INSURANCE_INTAKE', label: 'Insurance Intake', icon: 'Shield' },
       { key: 'AGENCY_ASSESSMENTS', label: 'Assessments', icon: 'ClipboardList' },
       { key: 'AGENCY_CARE_PLANS', label: 'Care Plans', icon: 'HeartHandshake' },
       { key: 'AGENCY_SERVICE_NOTES', label: 'Service Notes', icon: 'FileText' },

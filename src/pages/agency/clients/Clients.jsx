@@ -113,6 +113,7 @@ export default function Clients() {
                     <td className="px-5 py-4"><StatusBadge status={client.status} /></td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
+                        <Link to={`${ROUTES.AGENCY_INSURANCE_INTAKE_CREATE}?clientId=${client.id}`} className="text-sm font-medium text-primary hover:underline">Insurance</Link>
                         <Link to={`${ROUTES.AGENCY_CARE_PLANS_CREATE}?clientId=${client.id}`} className="text-sm font-medium text-primary hover:underline">Care Plan</Link>
                         <Link to={ROUTES.AGENCY_CLIENTS_EDIT.replace(':id', client.id)} className="text-gray-500 hover:text-primary"><Pencil size={15} /></Link>
                         <button type="button" onClick={() => handleDelete(client)} className="text-gray-500 hover:text-red-600"><Trash2 size={15} /></button>

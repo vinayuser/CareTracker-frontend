@@ -8,6 +8,7 @@ const SIDEBAR_KEY = 'caretracker_agency_sidebar_collapsed';
 const PAGE_TITLES = {
   dashboard: 'Dashboard',
   clients: 'Clients',
+  'insurance-intake': 'Insurance Intake',
   assessments: 'Assessments',
   'care-plans': 'Care Plans',
   'service-notes': 'Service Notes',
@@ -38,6 +39,8 @@ function getPageTitle(pathname) {
   if (pathname.includes('/agency/assessments/') && pathname.endsWith('/edit')) return 'Client Assessment';
   if (pathname.includes('/agency/clients/intake')) return 'Client Intake';
   if (pathname.includes('/agency/clients/') && pathname.endsWith('/edit')) return 'Edit Client';
+  if (pathname.includes('/agency/insurance-intake/new')) return 'New Insurance Intake';
+  if (pathname.includes('/agency/insurance-intake/') && pathname.endsWith('/edit')) return 'Edit Insurance Intake';
   if (pathname.includes('/agency/care-plans/create')) return 'Create Care Plan';
   if (pathname.includes('/agency/care-plans/') && pathname.endsWith('/edit')) return 'Edit Care Plan';
   const segment = pathname.split('/').pop();

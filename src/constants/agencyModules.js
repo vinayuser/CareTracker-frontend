@@ -9,6 +9,7 @@ export const OWNER_ONLY_MODULES = [
 export const HR_ASSIGNABLE_MODULES = [
   'AGENCY_DASHBOARD',
   'AGENCY_CLIENTS',
+  'AGENCY_INSURANCE_INTAKE',
   'AGENCY_ASSESSMENTS',
   'AGENCY_CARE_PLANS',
   'AGENCY_SERVICE_NOTES',
@@ -43,6 +44,7 @@ export const MODULE_GROUPS = [
     title: 'Client Management',
     keys: [
       'AGENCY_CLIENTS',
+      'AGENCY_INSURANCE_INTAKE',
       'AGENCY_ASSESSMENTS',
       'AGENCY_CARE_PLANS',
       'AGENCY_SERVICE_NOTES',
@@ -76,6 +78,7 @@ export const MODULE_GROUPS = [
 export const MODULE_LABELS = {
   AGENCY_DASHBOARD: 'Dashboard',
   AGENCY_CLIENTS: 'Clients',
+  AGENCY_INSURANCE_INTAKE: 'Insurance Intake',
   AGENCY_ASSESSMENTS: 'Assessments',
   AGENCY_CARE_PLANS: 'Care Plans',
   AGENCY_SERVICE_NOTES: 'Service Notes',

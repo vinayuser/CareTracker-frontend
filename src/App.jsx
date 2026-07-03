@@ -35,6 +35,9 @@ import AssessmentPrintPage from './pages/agency/assessments/AssessmentPrintPage'
 import CarePlans from './pages/agency/care-plans/CarePlans';
 import GenerateCarePlan from './pages/agency/care-plans/GenerateCarePlan';
 import CarePlanPrintPage from './pages/agency/care-plans/CarePlanPrintPage';
+import InsuranceIntakes from './pages/agency/insurance-intake/InsuranceIntakes';
+import ClientInsuranceIntakeForm from './pages/agency/insurance-intake/ClientInsuranceIntakeForm';
+import InsuranceIntakePrintPage from './pages/agency/insurance-intake/InsuranceIntakePrintPage';
 import CaregiverDashboard from './pages/caregiver/Dashboard';
 import CaregiverJobs from './pages/caregiver/Jobs';
 import CaregiverClock from './pages/caregiver/Clock';
@@ -98,12 +101,17 @@ export default function App() {
             <Route path={ROUTES.AGENCY_ASSESSMENTS_PRINT_DRAFT} element={<AssessmentPrintPage />} />
             <Route path={ROUTES.AGENCY_CARE_PLANS_PRINT} element={<CarePlanPrintPage />} />
             <Route path={ROUTES.AGENCY_CARE_PLANS_PRINT_DRAFT} element={<CarePlanPrintPage />} />
+            <Route path={ROUTES.AGENCY_INSURANCE_INTAKE_PRINT} element={<InsuranceIntakePrintPage />} />
+            <Route path={ROUTES.AGENCY_INSURANCE_INTAKE_PRINT_DRAFT} element={<InsuranceIntakePrintPage />} />
             <Route path={ROUTES.AGENCY_PREFIX} element={<Navigate to={ROUTES.AGENCY_DASHBOARD} replace />} />
             <Route element={<AgencyLayout />}>
               <Route path={ROUTES.AGENCY_DASHBOARD} element={<AgencyDashboard />} />
               <Route path={ROUTES.AGENCY_CLIENTS} element={<Clients />} />
               <Route path={ROUTES.AGENCY_CLIENTS_INTAKE} element={<ClientIntake />} />
               <Route path={ROUTES.AGENCY_CLIENTS_EDIT} element={<ClientIntake />} />
+              <Route path={ROUTES.AGENCY_INSURANCE_INTAKE} element={<InsuranceIntakes />} />
+              <Route path={ROUTES.AGENCY_INSURANCE_INTAKE_CREATE} element={<ClientInsuranceIntakeForm />} />
+              <Route path={ROUTES.AGENCY_INSURANCE_INTAKE_EDIT} element={<ClientInsuranceIntakeForm />} />
               <Route path={ROUTES.AGENCY_ASSESSMENTS} element={<Assessments />} />
               <Route path={ROUTES.AGENCY_ASSESSMENTS_CREATE} element={<ClientAssessmentForm />} />
               <Route path={ROUTES.AGENCY_ASSESSMENTS_EDIT} element={<ClientAssessmentForm />} />

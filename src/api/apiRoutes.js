@@ -78,6 +78,11 @@ const API_ROUTES = {
       STATS: '/agency/care-plans/stats',
       LIST: '/agency/care-plans',
     },
+    INSURANCE_INTAKES: {
+      OPTIONS: '/agency/insurance-intakes/options',
+      STATS: '/agency/insurance-intakes/stats',
+      LIST: '/agency/insurance-intakes',
+    },
   },
   REGISTRATION: {
     CHECK_USER_ID: '/registration/check-user-id',
