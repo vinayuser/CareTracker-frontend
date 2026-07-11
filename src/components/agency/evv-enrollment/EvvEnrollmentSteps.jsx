@@ -65,10 +65,16 @@ function ReadField({ label, value }) {
   );
 }
 
-function InputOrRead({ label, value, onChange, readOnly, type = 'text', required }) {
-  if (readOnly) return <ReadField label={label} value={value} />;
+function InputOrRead({ label, value, onChange, readOnly, type = 'text', required, className = '' }) {
+  if (readOnly) {
+    return (
+      <div className={className}>
+        <ReadField label={label} value={value} />
+      </div>
+    );
+  }
   return (
-    <Field label={label} required={required}>
+    <Field label={label} required={required} className={className}>
       <input type={type} value={value || ''} onChange={(e) => onChange(e.target.value)} className={inputClass} />
     </Field>
   );
@@ -85,7 +91,7 @@ export function EvvEnrollmentStepOne({ form, onFormDataChange, readOnly = false,
       <Section n="1" title="Client Information" subtitle={lockClientFields && !readOnly ? 'Pre-filled from care plan — contact your agency to update.' : undefined}>
         <div className="grid gap-4 sm:grid-cols-2">
           <InputOrRead label="Client Full Name" value={d.clientInfo.clientFullName} onChange={(v) => patch('clientInfo', 'clientFullName', v)} readOnly={clientLocked} required />
-          <InputOrRead label="Date of Birth" value={d.clientInfo.dob} onChange={(v) => patch('clientInfo', 'dob', v)} readOnly={clientLocked} />
+          <InputOrRead label="Date of Birth" type="date" value={d.clientInfo.dob} onChange={(v) => patch('clientInfo', 'dob', v)} readOnly={clientLocked} />
           <div className="sm:col-span-2">
             <Chips label="Gender" options={GENDERS} values={d.clientInfo.gender} single onToggle={(v) => patch('clientInfo', 'gender', v)} readOnly={clientLocked} />
           </div>
@@ -100,13 +106,13 @@ export function EvvEnrollmentStepOne({ form, onFormDataChange, readOnly = false,
         </div>
       </Section>
 
-      <Section n="2" title="Caregiver / Employee Information" subtitle="If Self, check the relationship below.">
+      <Section n="2" title="Caregiver / Employee Information" subtitle="Pre-filled from your employee profile — update only if needed.">
         <div className="grid gap-4 sm:grid-cols-2">
           <InputOrRead label="Caregiver Full Name" value={d.caregiverInfo.fullName} onChange={(v) => patch('caregiverInfo', 'fullName', v)} readOnly={readOnly} required />
-          <InputOrRead label="Employee ID" value={d.caregiverInfo.employeeId} onChange={(v) => patch('caregiverInfo', 'employeeId', v)} readOnly={readOnly} />
+          <InputOrRead label="Employee ID" value={d.caregiverInfo.employeeId} onChange={(v) => patch('caregiverInfo', 'employeeId', v)} readOnly={readOnly || Boolean(d.caregiverInfo.employeeId)} />
           <InputOrRead label="Phone" value={d.caregiverInfo.phone} onChange={(v) => patch('caregiverInfo', 'phone', v)} readOnly={readOnly} />
           <InputOrRead label="Email" value={d.caregiverInfo.email} onChange={(v) => patch('caregiverInfo', 'email', v)} readOnly={readOnly} />
-          <InputOrRead label="Date of Birth" value={d.caregiverInfo.dob} onChange={(v) => patch('caregiverInfo', 'dob', v)} readOnly={readOnly} />
+          <InputOrRead label="Date of Birth" type="date" value={d.caregiverInfo.dob} onChange={(v) => patch('caregiverInfo', 'dob', v)} readOnly={readOnly} />
           <div className="sm:col-span-2">
             <Chips label="Relationship to Client" options={RELATIONSHIPS} values={d.caregiverInfo.relationship} single onToggle={(v) => patch('caregiverInfo', 'relationship', v)} readOnly={readOnly} />
           </div>

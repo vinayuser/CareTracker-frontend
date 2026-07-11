@@ -19,6 +19,7 @@ import AuditLogs from './pages/admin/AuditLogs';
 import Settings from './pages/admin/Settings';
 import AgencyDashboard from './pages/agency/Dashboard';
 import AgencyModulePage from './pages/agency/AgencyModulePage';
+import Schedules from './pages/agency/schedule/Schedules';
 import HrStaff from './pages/agency/hr/HrStaff';
 import HrStaffDetail from './pages/agency/hr/HrStaffDetail';
 import HiringPipeline from './pages/agency/hr/HiringPipeline';
@@ -48,6 +49,7 @@ import EvvUnverified from './pages/agency/evv/EvvUnverified';
 import EvvSettings from './pages/agency/evv/EvvSettings';
 import CaregiverDashboard from './pages/caregiver/Dashboard';
 import CaregiverJobs from './pages/caregiver/Jobs';
+import CaregiverVisitLogs from './pages/caregiver/VisitLogs';
 import CaregiverClock from './pages/caregiver/Clock';
 import CaregiverLeaves from './pages/caregiver/Leaves';
 import CaregiverSummary from './pages/caregiver/Summary';
@@ -142,7 +144,7 @@ export default function App() {
               <Route path={ROUTES.AGENCY_SERVICE_NOTES} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_MEDICATIONS} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_EMAR} element={<AgencyModulePage />} />
-              <Route path={ROUTES.AGENCY_SCHEDULE} element={<AgencyModulePage />} />
+              <Route path={ROUTES.AGENCY_SCHEDULE} element={<Schedules />} />
               <Route path={ROUTES.AGENCY_VISIT_CALENDAR} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_SHIFT_MANAGEMENT} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_TIME_ATTENDANCE} element={<AgencyModulePage />} />
@@ -184,7 +186,7 @@ export default function App() {
               <Route path={ROUTES.CAREGIVER_EVV_ENROLLMENT_FORM} element={<CaregiverEvvEnrollmentForm />} />
               <Route path={ROUTES.CAREGIVER_JOBS} element={<CaregiverJobs />} />
               <Route path="/caregiver/jobs" element={<Navigate to={ROUTES.CAREGIVER_JOBS} replace />} />
-              <Route path={ROUTES.CAREGIVER_VISITS} element={<CaregiverJobs />} />
+              <Route path={ROUTES.CAREGIVER_VISITS} element={<CaregiverVisitLogs />} />
               <Route path={ROUTES.CAREGIVER_CLIENTS} element={<CaregiverModulePage />} />
               <Route path={ROUTES.CAREGIVER_MESSAGES} element={<CaregiverModulePage />} />
               <Route path={ROUTES.CAREGIVER_ALERTS} element={<CaregiverModulePage />} />

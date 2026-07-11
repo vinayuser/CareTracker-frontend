@@ -14,6 +14,8 @@ import carePlansReducer from './slices/carePlansSlice';
 import assessmentsReducer from './slices/assessmentsSlice';
 import insuranceIntakesReducer from './slices/insuranceIntakesSlice';
 import evvEnrollmentsReducer from './slices/evvEnrollmentsSlice';
+import visitSchedulesReducer from './slices/visitSchedulesSlice';
+import dashboardsReducer from './slices/dashboardsSlice';
 
 const store = configureStore({
   reducer: {
@@ -32,6 +34,8 @@ const store = configureStore({
     assessments: assessmentsReducer,
     insuranceIntakes: insuranceIntakesReducer,
     evvEnrollments: evvEnrollmentsReducer,
+    visitSchedules: visitSchedulesReducer,
+    dashboards: dashboardsReducer,
   },
 });
 

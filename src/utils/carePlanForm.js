@@ -98,6 +98,10 @@ export const buildEmptyCareNeed = (area) => ({
   frequency: '',
   responsibleStaff: '',
   responsibleStaffId: '',
+  scheduleDays: [],
+  startTime: '',
+  endTime: '',
+  graceMinutes: 15,
 });
 
 export const buildEmptyFormData = () => ({

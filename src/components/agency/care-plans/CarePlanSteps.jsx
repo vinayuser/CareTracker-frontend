@@ -4,6 +4,7 @@ import { CarePlanIconBadge } from './carePlanIcons';
 import {
   CARE_NEED_AREAS, GENDERS, REVIEW_FREQUENCIES, RISK_LEVELS,
 } from '../../../utils/carePlanForm';
+import { Fragment } from 'react';
 
 const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100';
 const labelClass = 'mb-1.5 block text-sm font-medium text-gray-700';
@@ -220,7 +221,7 @@ export function CarePlanStepTwo({ form, onFormDataChange, caregivers = [] }) {
 
   return (
     <div className="space-y-6">
-      <Section n="5" title="Care Needs & Interventions" subtitle="Goals, services, frequency, and responsible staff">
+      <Section n="5" title="Care Needs & Interventions" subtitle="Goals, services, frequency, staff, and visit timing for schedules">
         <div className="overflow-x-auto rounded-xl border border-gray-200">
           <table className="min-w-[900px] w-full text-sm">
             <thead>
@@ -235,8 +236,10 @@ export function CarePlanStepTwo({ form, onFormDataChange, caregivers = [] }) {
             <tbody className="divide-y divide-gray-100">
               {d.careNeeds.map((row, i) => {
                 const areaDef = CARE_NEED_AREAS.find((a) => a.key === row.areaKey) || CARE_NEED_AREAS[i];
+                const days = row.scheduleDays || [];
                 return (
-                  <tr key={row.areaKey} className="align-top">
+                  <Fragment key={row.areaKey}>
+                  <tr className="align-top">
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2">
                         <CarePlanIconBadge name={row.icon || areaDef?.icon} size={16} className="h-8 w-8 rounded-lg" />
@@ -281,6 +284,57 @@ export function CarePlanStepTwo({ form, onFormDataChange, caregivers = [] }) {
                       </select>
                     </td>
                   </tr>
+                  {resolveStaffId(row) && (
+                    <tr className="bg-violet-50/40">
+                      <td colSpan={5} className="px-3 py-3">
+                        <div className="grid gap-3 sm:grid-cols-4">
+                          <div className="sm:col-span-2">
+                            <p className="mb-1.5 text-xs font-medium text-gray-600">Visit days</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => {
+                                const active = days.includes(day);
+                                return (
+                                  <button
+                                    key={day}
+                                    type="button"
+                                    onClick={() => {
+                                      const next = active ? days.filter((d) => d !== day) : [...days, day];
+                                      updateCareNeed(i, { scheduleDays: next });
+                                    }}
+                                    className={`rounded-md px-2 py-1 text-[11px] font-semibold ${
+                                      active ? 'bg-violet-600 text-white' : 'border border-gray-200 bg-white text-gray-600'
+                                    }`}
+                                  >
+                                    {day}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          <div>
+                            <p className="mb-1.5 text-xs font-medium text-gray-600">Start</p>
+                            <input type="time" value={row.startTime || ''} onChange={(e) => updateCareNeed(i, { startTime: e.target.value })} className={inputClass} />
+                          </div>
+                          <div>
+                            <p className="mb-1.5 text-xs font-medium text-gray-600">End</p>
+                            <input type="time" value={row.endTime || ''} onChange={(e) => updateCareNeed(i, { endTime: e.target.value })} className={inputClass} />
+                          </div>
+                          <div>
+                            <p className="mb-1.5 text-xs font-medium text-gray-600">Clock-in grace</p>
+                            <select
+                              value={row.graceMinutes || 15}
+                              onChange={(e) => updateCareNeed(i, { graceMinutes: Number(e.target.value) })}
+                              className={inputClass}
+                            >
+                              <option value={15}>15 minutes</option>
+                              <option value={30}>30 minutes</option>
+                            </select>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 );
               })}
             </tbody>

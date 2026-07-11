@@ -97,11 +97,29 @@ const API_ROUTES = {
       LIST: '/agency/evv-enrollments',
       SYNC: '/agency/evv-enrollments/sync',
     },
+    VISIT_SCHEDULES: {
+      OPTIONS: '/agency/visit-schedules/options',
+      STATS: '/agency/visit-schedules/stats',
+      LIST: '/agency/visit-schedules',
+      CARE_PLAN_SOURCES: '/agency/visit-schedules/care-plan',
+    },
+    VISITS: {
+      LIST: '/agency/visits',
+      APPROVE: '/agency/visits',
+      REJECT: '/agency/visits',
+    },
+    EVV_DASHBOARD: '/agency/evv/dashboard',
   },
   CAREGIVER: {
+    DASHBOARD: '/caregiver/dashboard',
     EVV_ENROLLMENTS: {
       LIST: '/caregiver/evv-enrollments',
       SUBMIT: '/caregiver/evv-enrollments',
+    },
+    VISITS: {
+      LIST: '/caregiver/visits',
+      CHECK_IN: '/caregiver/visits',
+      CHECK_OUT: '/caregiver/visits',
     },
   },
   REGISTRATION: {

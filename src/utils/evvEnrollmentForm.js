@@ -90,23 +90,54 @@ export const buildEmptyFormData = () => ({
   },
 });
 
-export const evvEnrollmentToForm = (enrollment) => ({
-  id: enrollment?.id || '',
-  enrollmentCode: enrollment?.enrollmentCode || '',
-  status: enrollment?.status || 'Pending',
-  enrollmentDate: enrollment?.enrollmentDate || '',
-  carePlanId: enrollment?.carePlanId || '',
-  clientId: enrollment?.clientId || '',
-  caregiverAccountId: enrollment?.caregiverAccountId || '',
-  planCode: enrollment?.planCode || '',
-  clientName: enrollment?.clientName || '',
-  caregiverName: enrollment?.caregiverName || '',
-  serviceAreas: enrollment?.serviceAreas || [],
-  formData: {
-    ...buildEmptyFormData(),
-    ...(enrollment?.formData || {}),
-  },
-});
+export const toDateInputValue = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toISOString().slice(0, 10);
+};
+
+export const evvEnrollmentToForm = (enrollment) => {
+  const empty = buildEmptyFormData();
+  const raw = enrollment?.formData || {};
+  const formData = {
+    ...empty,
+    ...raw,
+    clientInfo: {
+      ...empty.clientInfo,
+      ...(raw.clientInfo || {}),
+      dob: toDateInputValue(raw.clientInfo?.dob ?? empty.clientInfo.dob),
+    },
+    caregiverInfo: {
+      ...empty.caregiverInfo,
+      ...(raw.caregiverInfo || {}),
+      dob: toDateInputValue(raw.caregiverInfo?.dob ?? empty.caregiverInfo.dob),
+    },
+    serviceInfo: { ...empty.serviceInfo, ...(raw.serviceInfo || {}) },
+    evvMethods: { ...empty.evvMethods, ...(raw.evvMethods || {}) },
+    mobileEnrollment: { ...empty.mobileEnrollment, ...(raw.mobileEnrollment || {}) },
+    landlineEnrollment: { ...empty.landlineEnrollment, ...(raw.landlineEnrollment || {}) },
+    authorization: { ...empty.authorization, ...(raw.authorization || {}) },
+    trainingAck: { ...empty.trainingAck, ...(raw.trainingAck || {}) },
+    officeUse: { ...empty.officeUse, ...(raw.officeUse || {}) },
+  };
+
+  return {
+    id: enrollment?.id || '',
+    enrollmentCode: enrollment?.enrollmentCode || '',
+    status: enrollment?.status || 'Pending',
+    enrollmentDate: enrollment?.enrollmentDate || '',
+    carePlanId: enrollment?.carePlanId || '',
+    clientId: enrollment?.clientId || '',
+    caregiverAccountId: enrollment?.caregiverAccountId || '',
+    planCode: enrollment?.planCode || '',
+    clientName: enrollment?.clientName || '',
+    caregiverName: enrollment?.caregiverName || '',
+    serviceAreas: enrollment?.serviceAreas || [],
+    formData,
+  };
+};
 
 export const toggleArrayValue = (arr = [], value) => {
   const list = [...arr];

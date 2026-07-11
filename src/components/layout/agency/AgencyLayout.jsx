@@ -14,7 +14,7 @@ const PAGE_TITLES = {
   'service-notes': 'Service Notes',
   medications: 'Medications',
   emar: 'eMAR',
-  schedule: 'Schedule',
+  schedule: 'Schedules',
   'visit-calendar': 'Visit Calendar',
   'shift-management': 'Shift Management',
   'time-attendance': 'Time & Attendance',

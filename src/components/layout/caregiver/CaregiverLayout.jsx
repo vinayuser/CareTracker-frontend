@@ -6,7 +6,7 @@ import CaregiverHeader from './CaregiverHeader';
 const TITLES = {
   dashboard: 'Dashboard',
   schedule: 'My Schedule',
-  visits: 'Visits',
+  visits: 'Visit Logs',
   clients: 'Clients',
   messages: 'Messages',
   alerts: 'Alerts',
