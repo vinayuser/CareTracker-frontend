@@ -1,7 +1,7 @@
 import { X } from 'lucide-react';
 import { useEffect } from 'react';
 
-export default function Drawer({ open, onClose, title, children, footer, width = 'md' }) {
+export default function Drawer({ open, onClose, title, children, footer, width = 'md', elevated = false }) {
   const widthClass = {
     md: 'max-w-md',
     lg: 'max-w-xl',
@@ -28,7 +28,7 @@ export default function Drawer({ open, onClose, title, children, footer, width =
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className={`fixed inset-0 flex justify-end ${elevated ? 'z-[70]' : 'z-50'}`}>
       <button
         type="button"
         aria-label="Close drawer"

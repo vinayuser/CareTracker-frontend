@@ -58,6 +58,14 @@ const API_ROUTES = {
       HIRED: '/agency/job-applications/hired',
       REJECTED: '/agency/job-applications/job',
       BY_STAGE: '/agency/job-applications/job',
+      FORM_SUBMISSIONS: '/agency/job-applications',
+      FORM_PRINT: '/agency/job-applications',
+      RESEND_FORM_EMAIL: '/agency/job-applications',
+      RESET_FORM: '/agency/job-applications',
+      INTERVIEW_FEEDBACK: '/agency/job-applications',
+    },
+    INTERVIEW_FEEDBACK: {
+      OPTIONS: '/agency/interview-feedback/options',
     },
     CAREGIVERS: {
       STATS: '/agency/caregivers/stats',
@@ -83,12 +91,27 @@ const API_ROUTES = {
       STATS: '/agency/insurance-intakes/stats',
       LIST: '/agency/insurance-intakes',
     },
+    EVV_ENROLLMENTS: {
+      OPTIONS: '/agency/evv-enrollments/options',
+      STATS: '/agency/evv-enrollments/stats',
+      LIST: '/agency/evv-enrollments',
+      SYNC: '/agency/evv-enrollments/sync',
+    },
+  },
+  CAREGIVER: {
+    EVV_ENROLLMENTS: {
+      LIST: '/caregiver/evv-enrollments',
+      SUBMIT: '/caregiver/evv-enrollments',
+    },
   },
   REGISTRATION: {
     CHECK_USER_ID: '/registration/check-user-id',
     ACCOUNT: '/registration/account',
     SUBMIT: '/registration/submit',
     PAYMENT: '/registration/payment',
+  },
+  CANDIDATE_FORMS: {
+    PORTAL: '/candidate-forms',
   },
 };
 

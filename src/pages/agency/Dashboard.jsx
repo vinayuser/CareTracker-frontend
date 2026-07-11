@@ -177,7 +177,7 @@ export default function AgencyDashboard() {
           <VisitOverviewChart />
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm xl:col-span-3">
+        <div className="min-w-0 rounded-xl border border-gray-200 bg-white p-5 shadow-sm xl:col-span-3">
           <h3 className="mb-3 text-sm font-semibold text-gray-900">Clients by Status</h3>
           <ClientsStatusDonut />
         </div>

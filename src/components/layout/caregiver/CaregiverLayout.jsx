@@ -4,12 +4,20 @@ import CaregiverSidebar from './CaregiverSidebar';
 import CaregiverHeader from './CaregiverHeader';
 
 const TITLES = {
-  dashboard: 'Home',
-  jobs: 'My Jobs',
+  dashboard: 'Dashboard',
+  schedule: 'My Schedule',
+  visits: 'Visits',
+  clients: 'Clients',
+  messages: 'Messages',
+  alerts: 'Alerts',
+  'evv-enrollments': 'EVV',
   clock: 'Time Clock',
-  leaves: 'Leaves',
+  leaves: 'Time Off',
+  documents: 'Documents',
   summary: 'Work Summary',
-  payments: 'Payments',
+  payroll: 'Payroll',
+  training: 'Training',
+  settings: 'Settings',
 };
 
 export default function CaregiverLayout() {

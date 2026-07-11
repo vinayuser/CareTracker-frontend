@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { toast } from 'react-toastify';
 import { ArrowLeft, ArrowRight, ClipboardList, Printer, Save } from 'lucide-react';
 import CarePlanStepper from '../../../components/agency/care-plans/CarePlanStepper';
 import { CarePlanStepOne, CarePlanStepTwo } from '../../../components/agency/care-plans/CarePlanSteps';
@@ -107,6 +108,7 @@ export default function GenerateCarePlan() {
     try {
       if (isEdit) await dispatch(updateCarePlan({ id, payload })).unwrap();
       else await dispatch(createCarePlan(payload)).unwrap();
+      toast.success('Care plan saved. EVV enrollments created for assigned caregivers.');
       navigate(ROUTES.AGENCY_CARE_PLANS);
     } catch { /* toast */ }
     setSubmitting(false);

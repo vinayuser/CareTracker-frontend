@@ -18,6 +18,13 @@ const PAGE_TITLES = {
   'visit-calendar': 'Visit Calendar',
   'shift-management': 'Shift Management',
   'time-attendance': 'Time & Attendance',
+  evv: 'EVV',
+  dashboard: 'EVV Dashboard',
+  logs: 'EVV Logs',
+  exceptions: 'Exceptions',
+  unverified: 'Unverified Visits',
+  enrollments: 'Enrollments',
+  settings: 'EVV Settings',
   caregivers: 'Caregivers',
   'caregiver-matching': 'Caregiver Matching',
   tasks: 'Tasks',
@@ -41,6 +48,16 @@ function getPageTitle(pathname) {
   if (pathname.includes('/agency/clients/') && pathname.endsWith('/edit')) return 'Edit Client';
   if (pathname.includes('/agency/insurance-intake/new')) return 'New Insurance Intake';
   if (pathname.includes('/agency/insurance-intake/') && pathname.endsWith('/edit')) return 'Edit Insurance Intake';
+  if (pathname.includes('/agency/evv/enrollments/') && pathname.endsWith('/review')) return 'Review Enrollment';
+  if (pathname.includes('/agency/evv/')) {
+    const segment = pathname.split('/').pop();
+    if (segment === 'dashboard') return 'EVV Dashboard';
+    if (segment === 'logs') return 'EVV Logs';
+    if (segment === 'exceptions') return 'Exceptions';
+    if (segment === 'unverified') return 'Unverified Visits';
+    if (segment === 'enrollments') return 'Enrollments';
+    if (segment === 'settings') return 'EVV Settings';
+  }
   if (pathname.includes('/agency/care-plans/create')) return 'Create Care Plan';
   if (pathname.includes('/agency/care-plans/') && pathname.endsWith('/edit')) return 'Edit Care Plan';
   const segment = pathname.split('/').pop();

@@ -1,41 +1,6 @@
+/** Keep in sync with backend/common/agencyModules.js */
 export const OWNER_ONLY_MODULES = [
   'AGENCY_HR_STAFF',
-  'AGENCY_USERS',
-  'AGENCY_ROLES',
-  'AGENCY_SETTINGS',
-  'AGENCY_BILLING',
-];
-
-export const HR_ASSIGNABLE_MODULES = [
-  'AGENCY_DASHBOARD',
-  'AGENCY_CLIENTS',
-  'AGENCY_INSURANCE_INTAKE',
-  'AGENCY_ASSESSMENTS',
-  'AGENCY_CARE_PLANS',
-  'AGENCY_SERVICE_NOTES',
-  'AGENCY_MEDICATIONS',
-  'AGENCY_EMAR',
-  'AGENCY_SCHEDULE',
-  'AGENCY_VISIT_CALENDAR',
-  'AGENCY_SHIFT_MANAGEMENT',
-  'AGENCY_TIME_ATTENDANCE',
-  'AGENCY_CAREGIVERS',
-  'AGENCY_CAREGIVER_MATCHING',
-  'AGENCY_HIRING_PIPELINE',
-  'AGENCY_JOBS',
-  'AGENCY_CANDIDATES',
-  'AGENCY_TASKS',
-  'AGENCY_INCIDENTS',
-  'AGENCY_REPORTS',
-];
-
-export const DEFAULT_HR_MODULES = [
-  'AGENCY_DASHBOARD',
-  'AGENCY_CAREGIVERS',
-  'AGENCY_HIRING_PIPELINE',
-  'AGENCY_JOBS',
-  'AGENCY_CANDIDATES',
-  'AGENCY_TASKS',
 ];
 
 export const MODULE_GROUPS = [
@@ -43,35 +8,30 @@ export const MODULE_GROUPS = [
   {
     title: 'Client Management',
     keys: [
-      'AGENCY_CLIENTS',
-      'AGENCY_INSURANCE_INTAKE',
       'AGENCY_ASSESSMENTS',
+      'AGENCY_CLIENTS',
       'AGENCY_CARE_PLANS',
-      'AGENCY_SERVICE_NOTES',
-      'AGENCY_MEDICATIONS',
-      'AGENCY_EMAR',
+      'AGENCY_INSURANCE_INTAKE',
     ],
   },
   {
-    title: 'Scheduling',
+    title: 'EVV',
     keys: [
-      'AGENCY_SCHEDULE',
-      'AGENCY_VISIT_CALENDAR',
-      'AGENCY_SHIFT_MANAGEMENT',
-      'AGENCY_TIME_ATTENDANCE',
+      'AGENCY_EVV_DASHBOARD',
+      'AGENCY_EVV_LOGS',
+      'AGENCY_EVV_EXCEPTIONS',
+      'AGENCY_EVV_UNVERIFIED',
+      'AGENCY_EVV_ENROLLMENTS',
+      'AGENCY_EVV_SETTINGS',
     ],
   },
   {
     title: 'Caregivers',
-    keys: ['AGENCY_CAREGIVERS', 'AGENCY_CAREGIVER_MATCHING'],
+    keys: ['AGENCY_CAREGIVERS'],
   },
   {
     title: 'Human Resources',
     keys: ['AGENCY_HIRING_PIPELINE', 'AGENCY_JOBS', 'AGENCY_CANDIDATES'],
-  },
-  {
-    title: 'Operations',
-    keys: ['AGENCY_TASKS', 'AGENCY_INCIDENTS', 'AGENCY_REPORTS'],
   },
 ];
 
@@ -81,19 +41,25 @@ export const MODULE_LABELS = {
   AGENCY_INSURANCE_INTAKE: 'Insurance Intake',
   AGENCY_ASSESSMENTS: 'Assessments',
   AGENCY_CARE_PLANS: 'Care Plans',
-  AGENCY_SERVICE_NOTES: 'Service Notes',
-  AGENCY_MEDICATIONS: 'Medications',
-  AGENCY_EMAR: 'eMAR',
-  AGENCY_SCHEDULE: 'Schedule',
-  AGENCY_VISIT_CALENDAR: 'Visit Calendar',
-  AGENCY_SHIFT_MANAGEMENT: 'Shift Management',
-  AGENCY_TIME_ATTENDANCE: 'Time & Attendance',
+  AGENCY_EVV_DASHBOARD: 'EVV Dashboard',
+  AGENCY_EVV_LOGS: 'EVV Logs',
+  AGENCY_EVV_EXCEPTIONS: 'Exceptions',
+  AGENCY_EVV_UNVERIFIED: 'Unverified Visits',
+  AGENCY_EVV_ENROLLMENTS: 'Enrollments',
+  AGENCY_EVV_SETTINGS: 'EVV Settings',
   AGENCY_CAREGIVERS: 'Caregivers',
-  AGENCY_CAREGIVER_MATCHING: 'Caregiver Matching',
   AGENCY_HIRING_PIPELINE: 'Hiring Pipeline',
   AGENCY_JOBS: 'Jobs',
   AGENCY_CANDIDATES: 'Candidates',
-  AGENCY_TASKS: 'Tasks',
-  AGENCY_INCIDENTS: 'Incidents',
-  AGENCY_REPORTS: 'Reports',
 };
+
+/** Derived from MODULE_GROUPS — do not edit manually */
+export const HR_ASSIGNABLE_MODULES = [...new Set(MODULE_GROUPS.flatMap((group) => group.keys))];
+
+export const DEFAULT_HR_MODULES = [
+  'AGENCY_DASHBOARD',
+  'AGENCY_CAREGIVERS',
+  'AGENCY_HIRING_PIPELINE',
+  'AGENCY_JOBS',
+  'AGENCY_CANDIDATES',
+];

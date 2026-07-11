@@ -17,19 +17,21 @@ const segments = [
   { label: 'Discharged', value: 5, pct: 3.9, color: '#ef4444' },
 ];
 
+const SIZE = 100;
+const CX = SIZE / 2;
+const CY = SIZE / 2;
+const R = 36;
+
 export default function ClientsStatusDonut() {
-  const cx = 70;
-  const cy = 70;
-  const r = 52;
   let angle = 0;
 
   return (
-    <div className="flex items-center gap-6">
-      <div className="relative shrink-0">
-        <svg width="140" height="140" viewBox="0 0 140 140">
+    <div className="flex min-w-0 items-center gap-3 overflow-hidden">
+      <div className="relative shrink-0" style={{ width: SIZE, height: SIZE }}>
+        <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} className="block">
           {segments.map((seg) => {
             const sweep = (seg.pct / 100) * 360;
-            const path = describeArc(cx, cy, r, angle, angle + sweep);
+            const path = describeArc(CX, CY, R, angle, angle + sweep);
             angle += sweep;
             return (
               <path
@@ -37,27 +39,27 @@ export default function ClientsStatusDonut() {
                 d={path}
                 fill="none"
                 stroke={seg.color}
-                strokeWidth="18"
+                strokeWidth="14"
                 strokeLinecap="butt"
               />
             );
           })}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-bold text-gray-900">128</span>
-          <span className="text-xs text-gray-500">Total</span>
+          <span className="text-lg font-bold leading-none text-gray-900">128</span>
+          <span className="mt-0.5 text-[10px] text-gray-500">Total</span>
         </div>
       </div>
-      <div className="min-w-0 flex-1 space-y-2.5">
+
+      <div className="min-w-0 flex-1 space-y-2">
         {segments.map((seg) => (
-          <div key={seg.label} className="flex items-center justify-between gap-2 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: seg.color }} />
-              <span className="text-gray-600">{seg.label}</span>
+          <div key={seg.label} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 text-xs">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: seg.color }} />
+              <span className="truncate text-gray-600">{seg.label}</span>
             </div>
-            <span className="font-medium text-gray-900">
-              {seg.value}{' '}
-              <span className="font-normal text-gray-400">({seg.pct}%)</span>
+            <span className="whitespace-nowrap tabular-nums font-medium text-gray-900">
+              {seg.value} <span className="font-normal text-gray-400">({seg.pct}%)</span>
             </span>
           </div>
         ))}

@@ -13,6 +13,13 @@ const PATH_MODULE_PREFIXES = [
   { prefix: '/agency/hr/hiring-pipeline', key: 'AGENCY_HIRING_PIPELINE' },
   { prefix: '/agency/hr/jobs', key: 'AGENCY_JOBS' },
   { prefix: '/agency/hr/candidates', key: 'AGENCY_CANDIDATES' },
+  { prefix: '/agency/insurance-intake', key: 'AGENCY_INSURANCE_INTAKE' },
+  { prefix: '/agency/evv/enrollments', key: 'AGENCY_EVV_ENROLLMENTS' },
+  { prefix: '/agency/evv/logs', key: 'AGENCY_EVV_LOGS' },
+  { prefix: '/agency/evv/exceptions', key: 'AGENCY_EVV_EXCEPTIONS' },
+  { prefix: '/agency/evv/unverified', key: 'AGENCY_EVV_UNVERIFIED' },
+  { prefix: '/agency/evv/settings', key: 'AGENCY_EVV_SETTINGS' },
+  { prefix: '/agency/evv', key: 'AGENCY_EVV_DASHBOARD' },
 ];
 
 export function getHrModuleAccess(user = getAuthUser()) {
@@ -68,7 +75,12 @@ export function filterAgencyNavGroups(role = getUserRole(), user = getAuthUser()
 
   return AGENCY_NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => allowed.has(item.key)),
+    items: group.items.filter((item) => {
+      if (item.children?.length) {
+        return item.children.some((child) => allowed.has(child.key));
+      }
+      return allowed.has(item.key);
+    }),
   })).filter((group) => group.items.length > 0);
 }
 

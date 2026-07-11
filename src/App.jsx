@@ -38,13 +38,28 @@ import CarePlanPrintPage from './pages/agency/care-plans/CarePlanPrintPage';
 import InsuranceIntakes from './pages/agency/insurance-intake/InsuranceIntakes';
 import ClientInsuranceIntakeForm from './pages/agency/insurance-intake/ClientInsuranceIntakeForm';
 import InsuranceIntakePrintPage from './pages/agency/insurance-intake/InsuranceIntakePrintPage';
+import EvvEnrollments from './pages/agency/evv-enrollment/EvvEnrollments';
+import EvvEnrollmentReview from './pages/agency/evv-enrollment/EvvEnrollmentReview';
+import EvvEnrollmentPrintPage from './pages/agency/evv-enrollment/EvvEnrollmentPrintPage';
+import EvvDashboard from './pages/agency/evv/EvvDashboard';
+import EvvLogs from './pages/agency/evv/EvvLogs';
+import EvvExceptions from './pages/agency/evv/EvvExceptions';
+import EvvUnverified from './pages/agency/evv/EvvUnverified';
+import EvvSettings from './pages/agency/evv/EvvSettings';
 import CaregiverDashboard from './pages/caregiver/Dashboard';
 import CaregiverJobs from './pages/caregiver/Jobs';
 import CaregiverClock from './pages/caregiver/Clock';
 import CaregiverLeaves from './pages/caregiver/Leaves';
 import CaregiverSummary from './pages/caregiver/Summary';
 import CaregiverPayments from './pages/caregiver/Payments';
+import CaregiverEvvEnrollments from './pages/caregiver/EvvEnrollments';
+import CaregiverEvvEnrollmentForm from './pages/caregiver/EvvEnrollmentForm';
+import CaregiverModulePage from './pages/caregiver/CaregiverModulePage';
 import RegisterEntry from './pages/registration/RegisterEntry';
+import CandidateFormPortal from './pages/candidate/CandidateFormPortal';
+import CandidateDocumentForm from './pages/candidate/CandidateDocumentForm';
+import CandidateFormPrintPage from './pages/agency/hiring/CandidateFormPrintPage';
+import InterviewFeedbackPrintPage from './pages/agency/hiring/InterviewFeedbackPrintPage';
 import AgencyInformation from './pages/registration/AgencyInformation';
 import CreateAccount from './pages/registration/CreateAccount';
 import RegistrationConfirmation from './pages/registration/RegistrationConfirmation';
@@ -75,6 +90,9 @@ export default function App() {
 
         <Route path={ROUTES.REGISTRATION_ENTRY} element={<RegisterEntry />} />
 
+        <Route path={ROUTES.CANDIDATE_FORM_PORTAL} element={<CandidateFormPortal />} />
+        <Route path={ROUTES.CANDIDATE_FORM_DOCUMENT} element={<CandidateDocumentForm />} />
+
         <Route element={<ProtectedRoute />}>
           {/* Super Admin — /admin/* */}
           <Route element={<RoleRoute allowedRoles={[ROLES.SUPER_ADMIN]} />}>
@@ -103,6 +121,9 @@ export default function App() {
             <Route path={ROUTES.AGENCY_CARE_PLANS_PRINT_DRAFT} element={<CarePlanPrintPage />} />
             <Route path={ROUTES.AGENCY_INSURANCE_INTAKE_PRINT} element={<InsuranceIntakePrintPage />} />
             <Route path={ROUTES.AGENCY_INSURANCE_INTAKE_PRINT_DRAFT} element={<InsuranceIntakePrintPage />} />
+            <Route path={ROUTES.AGENCY_EVV_ENROLLMENT_PRINT} element={<EvvEnrollmentPrintPage />} />
+            <Route path={ROUTES.AGENCY_CANDIDATE_FORM_PRINT} element={<CandidateFormPrintPage />} />
+            <Route path={ROUTES.AGENCY_INTERVIEW_FEEDBACK_PRINT} element={<InterviewFeedbackPrintPage />} />
             <Route path={ROUTES.AGENCY_PREFIX} element={<Navigate to={ROUTES.AGENCY_DASHBOARD} replace />} />
             <Route element={<AgencyLayout />}>
               <Route path={ROUTES.AGENCY_DASHBOARD} element={<AgencyDashboard />} />
@@ -125,6 +146,15 @@ export default function App() {
               <Route path={ROUTES.AGENCY_VISIT_CALENDAR} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_SHIFT_MANAGEMENT} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_TIME_ATTENDANCE} element={<AgencyModulePage />} />
+              <Route path="/agency/evv" element={<Navigate to={ROUTES.AGENCY_EVV_DASHBOARD} replace />} />
+              <Route path="/agency/evv-enrollments" element={<Navigate to={ROUTES.AGENCY_EVV_ENROLLMENTS} replace />} />
+              <Route path={ROUTES.AGENCY_EVV_DASHBOARD} element={<EvvDashboard />} />
+              <Route path={ROUTES.AGENCY_EVV_LOGS} element={<EvvLogs />} />
+              <Route path={ROUTES.AGENCY_EVV_EXCEPTIONS} element={<EvvExceptions />} />
+              <Route path={ROUTES.AGENCY_EVV_UNVERIFIED} element={<EvvUnverified />} />
+              <Route path={ROUTES.AGENCY_EVV_ENROLLMENTS} element={<EvvEnrollments />} />
+              <Route path={ROUTES.AGENCY_EVV_ENROLLMENTS_REVIEW} element={<EvvEnrollmentReview />} />
+              <Route path={ROUTES.AGENCY_EVV_SETTINGS} element={<EvvSettings />} />
               <Route path={ROUTES.AGENCY_CAREGIVERS} element={<Caregivers />} />
               <Route path={ROUTES.AGENCY_CAREGIVER_MATCHING} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_TASKS} element={<AgencyModulePage />} />
@@ -146,14 +176,26 @@ export default function App() {
 
           {/* Caregiver portal — /caregiver/* */}
           <Route element={<RoleRoute allowedRoles={[ROLES.CAREGIVER]} />}>
+            <Route path={ROUTES.CAREGIVER_EVV_ENROLLMENT_PRINT} element={<EvvEnrollmentPrintPage />} />
             <Route path={ROUTES.CAREGIVER_PREFIX} element={<Navigate to={ROUTES.CAREGIVER_DASHBOARD} replace />} />
             <Route element={<CaregiverLayout />}>
               <Route path={ROUTES.CAREGIVER_DASHBOARD} element={<CaregiverDashboard />} />
+              <Route path={ROUTES.CAREGIVER_EVV_ENROLLMENTS} element={<CaregiverEvvEnrollments />} />
+              <Route path={ROUTES.CAREGIVER_EVV_ENROLLMENT_FORM} element={<CaregiverEvvEnrollmentForm />} />
               <Route path={ROUTES.CAREGIVER_JOBS} element={<CaregiverJobs />} />
+              <Route path="/caregiver/jobs" element={<Navigate to={ROUTES.CAREGIVER_JOBS} replace />} />
+              <Route path={ROUTES.CAREGIVER_VISITS} element={<CaregiverJobs />} />
+              <Route path={ROUTES.CAREGIVER_CLIENTS} element={<CaregiverModulePage />} />
+              <Route path={ROUTES.CAREGIVER_MESSAGES} element={<CaregiverModulePage />} />
+              <Route path={ROUTES.CAREGIVER_ALERTS} element={<CaregiverModulePage />} />
               <Route path={ROUTES.CAREGIVER_CLOCK} element={<CaregiverClock />} />
               <Route path={ROUTES.CAREGIVER_LEAVES} element={<CaregiverLeaves />} />
+              <Route path={ROUTES.CAREGIVER_DOCUMENTS} element={<CaregiverModulePage />} />
               <Route path={ROUTES.CAREGIVER_SUMMARY} element={<CaregiverSummary />} />
               <Route path={ROUTES.CAREGIVER_PAYMENTS} element={<CaregiverPayments />} />
+              <Route path="/caregiver/payments" element={<Navigate to={ROUTES.CAREGIVER_PAYMENTS} replace />} />
+              <Route path={ROUTES.CAREGIVER_TRAINING} element={<CaregiverModulePage />} />
+              <Route path={ROUTES.CAREGIVER_SETTINGS} element={<CaregiverModulePage />} />
             </Route>
           </Route>
         </Route>

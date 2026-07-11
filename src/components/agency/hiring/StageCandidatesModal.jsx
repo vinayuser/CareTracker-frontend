@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { X, ArrowRight, ArrowLeft, UserCheck, Ban, Loader2, RotateCcw } from 'lucide-react';
+import { X, ArrowRight, ArrowLeft, UserCheck, Ban, Loader2, RotateCcw, FileText, ClipboardCheck } from 'lucide-react';
 import {
   fetchStageCandidates,
   moveToNextStage,
@@ -10,86 +10,104 @@ import {
   undoCandidateHire,
 } from '../../../redux/slices/candidatesSlice';
 import { confirmAlert } from '../../../utils/swal';
+import CandidateFormsPanel from './CandidateFormsPanel';
+import InterviewFeedbackDrawer from './InterviewFeedbackDrawer';
 
-function CandidateRow({ application, onAction, loadingId, viewType }) {
+function CandidateRow({ application, onAction, loadingId, viewType, onOpenForms, onOpenFeedback }) {
   const candidate = application.candidate || {};
   const info = application.stage_info || {};
+  const progress = application.form_progress;
+  const feedback = application.interview_feedback;
   const isLoading = loadingId === application.id;
   const canHire = info.can_hire ?? (info.job_hired_count === 0 && info.is_final_stage);
   const finalStageName = info.final_stage?.name || 'Final Stage';
+  const hasForms = progress && (progress.total > 0 || progress.documents?.length > 0);
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 px-4 py-3">
-      <div>
-        <p className="font-medium text-gray-900">
-          {candidate.first_name} {candidate.last_name}
-        </p>
-        <p className="text-xs text-gray-500">{candidate.email}</p>
-        {application.stage?.name && (
-          <p className="mt-0.5 text-xs text-gray-400">Stage: {application.stage.name}</p>
-        )}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {application.status === 'Active' && !info.hiring_completed && !info.is_first_stage && (
-          <button
-            type="button"
-            disabled={isLoading}
-            onClick={() => onAction('previous', application)}
-            className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-          >
-            <ArrowLeft size={14} />
-            Move to {info.previous_stage?.name || 'Previous Stage'}
-          </button>
-        )}
-        {application.status === 'Active' && !info.hiring_completed && !info.is_final_stage && (
-          <button
-            type="button"
-            disabled={isLoading}
-            onClick={() => onAction('next', application)}
-            className="flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 disabled:opacity-50"
-          >
-            <ArrowRight size={14} />
-            Move to {info.next_stage?.name || 'Next Stage'}
-          </button>
-        )}
-        {info.is_final_stage && !info.hiring_completed && application.status === 'Active' && canHire && (
-          <button
-            type="button"
-            disabled={isLoading}
-            onClick={() => onAction('hire', application)}
-            className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-          >
-            <UserCheck size={14} />
-            Complete Hiring
-          </button>
-        )}
-        {info.is_final_stage && !info.hiring_completed && application.status === 'Active' && !canHire && (
-          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">
-            Hire slot filled for this job
-          </span>
-        )}
-        {application.status === 'Active' && (
-          <button
-            type="button"
-            disabled={isLoading}
-            onClick={() => onAction('reject', application)}
-            className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
-          >
-            <Ban size={14} />
-            Reject
-          </button>
-        )}
-        {application.status === 'Hired' && !info.hiring_completed && (
-          <>
+    <div className="rounded-lg border border-gray-200 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="font-medium text-gray-900">
+            {candidate.first_name} {candidate.last_name}
+          </p>
+          <p className="text-xs text-gray-500">{candidate.email}</p>
+          {application.stage?.name && (
+            <p className="mt-0.5 text-xs text-gray-400">Stage: {application.stage.name}</p>
+          )}
+          {hasForms && viewType === 'stage' && (
+            <p className="mt-1 text-xs text-gray-500">
+              Forms: {progress.required_submitted || 0}/{progress.required_total || 0} required submitted
+            </p>
+          )}
+          {viewType === 'stage' && feedback && (
+            <p className="mt-1 text-xs text-gray-500">
+              Interview feedback:{' '}
+              <span className={feedback.status === 'Submitted' ? 'text-emerald-700' : 'text-amber-700'}>
+                {feedback.status}
+              </span>
+            </p>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {viewType === 'stage' && (
+            <button
+              type="button"
+              onClick={() => onOpenFeedback(application)}
+              className="flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10"
+            >
+              <ClipboardCheck size={14} />
+              {feedback ? 'Feedback' : 'Add Feedback'}
+            </button>
+          )}
+          {hasForms && viewType === 'stage' && (
+            <button
+              type="button"
+              onClick={() => onOpenForms(application)}
+              className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <FileText size={14} />
+              Forms
+            </button>
+          )}
+          {application.status === 'Active' && !info.hiring_completed && !info.is_first_stage && (
             <button
               type="button"
               disabled={isLoading}
-              onClick={() => onAction('undoHire', application)}
+              onClick={() => onAction('previous', application)}
               className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
             >
-              <RotateCcw size={14} />
-              Move back to {finalStageName}
+              <ArrowLeft size={14} />
+              Move to {info.previous_stage?.name || 'Previous Stage'}
             </button>
+          )}
+          {application.status === 'Active' && !info.hiring_completed && !info.is_final_stage && (
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={() => onAction('next', application)}
+              className="flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 disabled:opacity-50"
+            >
+              <ArrowRight size={14} />
+              Move to {info.next_stage?.name || 'Next Stage'}
+            </button>
+          )}
+          {info.is_final_stage && !info.hiring_completed && application.status === 'Active' && canHire && (
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={() => onAction('hire', application)}
+              className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+            >
+              <UserCheck size={14} />
+              Complete Hiring
+            </button>
+          )}
+          {info.is_final_stage && !info.hiring_completed && application.status === 'Active' && !canHire && (
+            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">
+              Hire slot filled for this job
+            </span>
+          )}
+          {application.status === 'Active' && (
             <button
               type="button"
               disabled={isLoading}
@@ -99,18 +117,40 @@ function CandidateRow({ application, onAction, loadingId, viewType }) {
               <Ban size={14} />
               Reject
             </button>
-          </>
-        )}
-        {application.status === 'Hired' && info.hiring_completed && (
-          <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800">
-            Caregiver roster
-          </span>
-        )}
-        {application.status === 'Rejected' && (
-          <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700">
-            Rejected
-          </span>
-        )}
+          )}
+          {application.status === 'Hired' && !info.hiring_completed && (
+            <>
+              <button
+                type="button"
+                disabled={isLoading}
+                onClick={() => onAction('undoHire', application)}
+                className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                <RotateCcw size={14} />
+                Move back to {finalStageName}
+              </button>
+              <button
+                type="button"
+                disabled={isLoading}
+                onClick={() => onAction('reject', application)}
+                className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+              >
+                <Ban size={14} />
+                Reject
+              </button>
+            </>
+          )}
+          {application.status === 'Hired' && info.hiring_completed && (
+            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800">
+              Caregiver roster
+            </span>
+          )}
+          {application.status === 'Rejected' && (
+            <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700">
+              Rejected
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -129,6 +169,8 @@ export default function StageCandidatesModal({
   const [loading, setLoading] = useState(false);
   const [actionId, setActionId] = useState(null);
   const [hireResult, setHireResult] = useState(null);
+  const [formsApplication, setFormsApplication] = useState(null);
+  const [feedbackApplication, setFeedbackApplication] = useState(null);
 
   const loadApplications = async () => {
     const data = await dispatch(
@@ -245,12 +287,29 @@ export default function StageCandidatesModal({
                   onAction={handleAction}
                   loadingId={actionId}
                   viewType={viewType}
+                  onOpenForms={setFormsApplication}
+                  onOpenFeedback={setFeedbackApplication}
                 />
               ))}
             </div>
           )}
         </div>
       </div>
+
+      <CandidateFormsPanel
+        open={Boolean(formsApplication)}
+        onClose={() => setFormsApplication(null)}
+        application={formsApplication}
+        stageId={stage?.id}
+      />
+
+      <InterviewFeedbackDrawer
+        open={Boolean(feedbackApplication)}
+        onClose={() => setFeedbackApplication(null)}
+        application={feedbackApplication}
+        stageId={stage?.id || feedbackApplication?.agencyStageId}
+        onSaved={loadApplications}
+      />
     </div>
   );
 }

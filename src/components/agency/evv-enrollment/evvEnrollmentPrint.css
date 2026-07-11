@@ -1,0 +1,209 @@
+/* EVV Enrollment — full-page grid layout (9 sections fill sheet) */
+
+.ev-page {
+  box-sizing: border-box;
+  width: 8.5in;
+  height: 11in;
+  max-height: 11in;
+  margin: 0 auto;
+  padding: 0.1in 0.12in 0.07in;
+  background: #fff;
+  color: #111;
+  font-family: Inter, Arial, Helvetica, sans-serif;
+  font-size: 5.8pt;
+  line-height: 1.14;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.ev-page * { box-sizing: border-box; }
+
+/* ── Header ── */
+.ev-header {
+  display: grid;
+  grid-template-columns: 1.15in 1fr 1.05in;
+  gap: 0.04in;
+  align-items: start;
+  margin-bottom: 0.028in;
+  padding-bottom: 0.025in;
+  border-bottom: 1.5px solid #1a3a6c;
+  flex-shrink: 0;
+}
+
+.ev-brand { display: flex; align-items: center; gap: 0.035in; }
+.ev-logo {
+  display: flex; height: 0.3in; width: 0.3in; align-items: center; justify-content: center;
+  border-radius: 6px; background: linear-gradient(135deg, #1e5bb9, #1a3a6c); color: #fff; font-size: 9pt;
+}
+.ev-brand-domain { font-size: 7.5pt; font-weight: 800; color: #1a3a6c; line-height: 1.05; }
+.ev-brand-tag { font-size: 4.8pt; color: #666; }
+
+.ev-title-block { text-align: center; }
+.ev-main-title { font-size: 10.5pt; font-weight: 800; color: #1a3a6c; letter-spacing: 0.03em; line-height: 1.05; }
+.ev-subtitle { font-size: 5.5pt; color: #555; font-style: italic; margin-top: 0.01in; }
+
+.ev-meta-box { font-size: 5.6pt; }
+
+/* ── Body: 9-row grid fills remaining page height ── */
+.ev-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 1.15fr 1.15fr 0.62fr 0.72fr 0.62fr 0.62fr 0.92fr 0.72fr 1fr;
+  gap: 0.017in;
+}
+
+.ev-section {
+  border: 1px solid #9eb4d4;
+  break-inside: avoid;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ev-section-head {
+  background: #1a3a6c; color: #fff; padding: 0.014in 0.035in;
+  font-size: 5.8pt; font-weight: 800; display: flex; align-items: center; gap: 0.028in;
+  flex-shrink: 0; line-height: 1.15;
+}
+
+.ev-section-head-sub { font-weight: 500; font-size: 5.4pt; opacity: 0.92; }
+
+.ev-section-num {
+  display: inline-flex; height: 0.13in; width: 0.13in; align-items: center; justify-content: center;
+  border-radius: 50%; background: #fff; color: #1a3a6c; font-size: 5.4pt; font-weight: 800; flex-shrink: 0;
+}
+
+.ev-section-body {
+  flex: 1;
+  min-height: 0;
+  padding: 0.032in 0.032in 0.022in;
+  display: flex;
+  flex-direction: column;
+  gap: 0.022in;
+}
+
+.ev-section-office .ev-section-body { background: #eef3fa; }
+
+/* ── Rows & fields ── */
+.ev-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.01in 0.035in;
+  align-items: baseline;
+  flex-shrink: 0;
+}
+
+.ev-field {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.015in;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ev-field.w100 { flex: 1 1 100%; width: 100%; }
+.ev-field.w70 { flex: 1 1 65%; }
+.ev-field.w60 { flex: 1 1 55%; }
+.ev-field.w50 { flex: 1 1 45%; }
+.ev-field.w40 { flex: 1 1 35%; }
+.ev-field.w33 { flex: 1 1 30%; }
+.ev-field.w25 { flex: 1 1 22%; }
+
+.ev-label { font-weight: 700; color: #1a3a6c; white-space: nowrap; font-size: 5.6pt; }
+.ev-value {
+  flex: 1; border-bottom: 1px solid #888; min-height: 0.092in;
+  font-size: 5.6pt; word-break: break-word; padding-bottom: 0.003in;
+}
+
+.ev-checks {
+  display: flex; flex-wrap: wrap; gap: 0.01in 0.03in; align-items: center;
+  flex-shrink: 0;
+}
+
+.ev-check { display: inline-flex; align-items: center; gap: 0.01in; font-size: 5.4pt; white-space: nowrap; }
+.ev-box {
+  display: inline-block; width: 0.075in; height: 0.075in; border: 1px solid #333;
+  line-height: 0.07in; text-align: center; font-size: 5pt; font-weight: 700; flex-shrink: 0;
+}
+.ev-box.on::after { content: '✓'; }
+
+.ev-note { font-size: 5.2pt; color: #555; font-style: italic; margin: 0; line-height: 1.2; flex-shrink: 0; }
+.ev-auth-text { font-size: 5.4pt; margin: 0; line-height: 1.22; flex-shrink: 0; }
+
+/* Signatures */
+.ev-sig-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.05in;
+  align-items: end;
+  flex: 1;
+  min-height: 0.32in;
+}
+
+.ev-sig-row-single { grid-template-columns: 1fr; max-width: 50%; }
+
+.ev-sig-block { display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
+.ev-sig-label { font-size: 5.4pt; font-weight: 700; color: #1a3a6c; margin-bottom: 0.004in; }
+.ev-sig-img {
+  flex: 1; min-height: 0.15in; max-height: 0.2in; border-bottom: 1px solid #333;
+  display: flex; align-items: flex-end; justify-content: flex-start;
+}
+.ev-sig-img img { max-height: 0.16in; max-width: 100%; object-fit: contain; }
+.ev-sig-line { flex: 1; min-height: 0.15in; max-height: 0.2in; border-bottom: 1px solid #333; }
+.ev-sig-date {
+  display: flex; align-items: baseline; gap: 0.015in; font-size: 5.4pt; margin-top: 0.005in;
+  flex-shrink: 0;
+}
+.ev-sig-date .ev-value { min-width: 0.6in; flex: 0 1 0.6in; }
+
+.ev-notes-wrap {
+  flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0.005in;
+}
+.ev-notes-box {
+  flex: 1; border: 1px solid #888; min-height: 0.12in;
+  padding: 0.01in; font-size: 5.4pt;
+}
+
+/* ── Footer ── */
+.ev-footer {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  margin-top: 0.02in; padding-top: 0.018in; border-top: 1.5px solid #1a3a6c;
+  font-size: 5.4pt; flex-shrink: 0;
+}
+.ev-footer-help { display: flex; flex-wrap: wrap; gap: 0.04in; color: #333; }
+.ev-footer-item { display: inline-flex; align-items: center; gap: 0.012in; }
+.ev-footer-icon { font-size: 6.5pt; }
+.ev-rev { font-size: 5pt; color: #666; text-align: right; }
+
+/* ── Screen toolbar ── */
+.ev-toolbar {
+  position: sticky; top: 0; z-index: 50; display: flex; justify-content: center; gap: 0.5rem;
+  padding: 0.75rem; background: #f3f4f6; border-bottom: 1px solid #e5e7eb;
+}
+.ev-toolbar button {
+  display: inline-flex; align-items: center; gap: 0.5rem; border-radius: 0.625rem;
+  padding: 0.625rem 1.25rem; font-size: 0.9375rem; font-weight: 600; cursor: pointer;
+}
+.ev-btn-print { background: #1a3a6c; color: #fff; border: none; }
+.ev-btn-close { background: #fff; border: 1px solid #d1d5db; color: #374151; }
+.ev-screen-wrap { min-height: 100vh; background: #c8d0db; padding: 1rem 0 2rem; }
+
+@media print {
+  @page { size: letter portrait; margin: 0; }
+  html, body {
+    width: 8.5in; height: 11in; margin: 0 !important; padding: 0 !important;
+    background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .no-print, .ev-toolbar { display: none !important; }
+  .ev-screen-wrap { background: #fff; padding: 0; min-height: 0; }
+  .ev-page {
+    width: 8.5in; height: 11in; max-height: 11in; min-height: 11in;
+    margin: 0; page-break-inside: avoid; overflow: hidden;
+  }
+  .ev-section-head { background: #1a3a6c !important; color: #fff !important; }
+  .ev-section-num { background: #fff !important; color: #1a3a6c !important; }
+  .ev-section-office .ev-section-body { background: #eef3fa !important; }
+}

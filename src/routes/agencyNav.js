@@ -5,29 +5,44 @@ export const AGENCY_NAV_GROUPS = [
   {
     title: 'Client Management',
     items: [
-      { key: 'AGENCY_CLIENTS', label: 'Clients', icon: 'Users' },
-      { key: 'AGENCY_INSURANCE_INTAKE', label: 'Insurance Intake', icon: 'Shield' },
       { key: 'AGENCY_ASSESSMENTS', label: 'Assessments', icon: 'ClipboardList' },
+      { key: 'AGENCY_CLIENTS', label: 'Clients', icon: 'Users' },
       { key: 'AGENCY_CARE_PLANS', label: 'Care Plans', icon: 'HeartHandshake' },
-      { key: 'AGENCY_SERVICE_NOTES', label: 'Service Notes', icon: 'FileText' },
-      { key: 'AGENCY_MEDICATIONS', label: 'Medications', icon: 'Pill' },
-      { key: 'AGENCY_EMAR', label: 'eMAR', icon: 'Tablets' },
+      { key: 'AGENCY_INSURANCE_INTAKE', label: 'Insurance Intake', icon: 'Shield' },
     ],
   },
-  {
-    title: 'Scheduling',
-    items: [
-      { key: 'AGENCY_SCHEDULE', label: 'Schedule', icon: 'Calendar' },
-      { key: 'AGENCY_VISIT_CALENDAR', label: 'Visit Calendar', icon: 'CalendarDays' },
-      { key: 'AGENCY_SHIFT_MANAGEMENT', label: 'Shift Management', icon: 'Clock' },
-      { key: 'AGENCY_TIME_ATTENDANCE', label: 'Time & Attendance', icon: 'Timer' },
-    ],
-  },
+  // EVV — temporarily hidden; re-enable later
+  // {
+  //   title: 'EVV',
+  //   items: [
+  //     {
+  //       key: 'AGENCY_EVV_GROUP',
+  //       label: 'EVV',
+  //       icon: 'ShieldCheck',
+  //       badge: 'Live',
+  //       moduleKeys: [
+  //         'AGENCY_EVV_DASHBOARD',
+  //         'AGENCY_EVV_LOGS',
+  //         'AGENCY_EVV_EXCEPTIONS',
+  //         'AGENCY_EVV_UNVERIFIED',
+  //         'AGENCY_EVV_ENROLLMENTS',
+  //         'AGENCY_EVV_SETTINGS',
+  //       ],
+  //       children: [
+  //         { key: 'AGENCY_EVV_DASHBOARD', label: 'EVV Dashboard' },
+  //         { key: 'AGENCY_EVV_LOGS', label: 'EVV Logs' },
+  //         { key: 'AGENCY_EVV_EXCEPTIONS', label: 'Exceptions' },
+  //         { key: 'AGENCY_EVV_UNVERIFIED', label: 'Unverified Visits' },
+  //         { key: 'AGENCY_EVV_ENROLLMENTS', label: 'Enrollments' },
+  //         { key: 'AGENCY_EVV_SETTINGS', label: 'Settings' },
+  //       ],
+  //     },
+  //   ],
+  // },
   {
     title: 'Caregivers',
     items: [
       { key: 'AGENCY_CAREGIVERS', label: 'Caregivers', icon: 'UserCheck' },
-      { key: 'AGENCY_CAREGIVER_MATCHING', label: 'Caregiver Matching', icon: 'GitMerge' },
     ],
   },
   {
@@ -37,23 +52,6 @@ export const AGENCY_NAV_GROUPS = [
       { key: 'AGENCY_HIRING_PIPELINE', label: 'Hiring Pipeline', icon: 'GitBranch' },
       { key: 'AGENCY_JOBS', label: 'Jobs', icon: 'ClipboardList' },
       { key: 'AGENCY_CANDIDATES', label: 'Candidates', icon: 'Users' },
-    ],
-  },
-  {
-    title: 'Operations',
-    items: [
-      { key: 'AGENCY_TASKS', label: 'Tasks', icon: 'CheckSquare' },
-      { key: 'AGENCY_INCIDENTS', label: 'Incidents', icon: 'AlertTriangle' },
-      { key: 'AGENCY_REPORTS', label: 'Reports', icon: 'BarChart3' },
-    ],
-  },
-  {
-    title: 'Administration',
-    items: [
-      { key: 'AGENCY_USERS', label: 'Users', icon: 'UserCog' },
-      { key: 'AGENCY_ROLES', label: 'Roles & Permissions', icon: 'Shield' },
-      { key: 'AGENCY_SETTINGS', label: 'Settings', icon: 'Settings' },
-      { key: 'AGENCY_BILLING', label: 'Billing & Invoices', icon: 'Receipt' },
     ],
   },
 ];

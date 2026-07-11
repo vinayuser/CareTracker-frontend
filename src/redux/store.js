@@ -13,6 +13,7 @@ import clientsReducer from './slices/clientsSlice';
 import carePlansReducer from './slices/carePlansSlice';
 import assessmentsReducer from './slices/assessmentsSlice';
 import insuranceIntakesReducer from './slices/insuranceIntakesSlice';
+import evvEnrollmentsReducer from './slices/evvEnrollmentsSlice';
 
 const store = configureStore({
   reducer: {
@@ -30,6 +31,7 @@ const store = configureStore({
     carePlans: carePlansReducer,
     assessments: assessmentsReducer,
     insuranceIntakes: insuranceIntakesReducer,
+    evvEnrollments: evvEnrollmentsReducer,
   },
 });
 
