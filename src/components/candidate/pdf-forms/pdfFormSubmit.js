@@ -1,6 +1,11 @@
 import API_ROUTES from '../../../api/apiRoutes';
+import axiosInstance from '../../../api/axiosInstance';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api').replace(/\/+$/, '');
+const getApiBase = () => {
+  const fromAxios = String(axiosInstance.defaults.baseURL || '').replace(/\/+$/, '');
+  if (fromAxios) return fromAxios;
+  return (import.meta.env.VITE_API_BASE_URL || `${window.location.origin}/api/api`).replace(/\/+$/, '');
+};
 
 export async function submitFilledPdfForm({
   token,
@@ -20,7 +25,7 @@ export async function submitFilledPdfForm({
   body.append('filled_document', pdfBlob, fileName || 'filled-form.pdf');
   body.append('form_data', JSON.stringify(formData || {}));
 
-  const url = `${API_BASE}${API_ROUTES.CANDIDATE_FORMS.PORTAL}/${encodeURIComponent(token)}/${encodeURIComponent(documentCode)}/submit-pdf`;
+  const url = `${getApiBase()}${API_ROUTES.CANDIDATE_FORMS.PORTAL}/${encodeURIComponent(token)}/${encodeURIComponent(documentCode)}/submit-pdf`;
 
   const response = await fetch(url, {
     method: 'POST',

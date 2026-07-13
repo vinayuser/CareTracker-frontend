@@ -5,11 +5,7 @@ import axiosInstance from '../../api/axiosInstance';
 import API_ROUTES from '../../api/apiRoutes';
 import { ROUTES } from '../../routes/routes';
 import { getPdfForm, hasPdfForm } from '../../components/candidate/pdf-forms';
-
-const normalizeTemplateUrl = (url) => {
-  if (!url) return url;
-  return url.replace('/documents/documents/', '/documents/');
-};
+import { resolvePublicDocumentUrl } from '../../components/candidate/pdf-forms/pdfTemplateFetch';
 
 export default function CandidateDocumentForm() {
   const { token, documentCode } = useParams();
@@ -108,7 +104,7 @@ export default function CandidateDocumentForm() {
           document={{
             ...doc,
             code: doc.document_code || documentCode,
-            url: normalizeTemplateUrl(doc.template_url || doc.url),
+            url: resolvePublicDocumentUrl(doc.template_url || doc.url),
           }}
           token={token}
           onClose={handleSuccess}

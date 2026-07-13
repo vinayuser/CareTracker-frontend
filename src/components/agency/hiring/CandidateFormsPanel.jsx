@@ -5,6 +5,7 @@ import axiosInstance from '../../../api/axiosInstance';
 import API_ROUTES from '../../../api/apiRoutes';
 import { ROUTES } from '../../../routes/routes';
 import { confirmAlert } from '../../../utils/swal';
+import { toCurrentAppOrigin } from '../../../utils/appUrl';
 import SelectFormsToSendModal from './SelectFormsToSendModal';
 
 const statusStyle = {
@@ -45,7 +46,9 @@ export default function CandidateFormsPanel({ open, onClose, application, stageI
 
   const candidate = application?.candidate || {};
   const progress = data?.form_progress || application?.form_progress || {};
-  const formUrl = data?.access?.form_url || progress.form_url;
+  const rawFormUrl = data?.access?.form_url || progress.form_url;
+  // Always use the host you're on now (local → local, production → production)
+  const formUrl = toCurrentAppOrigin(rawFormUrl);
   const availableDocuments = data?.available_documents?.length
     ? data.available_documents
     : (progress.documents || []).map((d) => ({
