@@ -1,28 +1,53 @@
 import axiosInstance from '../../../api/axiosInstance';
-import { getDocumentAssetOrigin } from '../../../utils/appUrl';
+
+/** Pull `fillable-forms/....pdf` (or any path under documents/) from a template URL. */
+function extractDocumentsRelativePath(pdfUrl) {
+  const raw = String(pdfUrl || '').trim();
+  if (!raw) return '';
+
+  try {
+    const parsed = raw.startsWith('/')
+      ? new URL(raw, typeof window !== 'undefined' ? window.location.origin : 'http://localhost')
+      : new URL(raw);
+    const pathname = decodeURIComponent(parsed.pathname);
+    const marker = '/documents/';
+    const idx = pathname.toLowerCase().lastIndexOf(marker);
+    if (idx >= 0) {
+      return pathname.slice(idx + marker.length).replace(/^\/+/, '');
+    }
+  } catch {
+    /* fall through */
+  }
+
+  const match = raw.match(/documents\/(.+?)(?:\?|#|$)/i);
+  return match ? decodeURIComponent(match[1]) : '';
+}
 
 /**
- * Resolve PDF template URL for the environment you're in right now.
- * Uses the API host (local backend port, or same production site).
+ * Build a PDF URL that always goes through the API host:
+ *   {apiOrigin}/api/documents/fillable-forms/....pdf
+ * Works locally and on production (nginx already proxies /api/).
  */
 export function resolvePublicDocumentUrl(pdfUrl) {
   if (!pdfUrl) return pdfUrl;
 
-  let next = String(pdfUrl).trim().replace('/documents/documents/', '/documents/');
-  const assetOrigin = getDocumentAssetOrigin(axiosInstance.defaults.baseURL);
+  const relative = extractDocumentsRelativePath(pdfUrl);
+  const apiBase = String(axiosInstance.defaults.baseURL || '').replace(/\/+$/, '');
 
+  let origin = '';
   try {
-    const parsed = next.startsWith('/')
-      ? new URL(next, assetOrigin || (typeof window !== 'undefined' ? window.location.origin : undefined))
-      : new URL(next);
-
-    if (assetOrigin) {
-      return `${assetOrigin}${parsed.pathname}${parsed.search}`;
-    }
-    return `${parsed.origin}${parsed.pathname}${parsed.search}`;
+    origin = new URL(apiBase || (typeof window !== 'undefined' ? window.location.origin : ''), window.location?.origin || 'http://localhost').origin;
   } catch {
-    return next;
+    origin = typeof window !== 'undefined' ? window.location.origin : '';
   }
+
+  if (relative && origin) {
+    const encoded = relative.split('/').map((part) => encodeURIComponent(part)).join('/');
+    return `${origin}/api/documents/${encoded}`;
+  }
+
+  // Last resort: keep original if we couldn't parse it
+  return String(pdfUrl).replace('/documents/documents/', '/documents/');
 }
 
 export async function fetchPdfTemplateBytes(pdfUrl) {
@@ -33,12 +58,16 @@ export async function fetchPdfTemplateBytes(pdfUrl) {
 
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`Could not load form template (HTTP ${response.status})`);
+    throw new Error(`Could not load form template (HTTP ${response.status}). URL: ${url}`);
   }
   const bytes = await response.arrayBuffer();
-  const header = new TextDecoder().decode(bytes.slice(0, 5));
+  const header = new TextDecoder().decode(bytes.slice(0, 8));
   if (!header.startsWith('%PDF')) {
-    throw new Error('Form template is not a valid PDF. Please contact your agency.');
+    const sniff = header.replace(/\s+/g, ' ').slice(0, 40);
+    throw new Error(
+      `Form template is not a valid PDF (got "${sniff}…" from ${url}). `
+      + 'The server returned a web page instead of the file — check API /api/documents is reachable.',
+    );
   }
   return bytes;
 }
