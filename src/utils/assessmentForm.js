@@ -4,6 +4,20 @@ export const ASSESSMENT_TYPES = [
 
 export const ASSESSMENT_STATUSES = ['Enquiry', 'Quoted', 'Accepted', 'Declined'];
 
+/** Age in full years from YYYY-MM-DD DOB (calendar date). */
+export function ageFromDob(dob) {
+  if (!dob) return '';
+  const birth = new Date(`${dob}T12:00:00`);
+  if (Number.isNaN(birth.getTime())) return '';
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age -= 1;
+  }
+  return age >= 0 ? String(age) : '';
+}
+
 export const ASSESSMENT_STEPS = [
   { id: 1, label: 'Intake & Medical', description: 'Client info, contacts, medical history, medications' },
   { id: 2, label: 'Functional & Care Plan', description: 'ADLs, mobility, goals, services, schedule, signatures' },

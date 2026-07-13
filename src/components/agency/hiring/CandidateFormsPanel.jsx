@@ -5,6 +5,7 @@ import axiosInstance from '../../../api/axiosInstance';
 import API_ROUTES from '../../../api/apiRoutes';
 import { ROUTES } from '../../../routes/routes';
 import { confirmAlert } from '../../../utils/swal';
+import SelectFormsToSendModal from './SelectFormsToSendModal';
 
 const statusStyle = {
   NotStarted: 'bg-gray-100 text-gray-700',
@@ -17,6 +18,7 @@ export default function CandidateFormsPanel({ open, onClose, application, stageI
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [resettingCode, setResettingCode] = useState(null);
+  const [showResendPicker, setShowResendPicker] = useState(false);
 
   const load = async () => {
     if (!application?.id) return;
@@ -44,6 +46,13 @@ export default function CandidateFormsPanel({ open, onClose, application, stageI
   const candidate = application?.candidate || {};
   const progress = data?.form_progress || application?.form_progress || {};
   const formUrl = data?.access?.form_url || progress.form_url;
+  const availableDocuments = data?.available_documents?.length
+    ? data.available_documents
+    : (progress.documents || []).map((d) => ({
+      code: d.code,
+      name: d.name,
+      is_required: d.is_required,
+    }));
 
   const copyLink = async () => {
     if (!formUrl) {
@@ -54,13 +63,15 @@ export default function CandidateFormsPanel({ open, onClose, application, stageI
     toast.success('Form link copied');
   };
 
-  const resendEmail = async () => {
+  const resendEmail = async (documentCodes) => {
     setResending(true);
     try {
       await axiosInstance.post(
         `${API_ROUTES.AGENCY.JOB_APPLICATIONS.RESEND_FORM_EMAIL}/${application.id}/resend-form-email`,
+        { document_codes: documentCodes },
       );
       toast.success('Form email sent');
+      setShowResendPicker(false);
       await load();
     } finally {
       setResending(false);
@@ -147,12 +158,12 @@ export default function CandidateFormsPanel({ open, onClose, application, stageI
                 )}
                 <button
                   type="button"
-                  disabled={resending}
-                  onClick={resendEmail}
+                  disabled={resending || availableDocuments.length === 0}
+                  onClick={() => setShowResendPicker(true)}
                   className="inline-flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 disabled:opacity-50"
                 >
                   <Mail size={14} />
-                  {resending ? 'Sending...' : 'Resend email'}
+                  Resend email
                 </button>
               </div>
 
@@ -210,13 +221,26 @@ export default function CandidateFormsPanel({ open, onClose, application, stageI
                   </div>
                 ))}
                 {(progress.documents || []).length === 0 && (
-                  <p className="py-6 text-center text-sm text-gray-500">No forms configured for this stage.</p>
+                  <p className="py-6 text-center text-sm text-gray-500">No forms issued for this candidate yet.</p>
                 )}
               </div>
             </>
           )}
         </div>
       </div>
+
+      <SelectFormsToSendModal
+        open={showResendPicker}
+        onClose={() => !resending && setShowResendPicker(false)}
+        onConfirm={resendEmail}
+        title="Resend form email"
+        stageName={data?.stage?.name || ''}
+        candidateName={`${candidate.first_name || ''} ${candidate.last_name || ''}`.trim()}
+        documents={availableDocuments}
+        confirmLabel="Send selected forms"
+        allowSkip={false}
+        submitting={resending}
+      />
     </div>
   );
 }

@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Upload } from 'lucide-react';
 import Drawer from '../../ui/Drawer';
 import { addCandidateToJob } from '../../../redux/slices/candidatesSlice';
+import { fetchHiringPipeline } from '../../../redux/slices/hiringPipelineSlice';
 import countryList from '../../../utils/countryList';
 import {
   validateCandidateForm,
   parseExperienceValue,
   EXPERIENCE_OPTIONS,
 } from '../../../utils/candidateFormValidator';
+import SelectFormsToSendModal from './SelectFormsToSendModal';
 
 const EMPTY = {
   firstName: '',
@@ -56,9 +58,11 @@ function FileField({ label, accept, file, onChange, hint }) {
 
 export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJob = null, onSuccess }) {
   const dispatch = useDispatch();
+  const pipelineStages = useSelector((state) => state.hiringPipeline.stages);
   const [form, setForm] = useState(EMPTY);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [showFormPicker, setShowFormPicker] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -67,7 +71,22 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
       jobId: selectedJob?.id || '',
     });
     setErrors({});
-  }, [open, selectedJob]);
+    setShowFormPicker(false);
+    dispatch(fetchHiringPipeline());
+  }, [open, selectedJob, dispatch]);
+
+  const firstStage = useMemo(() => {
+    const sorted = [...(pipelineStages || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
+    return sorted[0] || null;
+  }, [pipelineStages]);
+
+  const firstStageDocuments = useMemo(() => (
+    (firstStage?.documents || []).map((d) => ({
+      code: d.code,
+      name: d.name,
+      is_required: d.isRequired !== false && d.is_required !== false,
+    }))
+  ), [firstStage]);
 
   const set = (field) => (e) => {
     const value = e?.target ? e.target.value : e;
@@ -84,12 +103,7 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
     [jobs, form.jobId, selectedJob],
   );
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const nextErrors = validateCandidateForm(form);
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
-
+  const submitCandidate = async (documentCodes) => {
     setLoading(true);
     try {
       const data = new FormData();
@@ -105,6 +119,7 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
       data.append('current_ctc', String(Number(form.currentCtc) || 0));
       data.append('expected_ctc', String(Number(form.expectedCtc) || 0));
       data.append('job_id', form.jobId);
+      data.append('document_codes', JSON.stringify(documentCodes || []));
       if (form.dateOfBirth) data.append('date_of_birth', form.dateOfBirth);
       if (form.summary.trim()) data.append('summary', form.summary.trim());
       if (form.skills.trim()) data.append('skills', form.skills.trim());
@@ -112,12 +127,26 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
       if (form.resume) data.append('resume', form.resume);
 
       await dispatch(addCandidateToJob(data)).unwrap();
+      setShowFormPicker(false);
       onSuccess?.();
       onClose();
     } catch {
       // toast in slice
     }
     setLoading(false);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const nextErrors = validateCandidateForm(form);
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
+    if (firstStageDocuments.length > 0) {
+      setShowFormPicker(true);
+      return;
+    }
+    await submitCandidate([]);
   };
 
   return (
@@ -269,6 +298,19 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
           />
         </div>
       </form>
+
+      <SelectFormsToSendModal
+        open={showFormPicker}
+        onClose={() => !loading && setShowFormPicker(false)}
+        onConfirm={submitCandidate}
+        title="Select forms for first stage"
+        stageName={firstStage?.name || ''}
+        candidateName={`${form.firstName} ${form.lastName}`.trim()}
+        documents={firstStageDocuments}
+        confirmLabel="Add & send selected"
+        allowSkip
+        submitting={loading}
+      />
     </Drawer>
   );
 }

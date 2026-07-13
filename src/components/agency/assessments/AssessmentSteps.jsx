@@ -4,6 +4,7 @@ import {
   INSURANCE_TYPES, MARITAL_STATUSES, MEDICAL_HISTORY_ITEMS, MEMORY_LEVELS,
   ORIENTATION_LEVELS, REQUESTED_SERVICES, RISK_LEVELS, TRANSFER_TYPES, WEEK_DAYS,
 } from '../../../constants/assessmentOptions';
+import { ageFromDob } from '../../../utils/assessmentForm';
 import DigitalSignaturePad from '../../ui/DigitalSignaturePad';
 import AssessorPhotoUpload from '../../ui/AssessorPhotoUpload';
 
@@ -118,8 +119,25 @@ export function AssessmentStepOne({ form, onHeaderChange, onFormDataChange, erro
       <Section n="1" title="Client Information" subtitle="Basic demographics and clinical details">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Client Name" required error={errors.clientName} className="sm:col-span-2"><input value={d.clientInfo.clientName} onChange={set('clientInfo', 'clientName')} className={inputClass} /></Field>
-          <Field label="DOB"><input type="date" value={d.clientInfo.dob} onChange={set('clientInfo', 'dob')} className={inputClass} /></Field>
-          <Field label="Age"><input value={d.clientInfo.age} onChange={set('clientInfo', 'age')} className={inputClass} /></Field>
+          <Field label="DOB">
+            <input
+              type="date"
+              value={d.clientInfo.dob}
+              onChange={(e) => {
+                const dob = e.target.value;
+                onFormDataChange('clientInfo', { dob, age: ageFromDob(dob) });
+              }}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Age">
+            <input
+              value={d.clientInfo.age}
+              readOnly
+              className={`${inputClass} bg-gray-50 text-gray-700`}
+              placeholder="Auto from DOB"
+            />
+          </Field>
           <Chips label="Gender" options={GENDERS} values={d.clientInfo.gender} single onToggle={(g) => onFormDataChange('clientInfo', { gender: d.clientInfo.gender === g ? '' : g })} />
           <Chips label="Marital Status" options={MARITAL_STATUSES} values={d.clientInfo.maritalStatus} single onToggle={(m) => onFormDataChange('clientInfo', { maritalStatus: d.clientInfo.maritalStatus === m ? '' : m })} />
           <Field label="SSN (Optional)"><input value={d.clientInfo.ssn} onChange={set('clientInfo', 'ssn')} className={inputClass} /></Field>

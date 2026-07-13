@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { toast } from 'react-toastify';
 import TagInput from '../../../components/agency/hiring/TagInput';
 import {
@@ -20,7 +20,6 @@ import {
   generateJobAi,
   clearSelectedJob,
 } from '../../../redux/slices/jobsSlice';
-import { fetchHiringPipeline } from '../../../redux/slices/hiringPipelineSlice';
 import { ROUTES } from '../../../routes/routes';
 
 const inputClass =
@@ -43,7 +42,6 @@ const EMPTY_FORM = {
   job_description: '',
   job_requirements: '',
   job_benefits: '',
-  stage_ids: [],
 };
 
 function buildJobAiPayload(values) {
@@ -60,13 +58,12 @@ function buildJobAiPayload(values) {
   if (values.annual_salary_to !== '') payload.annual_salary_to = Number(values.annual_salary_to);
   if (values.keywords?.length) payload.keywords = values.keywords;
   return payload;
-};
+}
 
 export default function CreateJob({ editId = null }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { selected, aiLoading } = useSelector((state) => state.jobs);
-  const { stages: pipelineStages } = useSelector((state) => state.hiringPipeline);
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [showAiCard, setShowAiCard] = useState(true);
@@ -78,7 +75,6 @@ export default function CreateJob({ editId = null }) {
   );
 
   useEffect(() => {
-    dispatch(fetchHiringPipeline());
     if (editId) {
       dispatch(fetchJob(editId));
     }
@@ -104,35 +100,12 @@ export default function CreateJob({ editId = null }) {
       job_description: selected.description || '',
       job_requirements: selected.requirements || '',
       job_benefits: selected.benefits || '',
-      stage_ids: selected.stageIds || [],
     });
   }, [editId, selected]);
-
-  useEffect(() => {
-    if (!editId && pipelineStages.length && form.stage_ids.length === 0) {
-      setForm((prev) => ({
-        ...prev,
-        stage_ids: pipelineStages.map((s) => s.id),
-      }));
-    }
-  }, [editId, pipelineStages, form.stage_ids.length]);
 
   const setField = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
-  };
-
-  const toggleStage = (stageId) => {
-    setForm((prev) => {
-      const ids = new Set(prev.stage_ids);
-      if (ids.has(stageId)) {
-        if (ids.size === 1) return prev;
-        ids.delete(stageId);
-      } else {
-        ids.add(stageId);
-      }
-      return { ...prev, stage_ids: [...ids] };
-    });
   };
 
   const validate = () => {
@@ -154,7 +127,6 @@ export default function CreateJob({ editId = null }) {
     if (!form.job_description) next.job_description = 'Required';
     if (!form.job_requirements) next.job_requirements = 'Required';
     if (!form.job_benefits) next.job_benefits = 'Required';
-    if (!form.stage_ids.length) next.stage_ids = 'Select at least one pipeline stage';
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -185,7 +157,6 @@ export default function CreateJob({ editId = null }) {
       ...form,
       annual_salary_from: Number(form.annual_salary_from),
       annual_salary_to: Number(form.annual_salary_to),
-      stage_ids: form.stage_ids,
     };
     try {
       if (editId) {
@@ -205,7 +176,9 @@ export default function CreateJob({ editId = null }) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-900">{editId ? 'Edit Job' : 'Create Job'}</h1>
-          <p className="mt-1 text-sm text-gray-500">Post a new role and assign a hiring pipeline.</p>
+          <p className="mt-1 text-sm text-gray-500">
+            Post a new role. The agency hiring pipeline is applied automatically.
+          </p>
         </div>
         <Link to={ROUTES.AGENCY_JOBS} className="text-sm font-medium text-gray-600 hover:text-gray-900">
           Back to Jobs
@@ -325,35 +298,6 @@ export default function CreateJob({ editId = null }) {
               </select>
             </div>
           </div>
-        </section>
-
-        <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-gray-900">Hiring Pipeline *</h2>
-            <Link to={ROUTES.AGENCY_HIRING_PIPELINE} className="text-xs font-medium text-primary hover:underline">
-              Configure pipeline
-            </Link>
-          </div>
-          <p className="mb-3 text-sm text-gray-500">Select which pipeline stages apply to candidates for this job.</p>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
-            {pipelineStages.map((stage) => (
-              <label key={stage.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 hover:bg-gray-50">
-                <input
-                  type="checkbox"
-                  checked={form.stage_ids.includes(stage.id)}
-                  onChange={() => toggleStage(stage.id)}
-                  className="rounded border-gray-300 text-primary focus:ring-primary"
-                />
-                <span className="text-sm text-gray-700">
-                  {stage.order}. {stage.name}
-                </span>
-              </label>
-            ))}
-          </div>
-          {errors.stage_ids && <p className="mt-2 text-xs text-red-600">{errors.stage_ids}</p>}
-          {!pipelineStages.length && (
-            <p className="text-sm text-amber-600">No pipeline stages configured. Set up your hiring pipeline first.</p>
-          )}
         </section>
 
         <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">

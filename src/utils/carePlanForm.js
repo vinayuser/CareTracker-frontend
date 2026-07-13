@@ -164,38 +164,62 @@ export function clientToFormPatch(client) {
       emergencyPhone: client.emergencyContactPhone || '',
     },
     medicalInfo: {
-      primaryDiagnosis: client.primaryDiagnosis || '',
+      primaryDiagnosis: client.primaryDiagnosis || client.medicalConditions || '',
       allergies: client.allergies || '',
-      physician: client.primaryPhysician || '',
+      physician: client.physicianName || '',
       physicianPhone: client.physicianPhone || '',
     },
     supplementary: {
-      preferredPharmacy: client.pharmacy || '',
+      preferredHospital: client.preferredHospital || '',
+      preferredPharmacy: client.pharmacyName || '',
       interpreterNeeded: client.interpreterNeeded ?? null,
       healthInsurance: client.insuranceProvider || '',
-      policyId: client.insurancePolicyNumber || '',
+      policyId: client.insuranceMemberId || '',
     },
   };
 }
 
+/** Merge patch into base; non-empty patch values win so assessment/client data fills blanks and updates. */
+const mergeFilled = (base = {}, patch = {}) => {
+  const out = { ...base };
+  Object.entries(patch).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') return;
+    out[key] = value;
+  });
+  return out;
+};
+
 export function carePlanToForm(plan, client = null) {
   const empty = buildEmptyFormData();
   if (!plan) {
+    const patch = client ? clientToFormPatch(client) : {};
     return {
       clientId: '',
       version: '1.0',
       effectiveDate: formatDisplayDate(),
       reviewDate: formatDisplayDate(new Date(Date.now() + 30 * 86400000)),
       status: 'Active',
-      formData: client ? { ...empty, ...clientToFormPatch(client) } : empty,
+      formData: {
+        ...empty,
+        clientInfo: mergeFilled(empty.clientInfo, patch.clientInfo),
+        medicalInfo: mergeFilled(empty.medicalInfo, patch.medicalInfo),
+        supplementary: mergeFilled(empty.supplementary, patch.supplementary),
+      },
     };
   }
-  const merged = { ...empty, ...(plan.formData || {}) };
+  const fd = plan.formData || {};
+  const merged = {
+    ...empty,
+    ...fd,
+    clientInfo: { ...empty.clientInfo, ...(fd.clientInfo || {}) },
+    medicalInfo: { ...empty.medicalInfo, ...(fd.medicalInfo || {}) },
+    supplementary: { ...empty.supplementary, ...(fd.supplementary || {}) },
+  };
   if (client) {
     const patch = clientToFormPatch(client);
-    merged.clientInfo = { ...merged.clientInfo, ...patch.clientInfo };
-    merged.medicalInfo = { ...merged.medicalInfo, ...patch.medicalInfo };
-    merged.supplementary = { ...merged.supplementary, ...patch.supplementary };
+    merged.clientInfo = mergeFilled(merged.clientInfo, patch.clientInfo);
+    merged.medicalInfo = mergeFilled(merged.medicalInfo, patch.medicalInfo);
+    merged.supplementary = mergeFilled(merged.supplementary, patch.supplementary);
   }
   return {
     clientId: plan.clientId || '',

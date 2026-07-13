@@ -12,16 +12,23 @@ import {
 import { confirmAlert } from '../../../utils/swal';
 import CandidateFormsPanel from './CandidateFormsPanel';
 import InterviewFeedbackDrawer from './InterviewFeedbackDrawer';
+import SelectFormsToSendModal from './SelectFormsToSendModal';
 
 function CandidateRow({ application, onAction, loadingId, viewType, onOpenForms, onOpenFeedback }) {
   const candidate = application.candidate || {};
   const info = application.stage_info || {};
   const progress = application.form_progress;
   const feedback = application.interview_feedback;
+  const feedbackSummary = application.interview_feedback_summary;
   const isLoading = loadingId === application.id;
   const canHire = info.can_hire ?? (info.job_hired_count === 0 && info.is_final_stage);
   const finalStageName = info.final_stage?.name || 'Final Stage';
   const hasForms = progress && (progress.total > 0 || progress.documents?.length > 0);
+  const pipelineStageCount = info.stages?.length || 0;
+  const feedbackSubmitted = feedbackSummary?.submitted_count ?? (feedback?.status === 'Submitted' ? 1 : 0);
+  const feedbackLabel = pipelineStageCount > 0
+    ? `Feedback (${feedbackSubmitted}/${pipelineStageCount})`
+    : (feedback ? 'Feedback' : 'Add Feedback');
 
   return (
     <div className="rounded-lg border border-gray-200 px-4 py-3">
@@ -41,22 +48,32 @@ function CandidateRow({ application, onAction, loadingId, viewType, onOpenForms,
           )}
           {viewType === 'stage' && feedback && (
             <p className="mt-1 text-xs text-gray-500">
-              Interview feedback:{' '}
+              This stage feedback:{' '}
               <span className={feedback.status === 'Submitted' ? 'text-emerald-700' : 'text-amber-700'}>
                 {feedback.status}
               </span>
+              {feedbackSummary && pipelineStageCount > 0 && (
+                <span className="text-gray-400">
+                  {' '}· {feedbackSubmitted}/{pipelineStageCount} rounds submitted
+                </span>
+              )}
+            </p>
+          )}
+          {viewType === 'stage' && !feedback && feedbackSummary?.submitted_count > 0 && (
+            <p className="mt-1 text-xs text-gray-500">
+              Pipeline feedback: {feedbackSubmitted}/{pipelineStageCount || feedbackSummary.total_with_feedback} rounds submitted
             </p>
           )}
         </div>
         <div className="flex flex-wrap gap-2">
-          {viewType === 'stage' && (
+          {(viewType === 'stage' || viewType === 'hired' || viewType === 'rejected') && (
             <button
               type="button"
               onClick={() => onOpenFeedback(application)}
               className="flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10"
             >
               <ClipboardCheck size={14} />
-              {feedback ? 'Feedback' : 'Add Feedback'}
+              {feedbackLabel}
             </button>
           )}
           {hasForms && viewType === 'stage' && (
@@ -171,6 +188,8 @@ export default function StageCandidatesModal({
   const [hireResult, setHireResult] = useState(null);
   const [formsApplication, setFormsApplication] = useState(null);
   const [feedbackApplication, setFeedbackApplication] = useState(null);
+  const [formPick, setFormPick] = useState(null);
+  const [formPickSubmitting, setFormPickSubmitting] = useState(false);
 
   const loadApplications = async () => {
     const data = await dispatch(
@@ -198,14 +217,43 @@ export default function StageCandidatesModal({
 
   const hiredCount = viewType === 'hired' ? applications.length : 0;
 
-  const handleAction = async (action, application) => {
+  const runStageMove = async (direction, application, documentCodes) => {
     setActionId(application.id);
     try {
-      if (action === 'next') {
-        await dispatch(moveToNextStage(application.id)).unwrap();
-      } else if (action === 'previous') {
-        await dispatch(moveToPreviousStage(application.id)).unwrap();
-      } else if (action === 'reject') {
+      if (direction === 'next') {
+        await dispatch(moveToNextStage({ id: application.id, documentCodes })).unwrap();
+      } else {
+        await dispatch(moveToPreviousStage({ id: application.id, documentCodes })).unwrap();
+      }
+      onRefresh?.();
+      await loadApplications();
+    } catch {
+      // toast in slice
+    }
+    setActionId(null);
+  };
+
+  const handleAction = async (action, application) => {
+    if (action === 'next' || action === 'previous') {
+      const info = application.stage_info || {};
+      const target = action === 'next' ? info.next_stage : info.previous_stage;
+      const docs = target?.documents || [];
+      if (docs.length > 0) {
+        setFormPick({
+          direction: action,
+          application,
+          stageName: target?.name || '',
+          documents: docs,
+        });
+        return;
+      }
+      await runStageMove(action, application, []);
+      return;
+    }
+
+    setActionId(application.id);
+    try {
+      if (action === 'reject') {
         const isHired = application.status === 'Hired';
         const name = `${application.candidate?.first_name} ${application.candidate?.last_name}`.trim();
         const confirmed = await confirmAlert({
@@ -244,6 +292,19 @@ export default function StageCandidatesModal({
     }
     setActionId(null);
   };
+
+  const handleFormPickConfirm = async (documentCodes) => {
+    if (!formPick) return;
+    setFormPickSubmitting(true);
+    try {
+      await runStageMove(formPick.direction, formPick.application, documentCodes);
+      setFormPick(null);
+    } finally {
+      setFormPickSubmitting(false);
+    }
+  };
+
+  const pickCandidate = formPick?.application?.candidate || {};
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -309,6 +370,19 @@ export default function StageCandidatesModal({
         application={feedbackApplication}
         stageId={stage?.id || feedbackApplication?.agencyStageId}
         onSaved={loadApplications}
+      />
+
+      <SelectFormsToSendModal
+        open={Boolean(formPick)}
+        onClose={() => !formPickSubmitting && setFormPick(null)}
+        onConfirm={handleFormPickConfirm}
+        title={formPick?.direction === 'previous' ? 'Move to previous stage' : 'Move to next stage'}
+        stageName={formPick?.stageName}
+        candidateName={`${pickCandidate.first_name || ''} ${pickCandidate.last_name || ''}`.trim()}
+        documents={formPick?.documents || []}
+        confirmLabel="Move & send selected"
+        allowSkip
+        submitting={formPickSubmitting}
       />
     </div>
   );

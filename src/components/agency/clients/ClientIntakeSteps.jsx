@@ -193,6 +193,7 @@ export function ClientIntakeStepOne({ form, onChange, errors = {} }) {
           <Field label="Last Visit"><input type="date" value={form.lastVisitDate} onChange={set('lastVisitDate')} className={inputClass} /></Field>
           <Field label="Pharmacy"><input value={form.pharmacyName} onChange={set('pharmacyName')} className={inputClass} /></Field>
           <Field label="Pharmacy Phone"><input value={form.pharmacyPhone} onChange={set('pharmacyPhone')} className={inputClass} /></Field>
+          <Field label="Preferred Hospital"><input value={form.preferredHospital} onChange={set('preferredHospital')} className={inputClass} /></Field>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Field label="Insurance Provider"><input value={form.insuranceProvider} onChange={set('insuranceProvider')} className={inputClass} /></Field>

@@ -62,10 +62,11 @@ export const addCandidateToJob = createAsyncThunk(
 
 export const moveToNextStage = createAsyncThunk(
   'candidates/nextStage',
-  async (id, { rejectWithValue }) => {
+  async ({ id, documentCodes }, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.post(
         `${API_ROUTES.AGENCY.JOB_APPLICATIONS.NEXT_STAGE}/${id}/next-stage`,
+        { document_codes: documentCodes },
       );
       toast.success('Moved to next stage');
       return response.data.data;
@@ -77,10 +78,11 @@ export const moveToNextStage = createAsyncThunk(
 
 export const moveToPreviousStage = createAsyncThunk(
   'candidates/previousStage',
-  async (id, { rejectWithValue }) => {
+  async ({ id, documentCodes }, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.post(
         `${API_ROUTES.AGENCY.JOB_APPLICATIONS.PREVIOUS_STAGE}/${id}/previous-stage`,
+        { document_codes: documentCodes },
       );
       toast.success('Moved to previous stage');
       return response.data.data;
