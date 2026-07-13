@@ -15,18 +15,21 @@ export function toCurrentAppOrigin(url) {
 }
 
 /**
- * Origin that serves /documents and /uploads.
- * Uses the API host (local: :3000/:5000, prod: same site via nginx).
+ * Rewrite /uploads/... → /api/uploads/... so nginx /api/ proxy serves the file.
+ * Also keeps the current browser origin (local vs production).
  */
-export function getDocumentAssetOrigin(apiBaseUrl) {
-  if (typeof window === 'undefined') return '';
-  const apiBase = String(apiBaseUrl || '').trim();
-  if (apiBase) {
-    try {
-      return new URL(apiBase, window.location.origin).origin;
-    } catch {
-      /* fall through */
+export function toApiUploadUrl(url) {
+  if (!url || typeof window === 'undefined') return url;
+  try {
+    const parsed = new URL(String(url), window.location.origin);
+    let pathname = parsed.pathname;
+    if (pathname.startsWith('/uploads/')) {
+      pathname = `/api${pathname}`;
+    } else if (!pathname.startsWith('/api/uploads/') && pathname.includes('/uploads/')) {
+      pathname = pathname.replace(/\/uploads\//, '/api/uploads/');
     }
+    return `${window.location.origin}${pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return url;
   }
-  return window.location.origin;
 }

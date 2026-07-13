@@ -5,7 +5,7 @@ import axiosInstance from '../../../api/axiosInstance';
 import API_ROUTES from '../../../api/apiRoutes';
 import { ROUTES } from '../../../routes/routes';
 import { confirmAlert } from '../../../utils/swal';
-import { toCurrentAppOrigin } from '../../../utils/appUrl';
+import { toCurrentAppOrigin, toApiUploadUrl } from '../../../utils/appUrl';
 import SelectFormsToSendModal from './SelectFormsToSendModal';
 
 const statusStyle = {
@@ -83,7 +83,7 @@ export default function CandidateFormsPanel({ open, onClose, application, stageI
 
   const openPrint = (submissionId, filledPdfUrl) => {
     if (filledPdfUrl) {
-      window.open(filledPdfUrl, '_blank', 'noopener,noreferrer');
+      window.open(toApiUploadUrl(filledPdfUrl), '_blank', 'noopener,noreferrer');
       return;
     }
     const url = ROUTES.AGENCY_CANDIDATE_FORM_PRINT
