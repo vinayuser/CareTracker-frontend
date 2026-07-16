@@ -92,7 +92,8 @@ export function CarePlanStepOne({
           <Field label="Effective Date"><input value={form.effectiveDate} onChange={(e) => onHeaderChange('effectiveDate', e.target.value)} className={inputClass} /></Field>
           <Field label="Review Date"><input value={form.reviewDate} onChange={(e) => onHeaderChange('reviewDate', e.target.value)} className={inputClass} /></Field>
         </div>
-        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+        <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Field label="Client ID"><input value={ci.clientId} onChange={set('clientInfo', 'clientId')} className={inputClass} /></Field>
           <Field label="Version"><input value={form.version} onChange={(e) => onHeaderChange('version', e.target.value)} className={inputClass} /></Field>
           {!form.planCode && (
             <Field label="Select Client *">
@@ -133,7 +134,6 @@ export function CarePlanStepOne({
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Client Name" className="sm:col-span-2"><input value={ci.clientName} onChange={set('clientInfo', 'clientName')} className={inputClass} /></Field>
           <Field label="Date of Birth"><input type="date" value={ci.dob} onChange={set('clientInfo', 'dob')} className={inputClass} /></Field>
-          <Field label="Client ID"><input value={ci.clientId} onChange={set('clientInfo', 'clientId')} className={inputClass} /></Field>
           <Field label="Address" className="sm:col-span-2"><input value={ci.address} onChange={set('clientInfo', 'address')} className={inputClass} /></Field>
           <Field label="City"><input value={ci.city} onChange={set('clientInfo', 'city')} className={inputClass} /></Field>
           <Field label="State"><input value={ci.state} onChange={set('clientInfo', 'state')} className={inputClass} /></Field>

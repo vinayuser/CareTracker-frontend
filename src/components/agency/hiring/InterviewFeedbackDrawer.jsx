@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { ChevronDown, Download, Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axiosInstance from '../../../api/axiosInstance';
@@ -9,7 +10,19 @@ import DigitalSignaturePad from '../../ui/DigitalSignaturePad';
 
 const inputClass =
   'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/15';
+const readOnlyClass = `${inputClass} cursor-not-allowed bg-gray-50 text-gray-700`;
 const labelClass = 'mb-1 block text-xs font-medium text-gray-600';
+
+/** Fields seeded from candidate / job / logged-in recruiter — not editable in feedback */
+const LOCKED_CANDIDATE_FIELDS = [
+  'candidateName',
+  'positionApplied',
+  'experience',
+  'location',
+  'currentCtc',
+  'expectedCtc',
+  'recruiter',
+];
 
 const DEFAULT_SKILLS = [
   'Communication', 'Empathy', 'Professionalism', 'Attendance & Reliability', 'Language Skills',
@@ -95,7 +108,10 @@ function FeedbackStageForm({
   options,
   stageName,
 }) {
-  const setField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const setField = (key, value) => {
+    if (LOCKED_CANDIDATE_FIELDS.includes(key)) return;
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
   const setSkill = (skill, patch) => {
     setForm((prev) => ({
       ...prev,
@@ -110,30 +126,33 @@ function FeedbackStageForm({
     <div className="space-y-8">
       <section>
         <h3 className="mb-3 text-sm font-semibold text-gray-900">Candidate details</h3>
+        <p className="mb-3 text-xs text-gray-500">
+          Candidate and recruiter fields are filled automatically and cannot be edited here.
+        </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Candidate Name">
-            <input className={inputClass} value={form.candidateName || ''} onChange={(e) => setField('candidateName', e.target.value)} />
+            <input className={readOnlyClass} value={form.candidateName || ''} readOnly disabled />
           </Field>
           <Field label="Position Applied">
-            <input className={inputClass} value={form.positionApplied || ''} onChange={(e) => setField('positionApplied', e.target.value)} />
+            <input className={readOnlyClass} value={form.positionApplied || ''} readOnly disabled />
           </Field>
           <Field label="Interview Date">
             <input type="date" className={inputClass} value={form.interviewDate || ''} onChange={(e) => setField('interviewDate', e.target.value)} />
           </Field>
           <Field label="Experience">
-            <input className={inputClass} value={form.experience || ''} onChange={(e) => setField('experience', e.target.value)} />
+            <input className={readOnlyClass} value={form.experience || ''} readOnly disabled />
           </Field>
           <Field label="Recruiter">
-            <input className={inputClass} value={form.recruiter || ''} onChange={(e) => setField('recruiter', e.target.value)} />
+            <input className={readOnlyClass} value={form.recruiter || ''} readOnly disabled />
           </Field>
           <Field label="Location">
-            <input className={inputClass} value={form.location || ''} onChange={(e) => setField('location', e.target.value)} />
+            <input className={readOnlyClass} value={form.location || ''} readOnly disabled />
           </Field>
           <Field label="Current CTC">
-            <input className={inputClass} value={form.currentCtc || ''} onChange={(e) => setField('currentCtc', e.target.value)} />
+            <input className={readOnlyClass} value={form.currentCtc || ''} readOnly disabled />
           </Field>
           <Field label="Expected CTC">
-            <input className={inputClass} value={form.expectedCtc || ''} onChange={(e) => setField('expectedCtc', e.target.value)} />
+            <input className={readOnlyClass} value={form.expectedCtc || ''} readOnly disabled />
           </Field>
           <Field label="Notice Period">
             <input className={inputClass} value={form.noticePeriod || ''} onChange={(e) => setField('noticePeriod', e.target.value)} />
@@ -269,6 +288,8 @@ export default function InterviewFeedbackDrawer({
   stageId,
   onSaved,
 }) {
+  const authUser = useSelector((state) => state.auth.user);
+  const recruiterName = authUser?.name || authUser?.fullName || authUser?.email || '';
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [options, setOptions] = useState({
@@ -280,6 +301,23 @@ export default function InterviewFeedbackDrawer({
   const [statusByStage, setStatusByStage] = useState({});
   const [activeStageId, setActiveStageId] = useState(null);
   const [expandedIds, setExpandedIds] = useState([]);
+
+  const candidateSeed = useMemo(() => {
+    const c = application?.candidate || {};
+    const jobTitle = application?.job?.job_title
+      || application?.jobPost?.jobTitle
+      || application?.job_title
+      || '';
+    return {
+      candidateName: `${c.first_name || c.firstName || ''} ${c.last_name || c.lastName || ''}`.trim(),
+      positionApplied: jobTitle,
+      experience: c.experience != null ? String(c.experience) : (c.experience_years != null ? String(c.experience_years) : ''),
+      location: c.location || '',
+      currentCtc: c.current_ctc != null ? String(c.current_ctc) : (c.currentCtc != null ? String(c.currentCtc) : ''),
+      expectedCtc: c.expected_ctc != null ? String(c.expected_ctc) : (c.expectedCtc != null ? String(c.expectedCtc) : ''),
+      recruiter: recruiterName,
+    };
+  }, [application, recruiterName]);
 
   useEffect(() => {
     if (!open || !application?.id) return undefined;
@@ -303,11 +341,35 @@ export default function InterviewFeedbackDrawer({
         const stageList = data.stages || [];
         setStages(stageList);
 
+        const apiCandidate = data.candidate || {};
+        const apiJobTitle = data.job?.job_title || '';
+        const lockedSeed = {
+          candidateName: `${apiCandidate.first_name || ''} ${apiCandidate.last_name || ''}`.trim()
+            || candidateSeed.candidateName,
+          positionApplied: apiJobTitle || candidateSeed.positionApplied,
+          experience: apiCandidate.experience || candidateSeed.experience,
+          location: apiCandidate.location || candidateSeed.location,
+          currentCtc: apiCandidate.current_ctc || candidateSeed.currentCtc,
+          expectedCtc: apiCandidate.expected_ctc || candidateSeed.expectedCtc,
+          recruiter: data.recruiter || recruiterName,
+        };
+
         const forms = {};
         const statuses = {};
         stageList.forEach((item) => {
           const sid = item.stage.id;
-          forms[sid] = buildEmptyForm(skills, item.form_data || item.feedback?.formData || item.feedback?.form_data || {});
+          const saved = item.form_data || item.feedback?.formData || item.feedback?.form_data || {};
+          forms[sid] = buildEmptyForm(skills, {
+            ...saved,
+            // Always prefer live candidate / recruiter auto-fill for locked fields
+            candidateName: lockedSeed.candidateName || saved.candidateName || '',
+            positionApplied: lockedSeed.positionApplied || saved.positionApplied || '',
+            experience: lockedSeed.experience || saved.experience || '',
+            location: lockedSeed.location || saved.location || '',
+            currentCtc: lockedSeed.currentCtc || saved.currentCtc || '',
+            expectedCtc: lockedSeed.expectedCtc || saved.expectedCtc || '',
+            recruiter: recruiterName || saved.recruiter || '',
+          });
           statuses[sid] = item.status || null;
         });
         setFormsByStage(forms);
@@ -319,7 +381,6 @@ export default function InterviewFeedbackDrawer({
           || stageList[0]?.stage?.id
           || null;
         setActiveStageId(preferred);
-        // Expand every pipeline stage form so all rounds are visible at once
         setExpandedIds(stageList.map((s) => s.stage.id));
       } catch (err) {
         toast.error(err.response?.data?.message || 'Failed to load interview feedback');
@@ -331,7 +392,7 @@ export default function InterviewFeedbackDrawer({
 
     load();
     return () => { cancelled = true; };
-  }, [open, application?.id, stageId]);
+  }, [open, application?.id, stageId, recruiterName, candidateSeed]);
 
   const activeStage = useMemo(
     () => stages.find((s) => s.stage.id === activeStageId) || stages[0] || null,
@@ -357,12 +418,20 @@ export default function InterviewFeedbackDrawer({
     if (!activeStageId || !formsByStage[activeStageId]) return;
     setSaving(true);
     try {
+      const form_data = {
+        ...formsByStage[activeStageId],
+        recruiter: recruiterName || formsByStage[activeStageId].recruiter || '',
+      };
       await axiosInstance.put(
         `${API_ROUTES.AGENCY.JOB_APPLICATIONS.INTERVIEW_FEEDBACK}/${application.id}/interview-feedback/${activeStageId}`,
-        { status, form_data: formsByStage[activeStageId] },
+        { status, form_data },
       );
       toast.success(status === 'Submitted' ? 'Interview feedback submitted' : 'Draft saved');
       setStatusByStage((prev) => ({ ...prev, [activeStageId]: status }));
+      setFormsByStage((prev) => ({
+        ...prev,
+        [activeStageId]: { ...prev[activeStageId], ...form_data },
+      }));
       onSaved?.();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save feedback');

@@ -203,6 +203,7 @@ export default function CarePlanPrintLayout({
         <Field label="Plan ID:" value={form?.planCode} />
         <Field label="Effective Date:" value={form?.effectiveDate} />
         <Field label="Review Date:" value={form?.reviewDate} />
+        <Field label="Client ID:" value={ci.clientId} />
         <Field label="Version:" value={form?.version} />
       </div>
 
@@ -225,7 +226,6 @@ export default function CarePlanPrintLayout({
               <Field label="Primary Language:" value={ci.primaryLanguage} className="w100" />
             </div>
             <div className="cp-col-stack">
-              <Field label="Client ID:" value={ci.clientId} className="w100" />
               <div className="cp-checks">
                 <span className="cp-label">Gender:</span>
                 {['Male', 'Female', 'Other'].map((g) => <Check key={g} label={g} on={ci.gender === g} />)}

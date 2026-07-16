@@ -4,11 +4,42 @@ import { useDispatch, useSelector } from 'react-redux';
 import { ArrowLeft, ArrowRight, Printer, Save, Shield } from 'lucide-react';
 import InsuranceIntakeStepper from '../../../components/agency/insurance-intake/InsuranceIntakeStepper';
 import { InsuranceIntakeStepOne, InsuranceIntakeStepTwo } from '../../../components/agency/insurance-intake/InsuranceIntakeSteps';
-import { fetchClients } from '../../../redux/slices/clientsSlice';
+import { fetchClient, fetchClients } from '../../../redux/slices/clientsSlice';
+import { fetchAssessments } from '../../../redux/slices/assessmentsSlice';
 import { createInsuranceIntake, fetchInsuranceIntake, updateInsuranceIntake } from '../../../redux/slices/insuranceIntakesSlice';
-import { insuranceIntakeToForm, clientToInsurancePatch } from '../../../utils/insuranceIntakeForm';
+import {
+  insuranceIntakeToForm,
+  mergeInsurancePrefill,
+  validateInsuranceIntakeStepOne,
+  validateInsuranceIntakeStepTwo,
+} from '../../../utils/insuranceIntakeForm';
 import { saveInsuranceIntakePrintDraft } from './InsuranceIntakePrintPage';
 import { ROUTES } from '../../../routes/routes';
+
+async function loadInsurancePrefill(dispatch, selectedClientId, clientsList = []) {
+  if (!selectedClientId) return null;
+
+  let client = clientsList.find((c) => c.id === selectedClientId) || null;
+  try {
+    client = await dispatch(fetchClient(selectedClientId)).unwrap();
+  } catch {
+    // keep list fallback
+  }
+
+  let assessment = null;
+  try {
+    const list = await dispatch(fetchAssessments({ client_id: selectedClientId })).unwrap();
+    const rows = Array.isArray(list) ? list : [];
+    assessment = rows.find((a) => a.status === 'Accepted')
+      || rows.find((a) => a.clientId === selectedClientId)
+      || rows[0]
+      || null;
+  } catch {
+    assessment = null;
+  }
+
+  return mergeInsurancePrefill(client, assessment);
+}
 
 export default function ClientInsuranceIntakeForm() {
   const { id } = useParams();
@@ -22,8 +53,12 @@ export default function ClientInsuranceIntakeForm() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(insuranceIntakeToForm(null));
   const [clientId, setClientId] = useState(searchParams.get('clientId') || '');
-  const [loading, setLoading] = useState(isEdit);
+  const [loading, setLoading] = useState(isEdit || Boolean(searchParams.get('clientId')));
   const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
+  const clientLockedFromQuery = Boolean(searchParams.get('clientId'));
+  const clientInfoLocked = Boolean(clientId);
+  const clientSelectLocked = clientLockedFromQuery || (isEdit && Boolean(clientId));
 
   useEffect(() => {
     dispatch(fetchClients());
@@ -32,50 +67,104 @@ export default function ClientInsuranceIntakeForm() {
 
   useEffect(() => {
     if (!existing || !isEdit) return;
-    const client = existing.client || clients.find((c) => c.id === existing.clientId);
-    setForm(insuranceIntakeToForm(existing, client));
-    setClientId(existing.clientId || '');
-  }, [clients, existing, isEdit]);
+    let cancelled = false;
+
+    const hydrate = async () => {
+      const client = existing.client || clients.find((c) => c.id === existing.clientId);
+      const patch = existing.clientId
+        ? await loadInsurancePrefill(dispatch, existing.clientId, clients)
+        : null;
+      if (cancelled) return;
+      const base = insuranceIntakeToForm(existing, client);
+      if (patch) {
+        setForm({
+          ...base,
+          formData: {
+            ...base.formData,
+            clientInfo: { ...base.formData.clientInfo, ...patch.clientInfo },
+            primaryInsurance: {
+              ...base.formData.primaryInsurance,
+              ...(!base.formData.primaryInsurance?.companyName ? patch.primaryInsurance : {
+                policyHolderName: base.formData.primaryInsurance.policyHolderName || patch.primaryInsurance.policyHolderName,
+                policyHolderDob: base.formData.primaryInsurance.policyHolderDob || patch.primaryInsurance.policyHolderDob,
+                policyHolderRelationship: base.formData.primaryInsurance.policyHolderRelationship || patch.primaryInsurance.policyHolderRelationship,
+              }),
+            },
+          },
+        });
+      } else {
+        setForm(base);
+      }
+      setClientId(existing.clientId || '');
+    };
+
+    hydrate();
+    return () => { cancelled = true; };
+  }, [clients, dispatch, existing, isEdit]);
 
   useEffect(() => {
-    if (isEdit || !clientId) return;
-    const client = clients.find((c) => c.id === clientId);
-    if (!client) return;
-    const patch = clientToInsurancePatch(client);
-    setForm((p) => ({
-      ...p,
-      clientId,
-      formData: {
-        ...p.formData,
-        clientInfo: { ...p.formData.clientInfo, ...patch.clientInfo },
-        primaryInsurance: { ...p.formData.primaryInsurance, ...patch.primaryInsurance },
-      },
-    }));
-  }, [clientId, clients, isEdit]);
+    if (isEdit || !clientId) {
+      if (!isEdit && !clientId) setLoading(false);
+      return undefined;
+    }
 
-  const onHeaderChange = (field, value) => setForm((p) => ({ ...p, [field]: value }));
+    let cancelled = false;
+    setLoading(true);
+    loadInsurancePrefill(dispatch, clientId)
+      .then((patch) => {
+        if (cancelled || !patch) return;
+        setForm((p) => ({
+          ...p,
+          clientId,
+          formData: {
+            ...p.formData,
+            clientInfo: { ...p.formData.clientInfo, ...patch.clientInfo },
+            primaryInsurance: { ...p.formData.primaryInsurance, ...patch.primaryInsurance },
+          },
+        }));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [clientId, dispatch, isEdit]);
+
+  const onHeaderChange = (field, value) => {
+    setForm((p) => ({ ...p, [field]: value }));
+    setErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
 
   const onFormDataChange = (section, patch) => {
     setForm((p) => ({
       ...p,
       formData: { ...p.formData, [section]: { ...p.formData[section], ...patch } },
     }));
+    const keys = Object.keys(patch || {});
+    if (!keys.length) return;
+    setErrors((prev) => {
+      const next = { ...prev };
+      keys.forEach((key) => {
+        if (key === 'phoneMobile' || key === 'phoneHome') delete next.phoneMobile;
+        if (key === 'dob') delete next.dob;
+        if (key === 'emergencyPhone') delete next.emergencyPhone;
+        if (key === 'insurancePhone') delete next.insurancePhone;
+        if (key === 'phone' && section === 'prescriptionCoverage') delete next.rxPhone;
+        if (key === 'caseWorkerPhone') delete next.caseWorkerPhone;
+        if (key === 'date' && section === 'authorization') delete next.authDate;
+      });
+      return next;
+    });
   };
 
   const onClientChange = (newClientId) => {
     setClientId(newClientId);
-    const client = clients.find((c) => c.id === newClientId);
-    if (!client) return;
-    const patch = clientToInsurancePatch(client);
-    setForm((p) => ({
-      ...p,
-      clientId: newClientId,
-      formData: {
-        ...p.formData,
-        clientInfo: { ...p.formData.clientInfo, ...patch.clientInfo },
-        primaryInsurance: { ...p.formData.primaryInsurance, ...patch.primaryInsurance },
-      },
-    }));
+    setErrors({});
   };
 
   const handlePrint = () => {
@@ -83,7 +172,38 @@ export default function ClientInsuranceIntakeForm() {
     window.open(ROUTES.AGENCY_INSURANCE_INTAKE_PRINT_DRAFT, '_blank');
   };
 
+  const scrollFormTop = () => {
+    const main = document.querySelector('main.overflow-y-auto');
+    if (main) main.scrollTo({ top: 0, behavior: 'smooth' });
+    else window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const goNext = () => {
+    const stepErrors = validateInsuranceIntakeStepOne(form, { clientInfoLocked });
+    setErrors(stepErrors);
+    if (Object.keys(stepErrors).length) {
+      scrollFormTop();
+      return;
+    }
+    setStep(2);
+    scrollFormTop();
+  };
+
   const handleSubmit = async () => {
+    const step1 = validateInsuranceIntakeStepOne(form, { clientInfoLocked });
+    const step2 = validateInsuranceIntakeStepTwo(form);
+    const allErrors = { ...step1, ...step2 };
+    setErrors(allErrors);
+    if (Object.keys(step1).length) {
+      setStep(1);
+      scrollFormTop();
+      return;
+    }
+    if (Object.keys(step2).length) {
+      scrollFormTop();
+      return;
+    }
+
     setSubmitting(true);
     const payload = {
       clientId: clientId || undefined,
@@ -123,21 +243,31 @@ export default function ClientInsuranceIntakeForm() {
       <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8">
         <InsuranceIntakeStepper currentStep={step} />
         {step === 1 ? (
-          <InsuranceIntakeStepOne form={form} clients={clients} clientId={clientId} onClientChange={onClientChange} onHeaderChange={onHeaderChange} onFormDataChange={onFormDataChange} />
+          <InsuranceIntakeStepOne
+            form={form}
+            clients={clients}
+            clientId={clientId}
+            onClientChange={onClientChange}
+            onHeaderChange={onHeaderChange}
+            onFormDataChange={onFormDataChange}
+            clientInfoLocked={clientInfoLocked}
+            clientSelectLocked={clientSelectLocked}
+            errors={errors}
+          />
         ) : (
-          <InsuranceIntakeStepTwo form={form} onFormDataChange={onFormDataChange} />
+          <InsuranceIntakeStepTwo form={form} onFormDataChange={onFormDataChange} errors={errors} />
         )}
 
         <div className="mt-8 flex justify-between border-t border-gray-100 pt-6">
           {step > 1 ? (
-            <button type="button" onClick={() => setStep(1)} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
+            <button type="button" onClick={() => { setStep(1); scrollFormTop(); }} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
               <ArrowLeft size={18} /> Back
             </button>
           ) : (
             <Link to={ROUTES.AGENCY_INSURANCE_INTAKE} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">Cancel</Link>
           )}
           {step < 2 ? (
-            <button type="button" onClick={() => setStep(2)} className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover">
+            <button type="button" onClick={goNext} className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover">
               Next: Coverage & Authorization <ArrowRight size={18} />
             </button>
           ) : (

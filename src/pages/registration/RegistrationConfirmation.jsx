@@ -60,7 +60,7 @@ export default function RegistrationConfirmation() {
     setLoading(true);
 
     try {
-      await dispatch(
+      const payment = await dispatch(
         processRegistrationPayment({
           planId: plan.id,
           amount: plan.price,
@@ -71,6 +71,8 @@ export default function RegistrationConfirmation() {
         submitRegistration({
           planId: plan.id,
           invitationToken: inviteSession?.token,
+          transactionId: payment?.transactionId,
+          amount: payment?.amount ?? plan.price,
           ...registrationData,
         }),
       ).unwrap();
