@@ -3,14 +3,14 @@ import { toast } from 'react-toastify';
 import axiosInstance from '../../api/axiosInstance';
 import API_ROUTES from '../../api/apiRoutes';
 
+const base = API_ROUTES.AGENCY.CAREGIVERS.LIST;
+
 export const fetchCaregivers = createAsyncThunk(
   'caregivers/fetchAll',
   async (params = {}, { rejectWithValue }) => {
     try {
       const queryParams = new URLSearchParams(params).toString();
-      const url = queryParams
-        ? `${API_ROUTES.AGENCY.CAREGIVERS.LIST}?${queryParams}`
-        : API_ROUTES.AGENCY.CAREGIVERS.LIST;
+      const url = queryParams ? `${base}?${queryParams}` : base;
       const response = await axiosInstance.get(url);
       return response.data.data;
     } catch (error) {
@@ -35,10 +35,7 @@ export const setCaregiverPassword = createAsyncThunk(
   'caregivers/setPassword',
   async ({ id, password }, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.patch(
-        `${API_ROUTES.AGENCY.CAREGIVERS.LIST}/${id}/password`,
-        { password },
-      );
+      const response = await axiosInstance.patch(`${base}/${id}/password`, { password });
       toast.success('Caregiver password updated');
       return response.data.data;
     } catch (error) {
@@ -48,6 +45,60 @@ export const setCaregiverPassword = createAsyncThunk(
     }
   },
 );
+
+export const editCaregiver = createAsyncThunk(
+  'caregivers/update',
+  async ({ id, updates }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.put(`${base}/${id}`, updates);
+      toast.success('Caregiver updated');
+      return response.data.data;
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to update caregiver';
+      toast.error(message);
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  },
+);
+
+export const setCaregiverStatus = createAsyncThunk(
+  'caregivers/setStatus',
+  async ({ id, status }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.patch(`${base}/${id}/status`, { status });
+      toast.success(`Account marked as ${status}`);
+      return response.data.data;
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to update status';
+      toast.error(message);
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  },
+);
+
+export const sendCaregiverEmail = createAsyncThunk(
+  'caregivers/sendEmail',
+  async ({ id, subject, message }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post(`${base}/${id}/email`, { subject, message });
+      toast.success('Email sent to caregiver');
+      return response.data.data;
+    } catch (error) {
+      const messageText = error.response?.data?.message || 'Failed to send email';
+      toast.error(messageText);
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  },
+);
+
+const upsert = (list, item) => {
+  if (!item?.id) return list;
+  const index = list.findIndex((c) => c.id === item.id);
+  if (index === -1) return list;
+  const next = [...list];
+  next[index] = item;
+  return next;
+};
 
 const caregiversSlice = createSlice({
   name: 'caregivers',
@@ -67,6 +118,15 @@ const caregiversSlice = createSlice({
       .addCase(fetchCaregivers.rejected, (state) => { state.loading = false; })
       .addCase(fetchCaregiverStats.fulfilled, (state, action) => {
         state.stats = action.payload || state.stats;
+      })
+      .addCase(editCaregiver.fulfilled, (state, action) => {
+        state.list = upsert(state.list, action.payload);
+      })
+      .addCase(setCaregiverStatus.fulfilled, (state, action) => {
+        state.list = upsert(state.list, action.payload);
+      })
+      .addCase(setCaregiverPassword.fulfilled, (state, action) => {
+        state.list = upsert(state.list, action.payload);
       });
   },
 });

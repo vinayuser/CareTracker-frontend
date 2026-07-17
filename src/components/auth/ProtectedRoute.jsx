@@ -1,9 +1,29 @@
+import { useEffect } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { isAuthenticated } from '../../utils/auth';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchCurrentUser } from '../../redux/slices/authSlice';
 import { ROUTES } from '../../routes/routes';
 
 export default function ProtectedRoute() {
-  if (!isAuthenticated()) {
+  const dispatch = useDispatch();
+  const { isAuthenticated, authChecked, isLoading } = useSelector((state) => state.auth);
+  const hasToken = Boolean(localStorage.getItem('token'));
+
+  useEffect(() => {
+    if (hasToken && !authChecked) {
+      dispatch(fetchCurrentUser());
+    }
+  }, [authChecked, dispatch, hasToken]);
+
+  if (hasToken && (!authChecked || isLoading)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f0f4f8] text-sm text-gray-500">
+        Checking session…
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !hasToken) {
     return <Navigate to={ROUTES.LOGIN} replace />;
   }
 

@@ -14,7 +14,14 @@ const statusStyle = {
   Submitted: 'bg-emerald-100 text-emerald-800',
 };
 
-export default function CandidateFormsPanel({ open, onClose, application, stageId }) {
+export default function CandidateFormsPanel({
+  open,
+  onClose,
+  application,
+  stageId,
+  /** View + PDF only — hide link/resend/reset (Candidates page). Hiring module keeps full manage mode. */
+  readOnly = false,
+}) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -119,9 +126,12 @@ export default function CandidateFormsPanel({ open, onClose, application, stageI
       <div className="relative flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">Stage forms</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              {readOnly ? 'View forms' : 'Stage forms'}
+            </h3>
             <p className="text-xs text-gray-500">
               {candidate.first_name} {candidate.last_name}
+              {readOnly ? ' · View and download only' : ''}
             </p>
           </div>
           <button type="button" onClick={onClose} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100">
@@ -137,38 +147,40 @@ export default function CandidateFormsPanel({ open, onClose, application, stageI
             </div>
           ) : (
             <>
-              <div className="mb-4 flex flex-wrap gap-2">
-                {formUrl && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={copyLink}
-                      className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                    >
-                      <Copy size={14} />
-                      Copy link
-                    </button>
-                    <a
-                      href={formUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                    >
-                      <ExternalLink size={14} />
-                      Open portal
-                    </a>
-                  </>
-                )}
-                <button
-                  type="button"
-                  disabled={resending || availableDocuments.length === 0}
-                  onClick={() => setShowResendPicker(true)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 disabled:opacity-50"
-                >
-                  <Mail size={14} />
-                  Resend email
-                </button>
-              </div>
+              {!readOnly && (
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {formUrl && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={copyLink}
+                        className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                      >
+                        <Copy size={14} />
+                        Copy link
+                      </button>
+                      <a
+                        href={formUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                      >
+                        <ExternalLink size={14} />
+                        Open portal
+                      </a>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    disabled={resending || availableDocuments.length === 0}
+                    onClick={() => setShowResendPicker(true)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 disabled:opacity-50"
+                  >
+                    <Mail size={14} />
+                    Resend email
+                  </button>
+                </div>
+              )}
 
               {progress.required_total > 0 && (
                 <p className="mb-4 text-sm text-gray-600">
@@ -200,12 +212,12 @@ export default function CandidateFormsPanel({ open, onClose, application, stageI
                             data?.submissions?.find((s) => s.id === doc.submission_id)?.filled_pdf_url,
                           )}
                           className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100 hover:text-primary"
-                          title="Print / PDF"
+                          title={readOnly ? 'Download PDF' : 'Print / PDF'}
                         >
                           <Printer size={16} />
                         </button>
                       )}
-                      {(doc.status === 'Submitted' || doc.status === 'Draft') && (
+                      {!readOnly && (doc.status === 'Submitted' || doc.status === 'Draft') && (
                         <button
                           type="button"
                           disabled={resettingCode === doc.code}
@@ -232,18 +244,20 @@ export default function CandidateFormsPanel({ open, onClose, application, stageI
         </div>
       </div>
 
-      <SelectFormsToSendModal
-        open={showResendPicker}
-        onClose={() => !resending && setShowResendPicker(false)}
-        onConfirm={resendEmail}
-        title="Resend form email"
-        stageName={data?.stage?.name || ''}
-        candidateName={`${candidate.first_name || ''} ${candidate.last_name || ''}`.trim()}
-        documents={availableDocuments}
-        confirmLabel="Send selected forms"
-        allowSkip={false}
-        submitting={resending}
-      />
+      {!readOnly && (
+        <SelectFormsToSendModal
+          open={showResendPicker}
+          onClose={() => !resending && setShowResendPicker(false)}
+          onConfirm={resendEmail}
+          title="Resend form email"
+          stageName={data?.stage?.name || ''}
+          candidateName={`${candidate.first_name || ''} ${candidate.last_name || ''}`.trim()}
+          documents={availableDocuments}
+          confirmLabel="Send selected forms"
+          allowSkip={false}
+          submitting={resending}
+        />
+      )}
     </div>
   );
 }

@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Plus } from 'lucide-react';
+import { Plus, FileText, ClipboardCheck, Mail } from 'lucide-react';
 import AddCandidateDrawer from '../../../components/agency/hiring/AddCandidateDrawer';
+import CandidateFormsPanel from '../../../components/agency/hiring/CandidateFormsPanel';
+import CandidateFeedbackViewPanel from '../../../components/agency/hiring/CandidateFeedbackViewPanel';
+import SendCandidateEmailDrawer from '../../../components/agency/hiring/SendCandidateEmailDrawer';
+import ActionIconButton from '../../../components/ui/ActionIconButton';
 import { fetchJobs } from '../../../redux/slices/jobsSlice';
 import { fetchApplications } from '../../../redux/slices/candidatesSlice';
 
@@ -11,6 +15,10 @@ export default function Candidates() {
   const { applications, loading } = useSelector((state) => state.candidates);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
+  const [selectedApp, setSelectedApp] = useState(null);
+  const [formsOpen, setFormsOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
 
   const load = () => {
     dispatch(fetchJobs());
@@ -25,6 +33,15 @@ export default function Candidates() {
     () => jobs.filter((j) => (j.hiring_status || j.hiringStatus || 'Open') !== 'Complete'),
     [jobs],
   );
+
+  const openAction = (app, action) => {
+    setSelectedApp(app);
+    if (action === 'forms') setFormsOpen(true);
+    if (action === 'feedback') setFeedbackOpen(true);
+    if (action === 'email') setEmailOpen(true);
+  };
+
+  const stageIdForApp = (app) => app?.stage?.id || app?.agencyStageId || '';
 
   return (
     <div className="space-y-5">
@@ -64,16 +81,17 @@ export default function Candidates() {
                 <th className="px-5 py-3">Stage</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3">Applied</th>
+                <th className="px-5 py-3">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-10 text-center text-gray-500">Loading...</td>
+                  <td colSpan={9} className="px-5 py-10 text-center text-gray-500">Loading...</td>
                 </tr>
               ) : applications.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-10 text-center text-gray-500">
+                  <td colSpan={9} className="px-5 py-10 text-center text-gray-500">
                     No candidates yet. Add a candidate to a job to get started.
                   </td>
                 </tr>
@@ -111,6 +129,31 @@ export default function Candidates() {
                     <td className="px-5 py-3.5 text-gray-600">
                       {app.appliedAt ? new Date(app.appliedAt).toLocaleDateString() : '—'}
                     </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-0.5">
+                        <ActionIconButton
+                          label="View forms"
+                          onClick={() => openAction(app, 'forms')}
+                          className="text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                        >
+                          <FileText size={16} />
+                        </ActionIconButton>
+                        <ActionIconButton
+                          label="Interview feedback"
+                          onClick={() => openAction(app, 'feedback')}
+                          className="text-gray-500 hover:bg-blue-50 hover:text-blue-700"
+                        >
+                          <ClipboardCheck size={16} />
+                        </ActionIconButton>
+                        <ActionIconButton
+                          label="Send email"
+                          onClick={() => openAction(app, 'email')}
+                          className="text-gray-500 hover:bg-primary/10 hover:text-primary"
+                        >
+                          <Mail size={16} />
+                        </ActionIconButton>
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
@@ -128,6 +171,35 @@ export default function Candidates() {
         jobs={openJobs}
         selectedJob={selectedJob}
         onSuccess={load}
+      />
+
+      <CandidateFormsPanel
+        open={formsOpen}
+        onClose={() => {
+          setFormsOpen(false);
+          setSelectedApp(null);
+        }}
+        application={selectedApp}
+        stageId={stageIdForApp(selectedApp)}
+        readOnly
+      />
+
+      <CandidateFeedbackViewPanel
+        open={feedbackOpen}
+        onClose={() => {
+          setFeedbackOpen(false);
+          setSelectedApp(null);
+        }}
+        application={selectedApp}
+      />
+
+      <SendCandidateEmailDrawer
+        open={emailOpen}
+        onClose={() => {
+          setEmailOpen(false);
+          setSelectedApp(null);
+        }}
+        application={selectedApp}
       />
     </div>
   );

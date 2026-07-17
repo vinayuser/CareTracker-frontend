@@ -1,9 +1,12 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { ROUTES } from './routes/routes';
 import { ROLES } from './constants/roles';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import RoleRoute from './components/auth/RoleRoute';
 import PublicRoute from './components/auth/PublicRoute';
+import { fetchCurrentUser } from './redux/slices/authSlice';
 import AdminLayout from './components/layout/AdminLayout';
 import AgencyLayout from './components/layout/agency/AgencyLayout';
 import CaregiverLayout from './components/layout/caregiver/CaregiverLayout';
@@ -65,12 +68,29 @@ import InterviewFeedbackPrintPage from './pages/agency/hiring/InterviewFeedbackP
 import AgencyInformation from './pages/registration/AgencyInformation';
 import CreateAccount from './pages/registration/CreateAccount';
 import RegistrationConfirmation from './pages/registration/RegistrationConfirmation';
-import { getHomeRouteForRole, getUserRole } from './utils/auth';
+import { getHomeRouteForRole } from './utils/auth';
 
 function HomeRedirect() {
-  const role = getUserRole();
-  if (role) {
-    return <Navigate to={getHomeRouteForRole(role)} replace />;
+  const dispatch = useDispatch();
+  const { isAuthenticated, authChecked, isLoading, user } = useSelector((state) => state.auth);
+  const hasToken = Boolean(localStorage.getItem('token'));
+
+  useEffect(() => {
+    if (hasToken && !authChecked) {
+      dispatch(fetchCurrentUser());
+    }
+  }, [authChecked, dispatch, hasToken]);
+
+  if (hasToken && (!authChecked || isLoading)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f0f4f8] text-sm text-gray-500">
+        Checking session…
+      </div>
+    );
+  }
+
+  if (isAuthenticated && user?.role) {
+    return <Navigate to={getHomeRouteForRole(user.role)} replace />;
   }
   return <Navigate to={ROUTES.LOGIN} replace />;
 }

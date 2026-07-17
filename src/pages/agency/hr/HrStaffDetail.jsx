@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { ArrowLeft, Mail, Phone, MapPin, Briefcase, Shield, User, Settings } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, Briefcase, Shield, User, Settings, Pencil, KeyRound } from 'lucide-react';
 import HrStatusBadge from '../../../components/agency/hr/HrStatusBadge';
 import EditHrModuleAccessDrawer from '../../../components/agency/hr/EditHrModuleAccessDrawer';
+import EditHrStaffDrawer from '../../../components/agency/hr/EditHrStaffDrawer';
+import SetHrPasswordDrawer from '../../../components/agency/hr/SetHrPasswordDrawer';
+import SendHrEmailDrawer from '../../../components/agency/hr/SendHrEmailDrawer';
 import { ModuleAccessList } from '../../../components/agency/hr/ModulePermissionsFields';
 import {
   clearSelectedHrStaff,
@@ -41,6 +44,14 @@ export default function HrStaffDetail() {
   const member = useSelector((state) => state.hrStaff.selected);
   const isAgencyOwner = getUserRole() === ROLES.AGENCY_OWNER;
   const [moduleDrawerOpen, setModuleDrawerOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
+
+  const reloadMember = () => {
+    dispatch(fetchHrStaffMember(id));
+    dispatch(fetchHrStaffStats());
+  };
 
   useEffect(() => {
     dispatch(fetchHrStaffMember(id));
@@ -87,6 +98,30 @@ export default function HrStaffDetail() {
 
         {isAgencyOwner && (
           <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <Pencil size={14} />
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => setPasswordOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <KeyRound size={14} />
+              Password
+            </button>
+            <button
+              type="button"
+              onClick={() => setEmailOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <Mail size={14} />
+              Email
+            </button>
             {member.status !== 'Active' && (
               <button
                 type="button"
@@ -255,12 +290,30 @@ export default function HrStaffDetail() {
       </div>
 
       {isAgencyOwner && (
-        <EditHrModuleAccessDrawer
-          open={moduleDrawerOpen}
-          onClose={() => setModuleDrawerOpen(false)}
-          member={member}
-          onSuccess={() => dispatch(fetchHrStaffMember(id))}
-        />
+        <>
+          <EditHrModuleAccessDrawer
+            open={moduleDrawerOpen}
+            onClose={() => setModuleDrawerOpen(false)}
+            member={member}
+            onSuccess={reloadMember}
+          />
+          <EditHrStaffDrawer
+            open={editOpen}
+            onClose={() => setEditOpen(false)}
+            member={member}
+            onSuccess={reloadMember}
+          />
+          <SetHrPasswordDrawer
+            open={passwordOpen}
+            onClose={() => setPasswordOpen(false)}
+            member={member}
+          />
+          <SendHrEmailDrawer
+            open={emailOpen}
+            onClose={() => setEmailOpen(false)}
+            member={member}
+          />
+        </>
       )}
     </div>
   );

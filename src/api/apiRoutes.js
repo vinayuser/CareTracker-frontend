@@ -1,5 +1,6 @@
 const API_ROUTES = {
   LOGIN: '/auth/login',
+  ME: '/auth/me',
   ADMIN: {
     AGENCY: {
       LIST: '/admin/agencies',
@@ -29,6 +30,8 @@ const API_ROUTES = {
       CREATE: '/agency/hr-staff',
       UPDATE: '/agency/hr-staff',
       STATUS: '/agency/hr-staff',
+      PASSWORD: '/agency/hr-staff',
+      EMAIL: '/agency/hr-staff',
     },
     HIRING_PIPELINE: {
       GET: '/agency/hiring-pipeline',
@@ -63,6 +66,7 @@ const API_ROUTES = {
       RESEND_FORM_EMAIL: '/agency/job-applications',
       RESET_FORM: '/agency/job-applications',
       INTERVIEW_FEEDBACK: '/agency/job-applications',
+      EMAIL: '/agency/job-applications',
     },
     INTERVIEW_FEEDBACK: {
       OPTIONS: '/agency/interview-feedback/options',

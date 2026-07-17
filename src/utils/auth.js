@@ -3,7 +3,8 @@ import { ROUTES } from '../routes/routes';
 import { canAccessAgencyModule, getHomeRouteForHr } from './moduleAccess';
 
 export function isAuthenticated() {
-  return Boolean(localStorage.getItem('token'));
+  // Prefer live session from /auth/me; token alone is not enough
+  return Boolean(localStorage.getItem('token') && localStorage.getItem('authUser'));
 }
 
 export function getAuthUser() {

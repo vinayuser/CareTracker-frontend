@@ -1,21 +1,44 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Eye, MoreVertical } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Eye,
+  Pencil,
+  KeyRound,
+  Mail,
+  Power,
+  UserCheck,
+  UserX,
+  Users,
+  Clock,
+} from 'lucide-react';
 import AgencyKpiCard from '../../../components/agency/dashboard/AgencyKpiCard';
 import CreateHrStaffDrawer from '../../../components/agency/hr/CreateHrStaffDrawer';
+import EditHrStaffDrawer from '../../../components/agency/hr/EditHrStaffDrawer';
+import SetHrPasswordDrawer from '../../../components/agency/hr/SetHrPasswordDrawer';
+import SendHrEmailDrawer from '../../../components/agency/hr/SendHrEmailDrawer';
 import HrStatusBadge from '../../../components/agency/hr/HrStatusBadge';
-import { fetchHrStaff, fetchHrStaffStats } from '../../../redux/slices/hrStaffSlice';
+import ActionIconButton from '../../../components/ui/ActionIconButton';
+import {
+  fetchHrStaff,
+  fetchHrStaffStats,
+  setHrStaffStatus,
+} from '../../../redux/slices/hrStaffSlice';
 import { formatHrDate } from '../../../utils/hrStaffStore';
 import { getUserRole } from '../../../utils/auth';
 import { ROLES } from '../../../constants/roles';
 import { ROUTES } from '../../../routes/routes';
-import { Users, UserCheck, UserX, Clock } from 'lucide-react';
 
 export default function HrStaff() {
   const dispatch = useDispatch();
   const { list, stats } = useSelector((state) => state.hrStaff);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const isAgencyOwner = getUserRole() === ROLES.AGENCY_OWNER;
@@ -47,6 +70,30 @@ export default function HrStaff() {
       return matchesStatus && haystack.includes(query);
     });
   }, [list, search, statusFilter]);
+
+  const openAction = (member, action) => {
+    setSelectedMember(member);
+    if (action === 'edit') setEditOpen(true);
+    if (action === 'password') setPasswordOpen(true);
+    if (action === 'email') setEmailOpen(true);
+  };
+
+  const handleStatusToggle = async (member) => {
+    const nextStatus = member.status === 'Active' ? 'Inactive' : 'Active';
+    try {
+      await dispatch(setHrStaffStatus({ id: member.id, status: nextStatus })).unwrap();
+      loadData();
+    } catch {
+      // toast in slice
+    }
+  };
+
+  const closeDrawers = () => {
+    setSelectedMember(null);
+    setEditOpen(false);
+    setPasswordOpen(false);
+    setEmailOpen(false);
+  };
 
   return (
     <div className="space-y-5">
@@ -113,7 +160,7 @@ export default function HrStaff() {
                 <th className="px-5 py-3">Department</th>
                 <th className="px-5 py-3">Hire Date</th>
                 <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3">Action</th>
+                <th className="px-5 py-3">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -150,17 +197,51 @@ export default function HrStaff() {
                       <HrStatusBadge status={member.status} />
                     </td>
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <Link
+                      <div className="flex items-center gap-0.5">
+                        <ActionIconButton
+                          label="View"
+                          as={Link}
                           to={ROUTES.AGENCY_HR_STAFF_DETAIL.replace(':id', member.id)}
-                          className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                          className="text-gray-500 hover:bg-gray-100 hover:text-gray-800"
                         >
-                          <Eye size={14} />
-                          View
-                        </Link>
-                        <button type="button" className="text-gray-400 hover:text-gray-600">
-                          <MoreVertical size={16} />
-                        </button>
+                          <Eye size={16} />
+                        </ActionIconButton>
+                        {isAgencyOwner && (
+                          <>
+                            <ActionIconButton
+                              label="Edit details"
+                              onClick={() => openAction(member, 'edit')}
+                              className="text-gray-500 hover:bg-blue-50 hover:text-blue-700"
+                            >
+                              <Pencil size={16} />
+                            </ActionIconButton>
+                            <ActionIconButton
+                              label="Reset password"
+                              onClick={() => openAction(member, 'password')}
+                              className="text-gray-500 hover:bg-amber-50 hover:text-amber-700"
+                            >
+                              <KeyRound size={16} />
+                            </ActionIconButton>
+                            <ActionIconButton
+                              label="Send email"
+                              onClick={() => openAction(member, 'email')}
+                              className="text-gray-500 hover:bg-primary/10 hover:text-primary"
+                            >
+                              <Mail size={16} />
+                            </ActionIconButton>
+                            <ActionIconButton
+                              label={member.status === 'Active' ? 'Deactivate account' : 'Activate account'}
+                              onClick={() => handleStatusToggle(member)}
+                              className={
+                                member.status === 'Active'
+                                  ? 'text-gray-500 hover:bg-red-50 hover:text-red-600'
+                                  : 'text-gray-500 hover:bg-emerald-50 hover:text-emerald-700'
+                              }
+                            >
+                              <Power size={16} />
+                            </ActionIconButton>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -172,11 +253,29 @@ export default function HrStaff() {
       </div>
 
       {isAgencyOwner && (
-        <CreateHrStaffDrawer
-          open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-          onSuccess={loadData}
-        />
+        <>
+          <CreateHrStaffDrawer
+            open={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
+            onSuccess={loadData}
+          />
+          <EditHrStaffDrawer
+            open={editOpen}
+            onClose={closeDrawers}
+            member={selectedMember}
+            onSuccess={loadData}
+          />
+          <SetHrPasswordDrawer
+            open={passwordOpen}
+            onClose={closeDrawers}
+            member={selectedMember}
+          />
+          <SendHrEmailDrawer
+            open={emailOpen}
+            onClose={closeDrawers}
+            member={selectedMember}
+          />
+        </>
       )}
     </div>
   );

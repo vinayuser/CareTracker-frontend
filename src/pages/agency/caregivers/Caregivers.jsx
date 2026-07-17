@@ -1,12 +1,30 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { Search, UserCheck, Users, UserX, Clock, KeyRound } from 'lucide-react';
+import {
+  Search,
+  UserCheck,
+  Users,
+  UserX,
+  Clock,
+  KeyRound,
+  Eye,
+  Pencil,
+  Mail,
+  Power,
+} from 'lucide-react';
 import AgencyKpiCard from '../../../components/agency/dashboard/AgencyKpiCard';
 import SetCaregiverPasswordDrawer from '../../../components/agency/caregivers/SetCaregiverPasswordDrawer';
-import { fetchCaregivers, fetchCaregiverStats } from '../../../redux/slices/caregiversSlice';
+import EditCaregiverDrawer from '../../../components/agency/caregivers/EditCaregiverDrawer';
+import ViewCaregiverDrawer from '../../../components/agency/caregivers/ViewCaregiverDrawer';
+import SendCaregiverEmailDrawer from '../../../components/agency/caregivers/SendCaregiverEmailDrawer';
+import ActionIconButton from '../../../components/ui/ActionIconButton';
+import {
+  fetchCaregivers,
+  fetchCaregiverStats,
+  setCaregiverStatus,
+} from '../../../redux/slices/caregiversSlice';
 import { ROUTES } from '../../../routes/routes';
-import { isAgencyOwner } from '../../../utils/moduleAccess';
 
 function StatusBadge({ status }) {
   const styles = {
@@ -26,9 +44,11 @@ export default function Caregivers() {
   const { list, stats, loading } = useSelector((state) => state.caregivers);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [passwordDrawerOpen, setPasswordDrawerOpen] = useState(false);
   const [selectedCaregiver, setSelectedCaregiver] = useState(null);
-  const owner = isAgencyOwner();
+  const [viewOpen, setViewOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [emailOpen, setEmailOpen] = useState(false);
 
   const loadData = () => {
     dispatch(fetchCaregivers());
@@ -57,6 +77,32 @@ export default function Caregivers() {
       return matchesStatus && haystack.includes(query);
     });
   }, [list, search, statusFilter]);
+
+  const openAction = (caregiver, action) => {
+    setSelectedCaregiver(caregiver);
+    if (action === 'view') setViewOpen(true);
+    if (action === 'edit') setEditOpen(true);
+    if (action === 'password') setPasswordOpen(true);
+    if (action === 'email') setEmailOpen(true);
+  };
+
+  const handleStatusToggle = async (caregiver) => {
+    const nextStatus = caregiver.status === 'Active' ? 'Inactive' : 'Active';
+    try {
+      await dispatch(setCaregiverStatus({ id: caregiver.id, status: nextStatus })).unwrap();
+      loadData();
+    } catch {
+      // toast in slice
+    }
+  };
+
+  const closeDrawers = () => {
+    setSelectedCaregiver(null);
+    setViewOpen(false);
+    setEditOpen(false);
+    setPasswordOpen(false);
+    setEmailOpen(false);
+  };
 
   return (
     <div className="space-y-5">
@@ -131,7 +177,7 @@ export default function Caregivers() {
                   <th className="px-5 py-3">Hired for Job</th>
                   <th className="px-5 py-3">Status</th>
                   <th className="px-5 py-3">Added</th>
-                  {owner && <th className="px-5 py-3">Action</th>}
+                  <th className="px-5 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -153,21 +199,49 @@ export default function Caregivers() {
                         ? new Date(caregiver.createdAt).toLocaleDateString()
                         : '—'}
                     </td>
-                    {owner && (
-                      <td className="px-5 py-4">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedCaregiver(caregiver);
-                            setPasswordDrawerOpen(true);
-                          }}
-                          className="flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-0.5">
+                        <ActionIconButton
+                          label="View"
+                          onClick={() => openAction(caregiver, 'view')}
+                          className="text-gray-500 hover:bg-gray-100 hover:text-gray-800"
                         >
-                          <KeyRound size={14} />
-                          Set Password
-                        </button>
-                      </td>
-                    )}
+                          <Eye size={16} />
+                        </ActionIconButton>
+                        <ActionIconButton
+                          label="Edit details"
+                          onClick={() => openAction(caregiver, 'edit')}
+                          className="text-gray-500 hover:bg-blue-50 hover:text-blue-700"
+                        >
+                          <Pencil size={16} />
+                        </ActionIconButton>
+                        <ActionIconButton
+                          label="Reset password"
+                          onClick={() => openAction(caregiver, 'password')}
+                          className="text-gray-500 hover:bg-amber-50 hover:text-amber-700"
+                        >
+                          <KeyRound size={16} />
+                        </ActionIconButton>
+                        <ActionIconButton
+                          label="Send email"
+                          onClick={() => openAction(caregiver, 'email')}
+                          className="text-gray-500 hover:bg-primary/10 hover:text-primary"
+                        >
+                          <Mail size={16} />
+                        </ActionIconButton>
+                        <ActionIconButton
+                          label={caregiver.status === 'Active' ? 'Deactivate account' : 'Activate account'}
+                          onClick={() => handleStatusToggle(caregiver)}
+                          className={
+                            caregiver.status === 'Active'
+                              ? 'text-gray-500 hover:bg-red-50 hover:text-red-600'
+                              : 'text-gray-500 hover:bg-emerald-50 hover:text-emerald-700'
+                          }
+                        >
+                          <Power size={16} />
+                        </ActionIconButton>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -176,14 +250,27 @@ export default function Caregivers() {
         )}
       </div>
 
-      <SetCaregiverPasswordDrawer
-        open={passwordDrawerOpen}
-        onClose={() => {
-          setPasswordDrawerOpen(false);
-          setSelectedCaregiver(null);
-        }}
+      <ViewCaregiverDrawer
+        open={viewOpen}
+        onClose={closeDrawers}
+        caregiver={selectedCaregiver}
+      />
+      <EditCaregiverDrawer
+        open={editOpen}
+        onClose={closeDrawers}
         caregiver={selectedCaregiver}
         onSuccess={loadData}
+      />
+      <SetCaregiverPasswordDrawer
+        open={passwordOpen}
+        onClose={closeDrawers}
+        caregiver={selectedCaregiver}
+        onSuccess={loadData}
+      />
+      <SendCaregiverEmailDrawer
+        open={emailOpen}
+        onClose={closeDrawers}
+        caregiver={selectedCaregiver}
       />
     </div>
   );

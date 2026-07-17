@@ -81,6 +81,38 @@ export const setHrStaffStatus = createAsyncThunk(
   },
 );
 
+export const setHrStaffPassword = createAsyncThunk(
+  'hrStaff/setPassword',
+  async ({ id, password }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.patch(
+        `${API_ROUTES.AGENCY.HR_STAFF.PASSWORD}/${id}/password`,
+        { password },
+      );
+      toast.success('Password updated successfully');
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  },
+);
+
+export const sendHrStaffEmail = createAsyncThunk(
+  'hrStaff/sendEmail',
+  async ({ id, subject, message }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post(
+        `${API_ROUTES.AGENCY.HR_STAFF.EMAIL}/${id}/email`,
+        { subject, message },
+      );
+      toast.success('Email sent successfully');
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  },
+);
+
 const hrStaffSlice = createSlice({
   name: 'hrStaff',
   initialState: {

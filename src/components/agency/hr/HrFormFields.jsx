@@ -70,16 +70,57 @@ export const EMPTY_HR_FORM = {
   moduleAccess: [...DEFAULT_HR_MODULES],
 };
 
-export function hrFormToPayload(form) {
+export function hrFormToPayload(form, { includePassword = true } = {}) {
   const { confirmPassword, sendWelcomeEmail, password, ...rest } = form;
-  return {
+  const payload = {
     ...rest,
-    password,
     sendWelcomeEmail,
+  };
+  if (includePassword && password) payload.password = password;
+  return payload;
+}
+
+export function memberToHrForm(member) {
+  if (!member) return { ...EMPTY_HR_FORM };
+  return {
+    ...EMPTY_HR_FORM,
+    firstName: member.firstName || '',
+    lastName: member.lastName || '',
+    email: member.email || '',
+    phone: member.phone || '',
+    dateOfBirth: member.dateOfBirth || '',
+    gender: member.gender || '',
+    employeeId: member.employeeId || '',
+    jobTitle: member.jobTitle || '',
+    department: member.department || 'Human Resources',
+    hireDate: member.hireDate || '',
+    employmentType: member.employmentType || 'Full-time',
+    workLocation: member.workLocation || '',
+    reportsTo: member.reportsTo || '',
+    streetAddress: member.streetAddress || '',
+    city: member.city || '',
+    state: member.state || '',
+    zipCode: member.zipCode || '',
+    country: member.country || 'United States',
+    emergencyContactName: member.emergencyContactName || '',
+    emergencyContactRelationship: member.emergencyContactRelationship || '',
+    emergencyContactPhone: member.emergencyContactPhone || '',
+    emergencyContactEmail: member.emergencyContactEmail || '',
+    educationLevel: member.educationLevel || '',
+    yearsOfExperience: member.yearsOfExperience != null ? String(member.yearsOfExperience) : '',
+    certifications: member.certifications || '',
+    specializations: member.specializations || '',
+    userId: member.userId || member.email || '',
+    password: '',
+    confirmPassword: '',
+    status: member.status || 'Active',
+    sendWelcomeEmail: false,
+    notes: member.notes || '',
+    moduleAccess: member.moduleAccess?.length ? [...member.moduleAccess] : [...DEFAULT_HR_MODULES],
   };
 }
 
-export function validateHrForm(form) {
+export function validateHrForm(form, { requirePassword = true } = {}) {
   const errors = {};
 
   if (!form.firstName.trim()) errors.firstName = 'First name is required';
@@ -92,9 +133,14 @@ export function validateHrForm(form) {
   if (!form.emergencyContactName.trim()) errors.emergencyContactName = 'Emergency contact name is required';
   if (!form.emergencyContactPhone.trim()) errors.emergencyContactPhone = 'Emergency contact phone is required';
   if (!form.userId.trim()) errors.userId = 'User ID is required';
-  if (!form.password) errors.password = 'Password is required';
-  else if (form.password.length < 8) errors.password = 'Password must be at least 8 characters';
-  if (form.password !== form.confirmPassword) errors.confirmPassword = 'Passwords do not match';
+  if (requirePassword) {
+    if (!form.password) errors.password = 'Password is required';
+    else if (form.password.length < 8) errors.password = 'Password must be at least 8 characters';
+    if (form.password !== form.confirmPassword) errors.confirmPassword = 'Passwords do not match';
+  } else if (form.password || form.confirmPassword) {
+    if (form.password.length < 8) errors.password = 'Password must be at least 8 characters';
+    if (form.password !== form.confirmPassword) errors.confirmPassword = 'Passwords do not match';
+  }
   if (!form.moduleAccess?.length) errors.moduleAccess = 'Select at least one module';
 
   return errors;
@@ -113,7 +159,13 @@ function Field({ label, required, error, children }) {
   );
 }
 
-export function HrFormFields({ form, errors, onChange, readOnly = false }) {
+export function HrFormFields({
+  form,
+  errors,
+  onChange,
+  readOnly = false,
+  showPasswordFields = true,
+}) {
   const set = (field) => (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     onChange(field, value);
@@ -277,23 +329,27 @@ export function HrFormFields({ form, errors, onChange, readOnly = false }) {
                 ))}
               </select>
             </Field>
-            <Field label="Temporary Password" required error={errors.password}>
-              <input type="password" value={form.password} onChange={set('password')} className={inputClass} placeholder="Min. 8 characters" />
-            </Field>
-            <Field label="Confirm Password" required error={errors.confirmPassword}>
-              <input type="password" value={form.confirmPassword} onChange={set('confirmPassword')} className={inputClass} />
-            </Field>
-            <div className="sm:col-span-2">
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={form.sendWelcomeEmail}
-                  onChange={set('sendWelcomeEmail')}
-                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/20"
-                />
-                Send welcome email with login instructions
-              </label>
-            </div>
+            {showPasswordFields && (
+              <>
+                <Field label="Temporary Password" required error={errors.password}>
+                  <input type="password" value={form.password} onChange={set('password')} className={inputClass} placeholder="Min. 8 characters" />
+                </Field>
+                <Field label="Confirm Password" required error={errors.confirmPassword}>
+                  <input type="password" value={form.confirmPassword} onChange={set('confirmPassword')} className={inputClass} />
+                </Field>
+                <div className="sm:col-span-2">
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={form.sendWelcomeEmail}
+                      onChange={set('sendWelcomeEmail')}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/20"
+                    />
+                    Send welcome email with login instructions
+                  </label>
+                </div>
+              </>
+            )}
           </div>
         </section>
       )}

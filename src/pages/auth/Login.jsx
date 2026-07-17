@@ -35,7 +35,10 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const response = await axiosInstance.post(API_ROUTES.LOGIN, { email, password });
+      const response = await axiosInstance.post(API_ROUTES.LOGIN, {
+        email: email.trim(),
+        password,
+      });
       if (response.data?.data?.token) {
         const payload = response.data.data;
         dispatch(loginSuccess(payload));
@@ -89,7 +92,7 @@ export default function Login() {
 
                 <div>
                   <label htmlFor="email" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                    Email address
+                    Email or Login ID
                   </label>
                   <div className="relative">
                     <Mail
@@ -98,13 +101,13 @@ export default function Login() {
                     />
                     <input
                       id="email"
-                      type="email"
+                      type="text"
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="admin@caretraker.com"
+                      placeholder="email@example.com or login ID"
                       className={inputClass}
-                      autoComplete="email"
+                      autoComplete="username"
                     />
                   </div>
                 </div>
