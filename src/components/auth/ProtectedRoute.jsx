@@ -6,7 +6,7 @@ import { ROUTES } from '../../routes/routes';
 
 export default function ProtectedRoute() {
   const dispatch = useDispatch();
-  const { isAuthenticated, authChecked, isLoading } = useSelector((state) => state.auth);
+  const { isAuthenticated, authChecked } = useSelector((state) => state.auth);
   const hasToken = Boolean(localStorage.getItem('token'));
 
   useEffect(() => {
@@ -15,7 +15,8 @@ export default function ProtectedRoute() {
     }
   }, [authChecked, dispatch, hasToken]);
 
-  if (hasToken && (!authChecked || isLoading)) {
+  // Gate only on the initial session resolve — never on later /auth/me refreshes.
+  if (hasToken && !authChecked) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f0f4f8] text-sm text-gray-500">
         Checking session…

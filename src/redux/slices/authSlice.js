@@ -1,4 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { toast } from 'react-toastify';
 import axiosInstance from '../../api/axiosInstance';
 import API_ROUTES from '../../api/apiRoutes';
 
@@ -12,6 +13,17 @@ const storedUser = (() => {
 })();
 
 const hasToken = () => Boolean(localStorage.getItem('token'));
+
+const persistUser = (state, user, token) => {
+  if (token) localStorage.setItem('token', token);
+  localStorage.setItem('authUser', JSON.stringify(user));
+  state.isAuthenticated = true;
+  state.user = user;
+  state.role = user?.role ?? '';
+  state.authChecked = true;
+  state.isLoading = false;
+  state.error = null;
+};
 
 export const fetchCurrentUser = createAsyncThunk(
   'auth/fetchCurrentUser',
@@ -36,6 +48,34 @@ export const fetchCurrentUser = createAsyncThunk(
   },
 );
 
+export const updateProfile = createAsyncThunk(
+  'auth/updateProfile',
+  async (payload, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.put(API_ROUTES.UPDATE_PROFILE, payload);
+      toast.success(response.data.message || 'Profile updated');
+      return response.data?.data?.user || response.data?.data;
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update profile');
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  },
+);
+
+export const changePassword = createAsyncThunk(
+  'auth/changePassword',
+  async (payload, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.patch(API_ROUTES.CHANGE_PASSWORD, payload);
+      toast.success(response.data.message || 'Password updated');
+      return response.data?.data;
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update password');
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  },
+);
+
 const initialState = {
   // Optimistic until /auth/me resolves when a token exists
   isAuthenticated: hasToken(),
@@ -44,6 +84,8 @@ const initialState = {
   authChecked: !hasToken(),
   isLoading: hasToken(),
   error: null,
+  profileSaving: false,
+  passwordSaving: false,
 };
 
 const authSlice = createSlice({
@@ -51,14 +93,7 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     loginSuccess: (state, action) => {
-      localStorage.setItem('token', action.payload.token);
-      localStorage.setItem('authUser', JSON.stringify(action.payload.user));
-      state.isAuthenticated = true;
-      state.user = action.payload.user;
-      state.role = action.payload.user?.role ?? '';
-      state.authChecked = true;
-      state.isLoading = false;
-      state.error = null;
+      persistUser(state, action.payload.user, action.payload.token);
     },
     logout: (state) => {
       state.isAuthenticated = false;
@@ -74,18 +109,12 @@ const authSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchCurrentUser.pending, (state) => {
-        state.isLoading = true;
+        // Only block the app shell on the initial session check — not on profile refreshes.
+        if (!state.authChecked) state.isLoading = true;
         state.error = null;
       })
       .addCase(fetchCurrentUser.fulfilled, (state, action) => {
-        const user = action.payload;
-        localStorage.setItem('authUser', JSON.stringify(user));
-        state.isAuthenticated = true;
-        state.user = user;
-        state.role = user?.role ?? '';
-        state.authChecked = true;
-        state.isLoading = false;
-        state.error = null;
+        persistUser(state, action.payload);
       })
       .addCase(fetchCurrentUser.rejected, (state) => {
         state.isAuthenticated = false;
@@ -95,7 +124,21 @@ const authSlice = createSlice({
         state.isLoading = false;
         localStorage.removeItem('token');
         localStorage.removeItem('authUser');
-      });
+      })
+      .addCase(updateProfile.pending, (state) => { state.profileSaving = true; })
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        state.profileSaving = false;
+        persistUser(state, action.payload);
+      })
+      .addCase(updateProfile.rejected, (state) => { state.profileSaving = false; })
+      .addCase(changePassword.pending, (state) => { state.passwordSaving = true; })
+      .addCase(changePassword.fulfilled, (state, action) => {
+        state.passwordSaving = false;
+        const user = action.payload?.user;
+        const token = action.payload?.token;
+        if (user) persistUser(state, user, token);
+      })
+      .addCase(changePassword.rejected, (state) => { state.passwordSaving = false; });
   },
 });
 

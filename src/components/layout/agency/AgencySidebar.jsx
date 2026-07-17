@@ -30,10 +30,11 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { ROUTES } from '../../../routes/routes';
 import { logout as reduxLogout } from '../../../redux/slices/authSlice';
 import { logout, getUserRole } from '../../../utils/auth';
+import { normalizeRole } from '../../../constants/roles';
 import { filterAgencyNavGroups, getHrModuleAccess, isAgencyOwner } from '../../../utils/moduleAccess';
 import CareTrackerLogo from '../../brand/CareTrackerLogo';
 
@@ -182,8 +183,10 @@ function EvvNavGroup({ item, collapsed }) {
 export default function AgencySidebar({ collapsed }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const navGroups = filterAgencyNavGroups();
-  const role = getUserRole();
+  const authRole = useSelector((state) => state.auth.role);
+  const authUser = useSelector((state) => state.auth.user);
+  const role = normalizeRole(authRole) || getUserRole();
+  const navGroups = filterAgencyNavGroups(role, authUser);
 
   const handleLogout = () => {
     dispatch(reduxLogout());

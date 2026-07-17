@@ -1,6 +1,8 @@
 export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
+  FORGOT_PASSWORD: '/forgot-password',
+  RESET_PASSWORD: '/reset-password',
 
   ADMIN_PREFIX: '/admin',
   AGENCY_PREFIX: '/agency',
@@ -16,6 +18,7 @@ export const ROUTES = {
   ADMIN_REPORTS: '/admin/reports',
   ADMIN_AUDIT_LOGS: '/admin/audit-logs',
   ADMIN_SETTINGS: '/admin/settings',
+  ADMIN_PROFILE: '/admin/profile',
 
   // Agency owner / HR portal
   AGENCY_DASHBOARD: '/agency/dashboard',
@@ -60,6 +63,7 @@ export const ROUTES = {
   AGENCY_USERS: '/agency/users',
   AGENCY_ROLES: '/agency/roles',
   AGENCY_SETTINGS: '/agency/settings',
+  AGENCY_PROFILE: '/agency/profile',
   AGENCY_BILLING: '/agency/billing',
 
   AGENCY_HR_STAFF: '/agency/hr/staff',
@@ -93,6 +97,7 @@ export const ROUTES = {
   CAREGIVER_PAYMENTS: '/caregiver/payroll',
   CAREGIVER_TRAINING: '/caregiver/training',
   CAREGIVER_SETTINGS: '/caregiver/settings',
+  CAREGIVER_PROFILE: '/caregiver/profile',
 
   // Agency registration
   REGISTRATION_ENTRY: '/register',

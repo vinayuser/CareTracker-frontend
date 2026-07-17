@@ -7,7 +7,7 @@ import { ROUTES } from '../../routes/routes';
 
 export default function PublicRoute({ children }) {
   const dispatch = useDispatch();
-  const { isAuthenticated, authChecked, isLoading, user } = useSelector((state) => state.auth);
+  const { isAuthenticated, authChecked, user } = useSelector((state) => state.auth);
   const hasToken = Boolean(localStorage.getItem('token'));
 
   useEffect(() => {
@@ -16,7 +16,7 @@ export default function PublicRoute({ children }) {
     }
   }, [authChecked, dispatch, hasToken]);
 
-  if (hasToken && (!authChecked || isLoading)) {
+  if (hasToken && !authChecked) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 text-sm text-slate-500">
         Checking session…

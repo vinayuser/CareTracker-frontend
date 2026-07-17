@@ -6,6 +6,7 @@ import {
   fetchAgencyVisits,
   fetchCaregiverVisits,
   rejectVisit,
+  resolveVisitException,
 } from '../../../redux/slices/visitSchedulesSlice';
 
 import {
@@ -133,10 +134,32 @@ export default function EvvVisitLogsTable({
     }
   };
 
+  const handleResolveException = async (row) => {
+    if (!row.alert || row.exceptionResolved || actionId) return;
+    const note = window.prompt('Resolution note for this exception (optional):', '');
+    if (note == null) return;
+    setActionId(row.visitId);
+    try {
+      await dispatch(resolveVisitException({
+        id: row.visitId,
+        payload: { note: String(note).trim() },
+      })).unwrap();
+      if (!skipFetch) {
+        if (mode === 'day') dispatch(fetchAgencyVisits({ date }));
+        else dispatch(fetchAgencyVisits({ from: effectiveFrom, to: effectiveTo }));
+      }
+    } catch {
+      // toast in slice
+    } finally {
+      setActionId(null);
+    }
+  };
+
   const exportCsv = () => {
     const headers = [
       'Visit ID', 'Date', 'Scheduled', 'Client', 'Caregiver', 'Service',
-      'Check In', 'Check Out', 'Method', 'Duration', 'Status', 'Approval', 'Late', 'Reason',
+      'Check In', 'Check Out', 'Method', 'Duration', 'Billable Hours', 'Rate', 'Amount',
+      'Status', 'Approval', 'Late', 'Reason',
     ];
     const rows = filtered.map((row) => [
       row.id,
@@ -149,6 +172,9 @@ export default function EvvVisitLogsTable({
       row.checkOut.time,
       row.method,
       row.duration,
+      row.billableHours ?? '',
+      row.hourlyRate ?? '',
+      row.amount ?? '',
       row.status,
       row.approvalStatus,
       row.lateCheckIn ? 'Yes' : 'No',
@@ -166,7 +192,13 @@ export default function EvvVisitLogsTable({
     URL.revokeObjectURL(url);
   };
 
-  const colSpan = hideCaregiverColumn ? 10 : 11;
+  const money = (value) => (
+    value == null || value === ''
+      ? '—'
+      : `$${Number(value).toFixed(2)}`
+  );
+
+  const colSpan = 11 + (hideCaregiverColumn ? 0 : 1) + (isCaregiver ? 0 : 1);
 
   return (
     <div className="space-y-4">
@@ -294,7 +326,9 @@ export default function EvvVisitLogsTable({
                 <th className="px-5 py-3">Service</th>
                 <th className="px-5 py-3">Check In</th>
                 <th className="px-5 py-3">Check Out</th>
-                <th className="px-5 py-3">Duration</th>
+                <th className="px-5 py-3">Hours</th>
+                <th className="px-5 py-3">Rate</th>
+                <th className="px-5 py-3">Amount</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3">Approval</th>
                 {!isCaregiver && <th className="px-5 py-3">Actions</th>}
@@ -351,7 +385,14 @@ export default function EvvVisitLogsTable({
                     <td className="px-5 py-4">
                       <div className="font-medium text-gray-900">{row.checkOut.time}</div>
                     </td>
-                    <td className="px-5 py-4 text-gray-700">{row.duration}</td>
+                    <td className="px-5 py-4 text-gray-700">
+                      <div>{row.billableHours != null ? `${row.billableHours}h` : row.duration}</div>
+                      {row.billableHours != null && row.duration !== '—' ? (
+                        <div className="text-[11px] text-gray-400">{row.duration}</div>
+                      ) : null}
+                    </td>
+                    <td className="px-5 py-4 text-gray-700">{money(row.hourlyRate)}</td>
+                    <td className="px-5 py-4 font-medium text-gray-900">{money(row.amount)}</td>
                     <td className="px-5 py-4">
                       <div className="flex flex-col items-start gap-1">
                         <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyles[row.status] || statusStyles.Unverified}`}>
@@ -380,25 +421,41 @@ export default function EvvVisitLogsTable({
                     </td>
                     {!isCaregiver && (
                       <td className="px-5 py-4">
-                        {row.canApprove ? (
+                        {(row.canApprove || (row.alert && !row.exceptionResolved)) ? (
                           <div className="flex flex-wrap gap-1.5">
-                            <button
-                              type="button"
-                              disabled={actionId === row.visitId}
-                              onClick={() => handleApprove(row)}
-                              className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-                            >
-                              <Check size={12} /> Approve
-                            </button>
-                            <button
-                              type="button"
-                              disabled={actionId === row.visitId}
-                              onClick={() => handleReject(row)}
-                              className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
-                            >
-                              <X size={12} /> Reject
-                            </button>
+                            {row.canApprove ? (
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={actionId === row.visitId}
+                                  onClick={() => handleApprove(row)}
+                                  className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                                >
+                                  <Check size={12} /> Approve
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={actionId === row.visitId}
+                                  onClick={() => handleReject(row)}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                                >
+                                  <X size={12} /> Reject
+                                </button>
+                              </>
+                            ) : null}
+                            {row.alert && !row.exceptionResolved ? (
+                              <button
+                                type="button"
+                                disabled={actionId === row.visitId}
+                                onClick={() => handleResolveException(row)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+                              >
+                                Resolve
+                              </button>
+                            ) : null}
                           </div>
+                        ) : row.exceptionResolved ? (
+                          <span className="text-xs text-emerald-600">Resolved</span>
                         ) : (
                           <span className="text-xs text-gray-400">—</span>
                         )}

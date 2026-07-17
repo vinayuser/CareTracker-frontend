@@ -1,11 +1,14 @@
-import { Menu, Search, Mail, Bell, ChevronDown } from 'lucide-react';
+import { Menu, Search, Mail, Bell } from 'lucide-react';
+import { useSelector } from 'react-redux';
 import { getAuthUser } from '../../../utils/auth';
 import { ROLE_LABELS, normalizeRole } from '../../../constants/roles';
+import UserMenuDropdown from '../UserMenuDropdown';
 
 export default function AgencyHeader({ onToggleSidebar, title = 'Dashboard' }) {
-  const authUser = getAuthUser();
+  const authFromStore = useSelector((state) => state.auth.user);
+  const authUser = authFromStore || getAuthUser();
   const roleLabel = ROLE_LABELS[normalizeRole(authUser?.role)] ?? 'Agency Owner';
-  const agencyName = authUser?.agencyName ?? 'BrightCare Home Health';
+  const agencyName = authUser?.agencyName ?? 'Agency';
 
   return (
     <header className="flex h-[60px] shrink-0 items-center gap-4 border-b border-gray-200 bg-white px-5">
@@ -43,19 +46,8 @@ export default function AgencyHeader({ onToggleSidebar, title = 'Dashboard' }) {
           </span>
         </button>
 
-        <div className="ml-1 flex items-center gap-2.5 border-l border-gray-200 pl-3 sm:ml-2 sm:pl-4">
-          <img
-            src="https://i.pravatar.cc/80?u=john-smith-agency"
-            alt=""
-            className="h-9 w-9 rounded-full object-cover ring-2 ring-gray-100"
-          />
-          <div className="hidden min-w-0 md:block">
-            <p className="truncate text-sm font-semibold text-gray-900">{authUser?.name ?? 'John Smith'}</p>
-            <p className="truncate text-xs text-gray-500">
-              {agencyName} · {roleLabel}
-            </p>
-          </div>
-          <ChevronDown size={15} className="hidden text-gray-400 md:block" />
+        <div className="ml-1 border-l border-gray-200 pl-3 sm:ml-2 sm:pl-4">
+          <UserMenuDropdown subtitle={`${agencyName} · ${roleLabel}`} />
         </div>
       </div>
     </header>

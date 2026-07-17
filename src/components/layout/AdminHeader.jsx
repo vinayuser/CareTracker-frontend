@@ -1,9 +1,7 @@
-import { ChevronDown, PanelLeft } from 'lucide-react';
-import { getAuthUser } from '../../utils/auth';
+import { PanelLeft } from 'lucide-react';
+import UserMenuDropdown from './UserMenuDropdown';
 
 export default function AdminHeader({ collapsed, onToggleSidebar }) {
-  const authUser = getAuthUser();
-
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-8">
       {collapsed && (
@@ -17,14 +15,7 @@ export default function AdminHeader({ collapsed, onToggleSidebar }) {
         </button>
       )}
       <div className={`flex items-center gap-3 ${collapsed ? '' : 'ml-auto'}`}>
-        <div className="text-right">
-          <p className="text-sm font-semibold text-gray-900">{authUser?.name ?? 'Admin User'}</p>
-          <p className="text-xs text-gray-500">{authUser?.email ?? 'admin@caretraker.com'}</p>
-        </div>
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-white">
-          A
-        </div>
-        <ChevronDown size={16} className="text-gray-400" />
+        <UserMenuDropdown />
       </div>
     </header>
   );

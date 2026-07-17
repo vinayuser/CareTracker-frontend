@@ -102,6 +102,24 @@ export const fetchCaregiverVisits = createAsyncThunk('visitSchedules/caregiverVi
   }
 });
 
+export const fetchActiveVisit = createAsyncThunk('visitSchedules/activeVisit', async (_, { rejectWithValue }) => {
+  try {
+    const response = await axiosInstance.get(API_ROUTES.CAREGIVER.VISITS.ACTIVE);
+    return response.data.data;
+  } catch (error) {
+    return rejectWithValue(error.response?.data || error.message);
+  }
+});
+
+export const fetchVisitTimer = createAsyncThunk('visitSchedules/visitTimer', async (id, { rejectWithValue }) => {
+  try {
+    const response = await axiosInstance.get(`${API_ROUTES.CAREGIVER.VISITS.TIMER}/${id}/timer`);
+    return response.data.data;
+  } catch (error) {
+    return rejectWithValue(error.response?.data || error.message);
+  }
+});
+
 export const checkInVisit = createAsyncThunk('visitSchedules/checkIn', async ({ id, payload = {} }, { rejectWithValue }) => {
   try {
     const response = await axiosInstance.post(`${API_ROUTES.CAREGIVER.VISITS.CHECK_IN}/${id}/check-in`, payload);
@@ -150,12 +168,25 @@ export const rejectVisit = createAsyncThunk('visitSchedules/reject', async ({ id
   }
 });
 
+export const resolveVisitException = createAsyncThunk('visitSchedules/resolveException', async ({ id, payload = {} }, { rejectWithValue }) => {
+  try {
+    const response = await axiosInstance.post(`${API_ROUTES.AGENCY.VISITS.RESOLVE_EXCEPTION}/${id}/resolve-exception`, payload);
+    toast.success(response.data.message || 'Exception noted');
+    return response.data.data;
+  } catch (error) {
+    toast.error(error.response?.data?.message || 'Failed to resolve exception');
+    return rejectWithValue(error.response?.data || error.message);
+  }
+});
+
 const visitSchedulesSlice = createSlice({
   name: 'visitSchedules',
   initialState: {
     list: [],
     visits: [],
     caregiverVisits: [],
+    activeVisit: null,
+    timerStatus: null,
     stats: {
       schedules_total: 0,
       schedules_active: 0,
@@ -208,12 +239,31 @@ const visitSchedulesSlice = createSlice({
       .addCase(fetchCaregiverVisits.fulfilled, (state, action) => {
         state.caregiverVisits = Array.isArray(action.payload) ? action.payload : [];
       })
+      .addCase(fetchActiveVisit.fulfilled, (state, action) => {
+        state.activeVisit = action.payload || null;
+      })
+      .addCase(fetchVisitTimer.fulfilled, (state, action) => {
+        state.timerStatus = action.payload || null;
+        if (action.payload?.visit) {
+          const visit = action.payload.visit;
+          const idx = state.caregiverVisits.findIndex((item) => item.id === visit.id);
+          if (idx >= 0) state.caregiverVisits[idx] = visit;
+          else state.caregiverVisits.push(visit);
+          if (visit.isTimerRunning) state.activeVisit = visit;
+        }
+      })
       .addCase(checkInVisit.fulfilled, (state, action) => {
         const visit = action.payload;
+        state.activeVisit = visit;
         state.caregiverVisits = state.caregiverVisits.map((item) => (item.id === visit.id ? visit : item));
+        if (!state.caregiverVisits.some((item) => item.id === visit.id)) {
+          state.caregiverVisits.unshift(visit);
+        }
       })
       .addCase(checkOutVisit.fulfilled, (state, action) => {
         const visit = action.payload;
+        state.activeVisit = null;
+        state.timerStatus = null;
         state.caregiverVisits = state.caregiverVisits.map((item) => (item.id === visit.id ? visit : item));
         state.visits = state.visits.map((item) => (item.id === visit.id ? visit : item));
       })
@@ -222,6 +272,10 @@ const visitSchedulesSlice = createSlice({
         state.visits = state.visits.map((item) => (item.id === visit.id ? visit : item));
       })
       .addCase(rejectVisit.fulfilled, (state, action) => {
+        const visit = action.payload;
+        state.visits = state.visits.map((item) => (item.id === visit.id ? visit : item));
+      })
+      .addCase(resolveVisitException.fulfilled, (state, action) => {
         const visit = action.payload;
         state.visits = state.visits.map((item) => (item.id === visit.id ? visit : item));
       });

@@ -45,6 +45,8 @@ const clearSessionAndRedirect = async () => {
 
   const path = typeof window !== 'undefined' ? window.location.pathname : '';
   const isPublic = path === ROUTES.LOGIN
+    || path === ROUTES.FORGOT_PASSWORD
+    || path === ROUTES.RESET_PASSWORD
     || path.startsWith('/register')
     || path.startsWith('/candidate');
 

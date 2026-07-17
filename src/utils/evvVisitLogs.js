@@ -23,7 +23,13 @@ export function formatDisplayDate(dateKey) {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export function formatDuration(checkInAt, checkOutAt) {
+export function formatDuration(checkInAt, checkOutAt, billableMinutes = null) {
+  if (billableMinutes != null && billableMinutes !== '') {
+    const mins = Math.max(0, Math.round(Number(billableMinutes) || 0));
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${pad2(h)}h ${pad2(m)}m`;
+  }
   if (!checkInAt || !checkOutAt) return '—';
   const ms = new Date(checkOutAt) - new Date(checkInAt);
   if (Number.isNaN(ms) || ms < 0) return '—';
@@ -105,12 +111,20 @@ export function mapVisitToEvvLog(visit) {
       : method.toLowerCase().includes('web')
         ? 'teal'
         : 'blue',
-    duration: formatDuration(visit.checkInAt, visit.checkOutAt),
+    duration: formatDuration(visit.checkInAt, visit.checkOutAt, visit.billableMinutes),
+    billableMinutes: visit.billableMinutes ?? null,
+    billableHours: visit.billableHours
+      ?? (visit.billableMinutes != null ? Number((visit.billableMinutes / 60).toFixed(2)) : null),
+    hourlyRate: visit.hourlyRateSnapshot ?? null,
+    amount: visit.amountSnapshot ?? null,
+    invoiced: Boolean(visit.invoiced),
     status,
     alert,
     lateCheckIn: Boolean(visit.lateCheckIn),
     graceMinutes: visit.graceMinutes || 15,
     exceptionReason: visit.exceptionReason || '',
+    exceptionResolved: Boolean(visit.exceptionResolved),
+    geoWarning: visit.geoWarning || '',
     visitStatus: visit.status,
     approvalStatus,
     canApprove: Boolean(visit.canApprove ?? (visit.checkOutAt && approvalStatus === 'Pending')),

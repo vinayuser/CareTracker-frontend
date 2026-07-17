@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import {
   Eye,
@@ -7,7 +7,6 @@ import {
   Lock,
   Mail,
   ArrowRight,
-  Sparkles,
 } from 'lucide-react';
 import CareTrackerLogo from '../../components/brand/CareTrackerLogo';
 import LoginHeroPanel from '../../components/auth/LoginHeroPanel';
@@ -16,6 +15,7 @@ import axiosInstance from '../../api/axiosInstance';
 import API_ROUTES from '../../api/apiRoutes';
 import { loginSuccess } from '../../redux/slices/authSlice';
 import { getHomeRouteForRole } from '../../utils/auth';
+import { ROUTES } from '../../routes/routes';
 
 const inputClass =
   'w-full rounded-xl border border-slate-200 bg-white py-3 pl-11 pr-11 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-primary focus:ring-4 focus:ring-primary/10';
@@ -117,12 +117,12 @@ export default function Login() {
                     <label htmlFor="password" className="text-sm font-semibold text-slate-700">
                       Password
                     </label>
-                    <button
-                      type="button"
+                    <Link
+                      to={ROUTES.FORGOT_PASSWORD}
                       className="text-xs font-medium text-primary hover:underline"
                     >
                       Forgot password?
-                    </button>
+                    </Link>
                   </div>
                   <div className="relative">
                     <Lock

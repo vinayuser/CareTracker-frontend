@@ -33,6 +33,7 @@ const PAGE_TITLES = {
   users: 'Users',
   roles: 'Roles & Permissions',
   settings: 'Settings',
+  profile: 'My Profile',
   billing: 'Billing & Invoices',
   hr: 'Human Resources',
   staff: 'HR Staff',

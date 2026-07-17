@@ -1,6 +1,11 @@
 const API_ROUTES = {
   LOGIN: '/auth/login',
+  FORGOT_PASSWORD: '/auth/forgot-password',
+  RESET_PASSWORD: '/auth/reset-password',
   ME: '/auth/me',
+  UPDATE_PROFILE: '/auth/me',
+  CHANGE_PASSWORD: '/auth/password',
+
   ADMIN: {
     AGENCY: {
       LIST: '/admin/agencies',
@@ -111,8 +116,17 @@ const API_ROUTES = {
       LIST: '/agency/visits',
       APPROVE: '/agency/visits',
       REJECT: '/agency/visits',
+      RESOLVE_EXCEPTION: '/agency/visits',
     },
     EVV_DASHBOARD: '/agency/evv/dashboard',
+    EVV_SETTINGS: '/agency/evv/settings',
+    INVOICES: {
+      LIST: '/agency/invoices',
+      GENERATE: '/agency/invoices/generate',
+      SEND: '/agency/invoices',
+      PAID: '/agency/invoices',
+      VOID: '/agency/invoices',
+    },
   },
   CAREGIVER: {
     DASHBOARD: '/caregiver/dashboard',
@@ -122,6 +136,8 @@ const API_ROUTES = {
     },
     VISITS: {
       LIST: '/caregiver/visits',
+      ACTIVE: '/caregiver/visits/active',
+      TIMER: '/caregiver/visits',
       CHECK_IN: '/caregiver/visits',
       CHECK_OUT: '/caregiver/visits',
     },

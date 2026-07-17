@@ -12,6 +12,8 @@ import AgencyLayout from './components/layout/agency/AgencyLayout';
 import CaregiverLayout from './components/layout/caregiver/CaregiverLayout';
 import RegistrationLayout from './components/layout/RegistrationLayout';
 import Login from './pages/auth/Login';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
 import Dashboard from './pages/admin/Dashboard';
 import Agencies from './pages/admin/Agencies';
 import Invitations from './pages/admin/Invitations';
@@ -20,6 +22,7 @@ import Users from './pages/admin/Users';
 import Reports from './pages/admin/Reports';
 import AuditLogs from './pages/admin/AuditLogs';
 import Settings from './pages/admin/Settings';
+import Profile from './pages/Profile';
 import AgencyDashboard from './pages/agency/Dashboard';
 import AgencyModulePage from './pages/agency/AgencyModulePage';
 import Schedules from './pages/agency/schedule/Schedules';
@@ -50,6 +53,7 @@ import EvvLogs from './pages/agency/evv/EvvLogs';
 import EvvExceptions from './pages/agency/evv/EvvExceptions';
 import EvvUnverified from './pages/agency/evv/EvvUnverified';
 import EvvSettings from './pages/agency/evv/EvvSettings';
+import ClientInvoices from './pages/agency/billing/ClientInvoices';
 import CaregiverDashboard from './pages/caregiver/Dashboard';
 import CaregiverJobs from './pages/caregiver/Jobs';
 import CaregiverVisitLogs from './pages/caregiver/VisitLogs';
@@ -72,7 +76,7 @@ import { getHomeRouteForRole } from './utils/auth';
 
 function HomeRedirect() {
   const dispatch = useDispatch();
-  const { isAuthenticated, authChecked, isLoading, user } = useSelector((state) => state.auth);
+  const { isAuthenticated, authChecked, user } = useSelector((state) => state.auth);
   const hasToken = Boolean(localStorage.getItem('token'));
 
   useEffect(() => {
@@ -81,7 +85,7 @@ function HomeRedirect() {
     }
   }, [authChecked, dispatch, hasToken]);
 
-  if (hasToken && (!authChecked || isLoading)) {
+  if (hasToken && !authChecked) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f0f4f8] text-sm text-gray-500">
         Checking session…
@@ -109,6 +113,22 @@ export default function App() {
             </PublicRoute>
           }
         />
+        <Route
+          path={ROUTES.FORGOT_PASSWORD}
+          element={
+            <PublicRoute>
+              <ForgotPassword />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path={ROUTES.RESET_PASSWORD}
+          element={
+            <PublicRoute>
+              <ResetPassword />
+            </PublicRoute>
+          }
+        />
 
         <Route path={ROUTES.REGISTRATION_ENTRY} element={<RegisterEntry />} />
 
@@ -132,6 +152,7 @@ export default function App() {
               <Route path={ROUTES.ADMIN_REPORTS} element={<Reports />} />
               <Route path={ROUTES.ADMIN_AUDIT_LOGS} element={<AuditLogs />} />
               <Route path={ROUTES.ADMIN_SETTINGS} element={<Settings />} />
+              <Route path={ROUTES.ADMIN_PROFILE} element={<Profile />} />
             </Route>
           </Route>
 
@@ -184,8 +205,9 @@ export default function App() {
               <Route path={ROUTES.AGENCY_REPORTS} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_USERS} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_ROLES} element={<AgencyModulePage />} />
-              <Route path={ROUTES.AGENCY_SETTINGS} element={<AgencyModulePage />} />
-              <Route path={ROUTES.AGENCY_BILLING} element={<AgencyModulePage />} />
+              <Route path={ROUTES.AGENCY_SETTINGS} element={<Profile />} />
+              <Route path={ROUTES.AGENCY_PROFILE} element={<Profile />} />
+              <Route path={ROUTES.AGENCY_BILLING} element={<ClientInvoices />} />
               <Route path={ROUTES.AGENCY_HR_STAFF} element={<HrStaff />} />
               <Route path={ROUTES.AGENCY_HR_STAFF_DETAIL} element={<HrStaffDetail />} />
               <Route path={ROUTES.AGENCY_HIRING_PIPELINE} element={<HiringPipeline />} />
@@ -217,7 +239,8 @@ export default function App() {
               <Route path={ROUTES.CAREGIVER_PAYMENTS} element={<CaregiverPayments />} />
               <Route path="/caregiver/payments" element={<Navigate to={ROUTES.CAREGIVER_PAYMENTS} replace />} />
               <Route path={ROUTES.CAREGIVER_TRAINING} element={<CaregiverModulePage />} />
-              <Route path={ROUTES.CAREGIVER_SETTINGS} element={<CaregiverModulePage />} />
+              <Route path={ROUTES.CAREGIVER_SETTINGS} element={<Profile />} />
+              <Route path={ROUTES.CAREGIVER_PROFILE} element={<Profile />} />
             </Route>
           </Route>
         </Route>

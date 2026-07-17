@@ -26,6 +26,9 @@ const PATH_MODULE_PREFIXES = [
   { prefix: '/agency/evv/unverified', key: 'AGENCY_EVV_UNVERIFIED' },
   { prefix: '/agency/evv/settings', key: 'AGENCY_EVV_SETTINGS' },
   { prefix: '/agency/evv', key: 'AGENCY_EVV_DASHBOARD' },
+  { prefix: '/agency/billing', key: 'AGENCY_BILLING' },
+  { prefix: '/agency/profile', key: null },
+  { prefix: '/agency/settings', key: null },
   { prefix: '/agency/dashboard', key: 'AGENCY_DASHBOARD' },
 ];
 
@@ -43,7 +46,8 @@ export function isAgencyOwner(role = getUserRole()) {
 
 export function getAllowedModuleKeys(role = getUserRole(), user = getAuthUser()) {
   if (isAgencyOwner(role)) {
-    return HR_ASSIGNABLE_MODULES.filter((key) => !OWNER_ONLY_MODULES.includes(key));
+    // Owners get every assignable module plus owner-only items (e.g. HR Staff).
+    return [...new Set([...HR_ASSIGNABLE_MODULES, ...OWNER_ONLY_MODULES])];
   }
   if (normalizeRole(role) === ROLES.HR) {
     return getHrModuleAccess(user);
@@ -67,7 +71,10 @@ export function getModuleKeyForPath(pathname) {
   if (baseMatch) return baseMatch.key;
 
   const prefixMatch = PATH_MODULE_PREFIXES.find(({ prefix }) => pathname.startsWith(prefix));
-  return prefixMatch?.key ?? null;
+  if (!prefixMatch) return null;
+  // Explicit null key = open to any authenticated agency user (e.g. profile)
+  if (prefixMatch.key == null) return null;
+  return prefixMatch.key;
 }
 
 export function canAccessAgencyModule(pathname, role = getUserRole(), user = getAuthUser()) {
@@ -83,17 +90,27 @@ export function canAccessAgencyModule(pathname, role = getUserRole(), user = get
 }
 
 export function filterAgencyNavGroups(role = getUserRole(), user = getAuthUser()) {
-  if (isAgencyOwner(role)) return AGENCY_NAV_GROUPS;
+  const normalized = normalizeRole(role);
+  if (normalized === ROLES.AGENCY_OWNER) return AGENCY_NAV_GROUPS;
 
-  const allowed = new Set(getHrModuleAccess(user));
+  const allowed = new Set(
+    normalized === ROLES.HR ? getHrModuleAccess(user) : [],
+  );
 
   return AGENCY_NAV_GROUPS.map((group) => ({
     ...group,
     items: group.items.filter((item) => {
       if (item.children?.length) {
-        return item.children.some((child) => allowed.has(child.key));
+        return (item.moduleKeys || item.children.map((c) => c.key))
+          .some((key) => allowed.has(key));
       }
       return allowed.has(item.key);
+    }).map((item) => {
+      if (!item.children?.length) return item;
+      return {
+        ...item,
+        children: item.children.filter((child) => allowed.has(child.key)),
+      };
     }),
   })).filter((group) => group.items.length > 0);
 }

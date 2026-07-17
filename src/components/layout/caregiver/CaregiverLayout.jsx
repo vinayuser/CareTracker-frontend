@@ -18,6 +18,7 @@ const TITLES = {
   payroll: 'Payroll',
   training: 'Training',
   settings: 'Settings',
+  profile: 'My Profile',
 };
 
 export default function CaregiverLayout() {
