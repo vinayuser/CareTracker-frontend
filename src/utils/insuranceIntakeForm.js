@@ -115,12 +115,12 @@ export const buildEmptyFormData = () => ({
     date: '',
   },
   requiredDocuments: {
-    insuranceCard: false,
-    photoId: false,
-    medicareCard: false,
-    medicaidCard: false,
-    prescriptionCard: false,
-    otherDocuments: false,
+    insuranceCard: null,
+    photoId: null,
+    medicareCard: null,
+    medicaidCard: null,
+    prescriptionCard: null,
+    otherDocuments: null,
   },
   officeUse: {
     verifiedBy: '',
@@ -324,6 +324,31 @@ export function mergeInsurancePrefill(client, assessment) {
   };
 }
 
+function normalizeDocumentEntry(value) {
+  if (!value || value === true || value === false) return null;
+  if (typeof value !== 'object') return null;
+  if (!value.path && !value.url) return null;
+  return {
+    path: value.path || '',
+    originalName: value.originalName || '',
+    mimeType: value.mimeType || '',
+    size: value.size || 0,
+    uploadedAt: value.uploadedAt || null,
+    url: value.url || '',
+  };
+}
+
+export function normalizeRequiredDocuments(docs = {}) {
+  const empty = buildEmptyFormData().requiredDocuments;
+  return Object.fromEntries(
+    Object.keys(empty).map((key) => [key, normalizeDocumentEntry(docs?.[key])]),
+  );
+}
+
+export function hasUploadedDocument(entry) {
+  return Boolean(entry && (entry.path || entry.url || entry.originalName));
+}
+
 export function insuranceIntakeToForm(intake, client = null) {
   const empty = buildEmptyFormData();
   if (!intake) {
@@ -349,7 +374,10 @@ export function insuranceIntakeToForm(intake, client = null) {
     medicaid: { ...empty.medicaid, ...(fd.medicaid || {}) },
     additionalCoverage: { ...empty.additionalCoverage, ...(fd.additionalCoverage || {}) },
     authorization: { ...empty.authorization, ...(fd.authorization || {}) },
-    requiredDocuments: { ...empty.requiredDocuments, ...(fd.requiredDocuments || {}) },
+    requiredDocuments: normalizeRequiredDocuments({
+      ...empty.requiredDocuments,
+      ...(fd.requiredDocuments || {}),
+    }),
     officeUse: { ...empty.officeUse, ...(fd.officeUse || {}) },
   };
 

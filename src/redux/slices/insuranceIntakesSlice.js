@@ -62,6 +62,57 @@ export const deleteInsuranceIntake = createAsyncThunk('insuranceIntakes/delete',
   }
 });
 
+export const uploadInsuranceDocument = createAsyncThunk(
+  'insuranceIntakes/uploadDocument',
+  async ({ id, docKey, file }, { rejectWithValue }) => {
+    try {
+      const body = new FormData();
+      body.append('document', file);
+      const response = await axiosInstance.post(
+        `${API_ROUTES.AGENCY.INSURANCE_INTAKES.DOCUMENTS}/${id}/documents/${docKey}`,
+        body,
+      );
+      toast.success(response.data.message || 'Document uploaded');
+      return response.data.data;
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to upload document');
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  },
+);
+
+export const removeInsuranceDocument = createAsyncThunk(
+  'insuranceIntakes/removeDocument',
+  async ({ id, docKey }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.delete(
+        `${API_ROUTES.AGENCY.INSURANCE_INTAKES.DOCUMENTS}/${id}/documents/${docKey}`,
+      );
+      toast.success(response.data.message || 'Document removed');
+      return response.data.data;
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to remove document');
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  },
+);
+
+export async function downloadInsuranceDocumentsZip(id, intakeCode = 'insurance-intake') {
+  const response = await axiosInstance.get(
+    `${API_ROUTES.AGENCY.INSURANCE_INTAKES.DOCUMENTS}/${id}/documents/download`,
+    { responseType: 'blob' },
+  );
+  const blob = new Blob([response.data], { type: 'application/zip' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${intakeCode || 'insurance-intake'}-documents.zip`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
 const insuranceIntakesSlice = createSlice({
   name: 'insuranceIntakes',
   initialState: {
@@ -89,6 +140,16 @@ const insuranceIntakesSlice = createSlice({
       })
       .addCase(deleteInsuranceIntake.fulfilled, (state, action) => {
         state.list = state.list.filter((i) => i.id !== action.payload);
+      })
+      .addCase(uploadInsuranceDocument.fulfilled, (state, action) => {
+        const idx = state.list.findIndex((i) => i.id === action.payload.id);
+        if (idx !== -1) state.list[idx] = action.payload;
+        state.selected = action.payload;
+      })
+      .addCase(removeInsuranceDocument.fulfilled, (state, action) => {
+        const idx = state.list.findIndex((i) => i.id === action.payload.id);
+        if (idx !== -1) state.list[idx] = action.payload;
+        state.selected = action.payload;
       });
   },
 });

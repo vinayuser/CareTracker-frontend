@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import {
-  CreditCard, FileText, HeartPulse, IdCard, Pill, Users,
+  CreditCard, FileText, HeartPulse, IdCard, Pill, Users, Upload, Trash2, ExternalLink, Loader2,
 } from 'lucide-react';
 import DigitalSignaturePad from '../../ui/DigitalSignaturePad';
 import {
   AUTH_STATUSES, GENDERS, MARITAL_STATUSES, MEDICARE_TYPES,
   PRIMARY_INSURANCE_TYPES, RELATIONSHIPS, REQUIRED_DOCUMENTS,
+  hasUploadedDocument,
 } from '../../../utils/insuranceIntakeForm';
 
 const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
@@ -323,7 +325,15 @@ export function InsuranceIntakeStepOne({
   );
 }
 
-export function InsuranceIntakeStepTwo({ form, onFormDataChange, errors = {} }) {
+export function InsuranceIntakeStepTwo({
+  form,
+  onFormDataChange,
+  errors = {},
+  intakeId = null,
+  onUploadDocument,
+  onRemoveDocument,
+  uploadingKey = null,
+}) {
   const d = form.formData;
   const set = (section, field) => (e) => onFormDataChange(section, { [field]: e.target.value });
   const setPhone = (section, field) => (e) => {
@@ -334,14 +344,35 @@ export function InsuranceIntakeStepTwo({ form, onFormDataChange, errors = {} }) 
   const mcd = d.medicaid;
   const add = d.additionalCoverage;
   const auth = d.authorization;
-  const docs = d.requiredDocuments;
+  const docs = d.requiredDocuments || {};
   const office = d.officeUse;
   const errorClass = (key) => (errors[key] ? ' border-red-400 focus:border-red-500 focus:ring-red-200' : '');
+  const [localBusy, setLocalBusy] = useState(null);
 
   const toggleMedicareType = (type) => {
     const types = med.types || [];
     const next = types.includes(type) ? types.filter((t) => t !== type) : [...types, type];
     onFormDataChange('medicare', { ...med, types: next });
+  };
+
+  const handleFilePick = async (key, file) => {
+    if (!file || !onUploadDocument) return;
+    setLocalBusy(key);
+    try {
+      await onUploadDocument(key, file);
+    } finally {
+      setLocalBusy(null);
+    }
+  };
+
+  const handleRemove = async (key) => {
+    if (!onRemoveDocument) return;
+    setLocalBusy(key);
+    try {
+      await onRemoveDocument(key);
+    } finally {
+      setLocalBusy(null);
+    }
   };
 
   return (
@@ -410,22 +441,79 @@ export function InsuranceIntakeStepTwo({ form, onFormDataChange, errors = {} }) 
         </Section>
       </div>
 
-      <Section n="9" title="Required Documents" subtitle="Please check which you have provided">
+      <Section n="9" title="Required Documents" subtitle="Upload copies of the documents you have on file (PDF or image)">
+        {!intakeId && (
+          <p className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+            Choosing Upload will save a draft intake automatically so the file can be stored.
+          </p>
+        )}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {REQUIRED_DOCUMENTS.map(({ key, label, icon }) => {
             const Icon = DOC_ICONS[icon] || FileText;
-            const checked = !!docs[key];
+            const entry = docs[key];
+            const uploaded = hasUploadedDocument(entry);
+            const busy = uploadingKey === key || localBusy === key;
             return (
-              <button
+              <div
                 key={key}
-                type="button"
-                onClick={() => onFormDataChange('requiredDocuments', { ...docs, [key]: !checked })}
-                className={`flex flex-col items-center rounded-xl border p-4 text-center transition-colors ${checked ? 'border-primary bg-primary/5 text-primary' : 'border-gray-200 hover:border-primary/30'}`}
+                className={`flex flex-col rounded-xl border p-4 transition-colors ${
+                  uploaded ? 'border-primary/40 bg-primary/5' : 'border-gray-200 bg-white'
+                }`}
               >
-                <Icon size={28} className="mb-2" />
-                <span className="text-sm font-medium">{label}</span>
-                <span className={`mt-2 text-xs ${checked ? 'text-primary' : 'text-gray-400'}`}>{checked ? 'Provided' : 'Not provided'}</span>
-              </button>
+                <div className="mb-3 flex items-start gap-3">
+                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${uploaded ? 'bg-primary/10 text-primary' : 'bg-gray-100 text-gray-500'}`}>
+                    <Icon size={20} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-gray-900">{label}</p>
+                    <p className={`mt-0.5 text-xs ${uploaded ? 'text-primary' : 'text-gray-400'}`}>
+                      {uploaded ? (entry.originalName || 'Uploaded') : 'No file uploaded'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-auto flex flex-wrap items-center gap-2">
+                  <label className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold ${
+                    !busy
+                      ? 'border-primary/30 bg-white text-primary hover:bg-primary/5'
+                      : 'cursor-not-allowed border-gray-200 bg-gray-50 text-gray-400'
+                  }`}>
+                    {busy ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+                    {uploaded ? 'Replace' : 'Upload'}
+                    <input
+                      type="file"
+                      accept=".pdf,image/*,.heic"
+                      className="hidden"
+                      disabled={busy}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = '';
+                        if (file) handleFilePick(key, file);
+                      }}
+                    />
+                  </label>
+                  {uploaded && entry.url ? (
+                    <a
+                      href={entry.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                    >
+                      <ExternalLink size={12} /> View
+                    </a>
+                  ) : null}
+                  {uploaded ? (
+                    <button
+                      type="button"
+                      disabled={!intakeId || busy}
+                      onClick={() => handleRemove(key)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      <Trash2 size={12} /> Remove
+                    </button>
+                  ) : null}
+                </div>
+              </div>
             );
           })}
         </div>

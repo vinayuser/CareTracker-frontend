@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, Shield, FileCheck, Clock, Printer } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Shield, FileCheck, Clock, Printer, Download } from 'lucide-react';
+import { toast } from 'react-toastify';
 import AgencyKpiCard from '../../../components/agency/dashboard/AgencyKpiCard';
-import { fetchInsuranceIntakes, fetchInsuranceIntakeStats, deleteInsuranceIntake } from '../../../redux/slices/insuranceIntakesSlice';
+import {
+  fetchInsuranceIntakes,
+  fetchInsuranceIntakeStats,
+  deleteInsuranceIntake,
+  downloadInsuranceDocumentsZip,
+} from '../../../redux/slices/insuranceIntakesSlice';
 import { ROUTES } from '../../../routes/routes';
 import { confirmAlert } from '../../../utils/swal';
 
@@ -51,6 +57,18 @@ export default function InsuranceIntakes() {
     if (!confirmed) return;
     await dispatch(deleteInsuranceIntake(item.id));
     dispatch(fetchInsuranceIntakeStats());
+  };
+
+  const handleDownloadDocs = async (item) => {
+    if (!item.documentCount) {
+      toast.info('No documents uploaded for this intake yet');
+      return;
+    }
+    try {
+      await downloadInsuranceDocumentsZip(item.id, item.intakeCode);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to download documents');
+    }
   };
 
   return (
@@ -104,6 +122,7 @@ export default function InsuranceIntakes() {
                   <th className="px-5 py-3">Client</th>
                   <th className="px-5 py-3">Intake ID</th>
                   <th className="px-5 py-3">Intake Date</th>
+                  <th className="px-5 py-3">Docs</th>
                   <th className="px-5 py-3">Status</th>
                   <th className="px-5 py-3">Actions</th>
                 </tr>
@@ -117,9 +136,18 @@ export default function InsuranceIntakes() {
                     </td>
                     <td className="px-5 py-4 text-gray-700">{item.intakeCode}</td>
                     <td className="px-5 py-4 text-gray-700">{item.intakeDate || '—'}</td>
+                    <td className="px-5 py-4 text-gray-700">{item.documentCount || 0}</td>
                     <td className="px-5 py-4"><StatusBadge status={item.status} /></td>
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadDocs(item)}
+                          className={actionBtnNeutral}
+                          title={item.documentCount ? 'Download all uploaded documents' : 'No documents uploaded'}
+                        >
+                          <Download size={15} /> Docs
+                        </button>
                         <button type="button" onClick={() => window.open(ROUTES.AGENCY_INSURANCE_INTAKE_PRINT.replace(':id', item.id), '_blank')} className={actionBtnNeutral}>
                           <Printer size={15} /> Print
                         </button>

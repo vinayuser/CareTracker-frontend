@@ -189,15 +189,22 @@ export default function InsuranceIntakePrintLayout({ form }) {
         </div>
 
         <Section n="9" title="REQUIRED DOCUMENTS" className="ii-section-docs">
-          <p className="ii-muted">(Please check which you have provided)</p>
+          <p className="ii-muted">(Uploaded document copies on file)</p>
           <div className="ii-docs-grid">
-            {REQUIRED_DOCUMENTS.map(({ key, label }) => (
-              <div key={key} className="ii-doc-item">
-                <div className="ii-doc-icon">📄</div>
-                <div className="ii-doc-label">{label}</div>
-                <Check label="" on={docs[key]} />
-              </div>
-            ))}
+            {REQUIRED_DOCUMENTS.map(({ key, label }) => {
+              const entry = docs[key];
+              const uploaded = Boolean(entry && (entry.path || entry.url || entry === true));
+              return (
+                <div key={key} className="ii-doc-item">
+                  <div className="ii-doc-icon">📄</div>
+                  <div className="ii-doc-label">{label}</div>
+                  <Check label="" on={uploaded} />
+                  {uploaded && entry?.originalName ? (
+                    <div className="ii-muted" style={{ fontSize: '10px', marginTop: 4 }}>{entry.originalName}</div>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
         </Section>
 

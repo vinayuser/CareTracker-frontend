@@ -6,7 +6,13 @@ import InsuranceIntakeStepper from '../../../components/agency/insurance-intake/
 import { InsuranceIntakeStepOne, InsuranceIntakeStepTwo } from '../../../components/agency/insurance-intake/InsuranceIntakeSteps';
 import { fetchClient, fetchClients } from '../../../redux/slices/clientsSlice';
 import { fetchAssessments } from '../../../redux/slices/assessmentsSlice';
-import { createInsuranceIntake, fetchInsuranceIntake, updateInsuranceIntake } from '../../../redux/slices/insuranceIntakesSlice';
+import {
+  createInsuranceIntake,
+  fetchInsuranceIntake,
+  removeInsuranceDocument,
+  updateInsuranceIntake,
+  uploadInsuranceDocument,
+} from '../../../redux/slices/insuranceIntakesSlice';
 import {
   insuranceIntakeToForm,
   mergeInsurancePrefill,
@@ -15,6 +21,7 @@ import {
 } from '../../../utils/insuranceIntakeForm';
 import { saveInsuranceIntakePrintDraft } from './InsuranceIntakePrintPage';
 import { ROUTES } from '../../../routes/routes';
+import { toast } from 'react-toastify';
 
 async function loadInsurancePrefill(dispatch, selectedClientId, clientsList = []) {
   if (!selectedClientId) return null;
@@ -56,9 +63,11 @@ export default function ClientInsuranceIntakeForm() {
   const [loading, setLoading] = useState(isEdit || Boolean(searchParams.get('clientId')));
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
+  const [intakeRecordId, setIntakeRecordId] = useState(id || null);
+  const [uploadingKey, setUploadingKey] = useState(null);
   const clientLockedFromQuery = Boolean(searchParams.get('clientId'));
   const clientInfoLocked = Boolean(clientId);
-  const clientSelectLocked = clientLockedFromQuery || (isEdit && Boolean(clientId));
+  const clientSelectLocked = clientLockedFromQuery || (Boolean(intakeRecordId) && Boolean(clientId));
 
   useEffect(() => {
     dispatch(fetchClients());
@@ -96,11 +105,12 @@ export default function ClientInsuranceIntakeForm() {
         setForm(base);
       }
       setClientId(existing.clientId || '');
+      setIntakeRecordId(existing.id || id);
     };
 
     hydrate();
     return () => { cancelled = true; };
-  }, [clients, dispatch, existing, isEdit]);
+  }, [clients, dispatch, existing, id, isEdit]);
 
   useEffect(() => {
     if (isEdit || !clientId) {
@@ -178,6 +188,77 @@ export default function ClientInsuranceIntakeForm() {
     else window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const buildPayload = (status = form.status) => ({
+    clientId: clientId || undefined,
+    status,
+    intakeDate: form.intakeDate,
+    formData: form.formData,
+  });
+
+  const ensureIntakeSaved = async () => {
+    if (intakeRecordId) return intakeRecordId;
+    const step1 = validateInsuranceIntakeStepOne(form, { clientInfoLocked });
+    if (Object.keys(step1).length) {
+      setErrors(step1);
+      setStep(1);
+      scrollFormTop();
+      toast.error('Complete required client details before uploading documents');
+      throw new Error('validation');
+    }
+    const created = await dispatch(createInsuranceIntake(buildPayload('Draft'))).unwrap();
+    setIntakeRecordId(created.id);
+    setForm((prev) => ({
+      ...insuranceIntakeToForm(created),
+      formData: {
+        ...insuranceIntakeToForm(created).formData,
+        ...prev.formData,
+        requiredDocuments: created.formData?.requiredDocuments || prev.formData.requiredDocuments,
+      },
+      intakeCode: created.intakeCode,
+      status: created.status,
+    }));
+    navigate(ROUTES.AGENCY_INSURANCE_INTAKE_EDIT.replace(':id', created.id), { replace: true });
+    return created.id;
+  };
+
+  const applyIntakeToForm = (intake) => {
+    setForm((prev) => ({
+      ...prev,
+      intakeCode: intake.intakeCode || prev.intakeCode,
+      status: intake.status || prev.status,
+      formData: {
+        ...prev.formData,
+        requiredDocuments: intake.formData?.requiredDocuments || prev.formData.requiredDocuments,
+      },
+    }));
+  };
+
+  const handleUploadDocument = async (docKey, file) => {
+    setUploadingKey(docKey);
+    try {
+      const recordId = await ensureIntakeSaved();
+      const updated = await dispatch(uploadInsuranceDocument({ id: recordId, docKey, file })).unwrap();
+      applyIntakeToForm(updated);
+    } catch {
+      // toast / validation handled upstream
+    } finally {
+      setUploadingKey(null);
+    }
+  };
+
+  const handleRemoveDocument = async (docKey) => {
+    if (!intakeRecordId) return;
+    setUploadingKey(docKey);
+    try {
+      const updated = await dispatch(removeInsuranceDocument({ id: intakeRecordId, docKey })).unwrap();
+      applyIntakeToForm(updated);
+    } catch {
+      // toast in slice
+    } finally {
+      setUploadingKey(null);
+    }
+  };
+
   const goNext = () => {
     const stepErrors = validateInsuranceIntakeStepOne(form, { clientInfoLocked });
     setErrors(stepErrors);
@@ -205,14 +286,9 @@ export default function ClientInsuranceIntakeForm() {
     }
 
     setSubmitting(true);
-    const payload = {
-      clientId: clientId || undefined,
-      status: form.status,
-      intakeDate: form.intakeDate,
-      formData: form.formData,
-    };
+    const payload = buildPayload();
     try {
-      if (isEdit) await dispatch(updateInsuranceIntake({ id, payload })).unwrap();
+      if (intakeRecordId) await dispatch(updateInsuranceIntake({ id: intakeRecordId, payload })).unwrap();
       else await dispatch(createInsuranceIntake(payload)).unwrap();
       navigate(ROUTES.AGENCY_INSURANCE_INTAKE);
     } catch { /* toast */ }
@@ -255,7 +331,15 @@ export default function ClientInsuranceIntakeForm() {
             errors={errors}
           />
         ) : (
-          <InsuranceIntakeStepTwo form={form} onFormDataChange={onFormDataChange} errors={errors} />
+          <InsuranceIntakeStepTwo
+            form={form}
+            onFormDataChange={onFormDataChange}
+            errors={errors}
+            intakeId={intakeRecordId}
+            onUploadDocument={handleUploadDocument}
+            onRemoveDocument={handleRemoveDocument}
+            uploadingKey={uploadingKey}
+          />
         )}
 
         <div className="mt-8 flex justify-between border-t border-gray-100 pt-6">
@@ -272,7 +356,7 @@ export default function ClientInsuranceIntakeForm() {
             </button>
           ) : (
             <button type="button" disabled={submitting} onClick={handleSubmit} className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover disabled:opacity-50">
-              <Save size={18} /> {submitting ? 'Saving...' : isEdit ? 'Update Intake' : 'Save Intake'}
+              <Save size={18} /> {submitting ? 'Saving...' : intakeRecordId ? 'Update Intake' : 'Save Intake'}
             </button>
           )}
         </div>

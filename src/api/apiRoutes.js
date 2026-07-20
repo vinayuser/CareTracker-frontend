@@ -99,6 +99,7 @@ const API_ROUTES = {
       OPTIONS: '/agency/insurance-intakes/options',
       STATS: '/agency/insurance-intakes/stats',
       LIST: '/agency/insurance-intakes',
+      DOCUMENTS: '/agency/insurance-intakes',
     },
     EVV_ENROLLMENTS: {
       OPTIONS: '/agency/evv-enrollments/options',

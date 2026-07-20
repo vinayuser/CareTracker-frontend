@@ -12,39 +12,39 @@ export const AGENCY_NAV_GROUPS = [
       { key: 'AGENCY_INSURANCE_INTAKE', label: 'Insurance Intake', icon: 'Shield' },
     ],
   },
-  // {
-  //   title: 'EVV',
-  //   items: [
-  //     {
-  //       key: 'AGENCY_EVV_GROUP',
-  //       label: 'EVV',
-  //       icon: 'ShieldCheck',
-  //       badge: 'Live',
-  //       moduleKeys: [
-  //         'AGENCY_EVV_DASHBOARD',
-  //         'AGENCY_EVV_LOGS',
-  //         'AGENCY_EVV_EXCEPTIONS',
-  //         'AGENCY_EVV_UNVERIFIED',
-  //         'AGENCY_EVV_ENROLLMENTS',
-  //         'AGENCY_EVV_SETTINGS',
-  //       ],
-  //       children: [
-  //         { key: 'AGENCY_EVV_DASHBOARD', label: 'EVV Dashboard' },
-  //         { key: 'AGENCY_EVV_LOGS', label: 'EVV Logs' },
-  //         { key: 'AGENCY_EVV_EXCEPTIONS', label: 'Exceptions' },
-  //         { key: 'AGENCY_EVV_UNVERIFIED', label: 'Unverified Visits' },
-  //         { key: 'AGENCY_EVV_ENROLLMENTS', label: 'Enrollments' },
-  //         { key: 'AGENCY_EVV_SETTINGS', label: 'Settings' },
-  //       ],
-  //     },
-  //   ],
-  // },
-  // {
-  //   title: 'Billing',
-  //   items: [
-  //     { key: 'AGENCY_BILLING', label: 'Invoices', icon: 'Receipt' },
-  //   ],
-  // },
+  {
+    title: 'EVV',
+    items: [
+      {
+        key: 'AGENCY_EVV_GROUP',
+        label: 'EVV',
+        icon: 'ShieldCheck',
+        badge: 'Live',
+        moduleKeys: [
+          'AGENCY_EVV_DASHBOARD',
+          'AGENCY_EVV_LOGS',
+          'AGENCY_EVV_EXCEPTIONS',
+          'AGENCY_EVV_UNVERIFIED',
+          'AGENCY_EVV_ENROLLMENTS',
+          'AGENCY_EVV_SETTINGS',
+        ],
+        children: [
+          { key: 'AGENCY_EVV_DASHBOARD', label: 'EVV Dashboard' },
+          { key: 'AGENCY_EVV_LOGS', label: 'EVV Logs' },
+          { key: 'AGENCY_EVV_EXCEPTIONS', label: 'Exceptions' },
+          { key: 'AGENCY_EVV_UNVERIFIED', label: 'Unverified Visits' },
+          { key: 'AGENCY_EVV_ENROLLMENTS', label: 'Enrollments' },
+          { key: 'AGENCY_EVV_SETTINGS', label: 'Settings' },
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Billing',
+    items: [
+      { key: 'AGENCY_BILLING', label: 'Invoices', icon: 'Receipt' },
+    ],
+  },
   {
     title: 'Caregivers',
     items: [
