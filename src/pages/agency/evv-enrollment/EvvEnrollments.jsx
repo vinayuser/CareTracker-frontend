@@ -36,7 +36,14 @@ export default function EvvEnrollments() {
     const matchesStatus = statusFilter === 'All' || item.status === statusFilter;
     const q = search.trim().toLowerCase();
     if (!q) return matchesStatus;
-    const haystack = [item.enrollmentCode, item.clientName, item.caregiverName, item.planCode].join(' ').toLowerCase();
+    const haystack = [
+      item.enrollmentCode,
+      item.clientName,
+      item.caregiverName,
+      item.planCode,
+      ...(item.serviceAreas || []),
+      item.serviceAreaKey,
+    ].join(' ').toLowerCase();
     return matchesStatus && haystack.includes(q);
   }), [list, search, statusFilter]);
 
@@ -103,7 +110,7 @@ export default function EvvEnrollments() {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                  <th className="px-5 py-3">Client</th>
+                  <th className="px-5 py-3">Client / Service</th>
                   <th className="px-5 py-3">Caregiver</th>
                   <th className="px-5 py-3">Care Plan</th>
                   <th className="px-5 py-3">Enrollment ID</th>

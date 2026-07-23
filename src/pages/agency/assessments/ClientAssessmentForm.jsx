@@ -1,18 +1,59 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { ArrowLeft, ArrowRight, ClipboardList, Printer, Save } from 'lucide-react';
 import AssessmentStepper from '../../../components/agency/assessments/AssessmentStepper';
 import { AssessmentStepOne, AssessmentStepTwo } from '../../../components/agency/assessments/AssessmentSteps';
 import { addAssessment, fetchAssessment, updateAssessment } from '../../../redux/slices/assessmentsSlice';
-import { EMPTY_ASSESSMENT, assessmentToForm } from '../../../utils/assessmentForm';
+import {
+  EMPTY_ASSESSMENT,
+  assessmentToForm,
+  buildEmptyFormData,
+  todayIso,
+} from '../../../utils/assessmentForm';
 import { ROUTES } from '../../../routes/routes';
 import { saveAssessmentPrintDraft } from './AssessmentPrintPage';
+
+function applyLeadPrefill(prefill) {
+  const base = {
+    ...EMPTY_ASSESSMENT,
+    assessmentDate: todayIso(),
+    formData: buildEmptyFormData(),
+  };
+  if (!prefill) return base;
+  return {
+    ...base,
+    formData: {
+      ...base.formData,
+      clientInfo: {
+        ...base.formData.clientInfo,
+        clientName: prefill.clientName || '',
+        primaryDiagnosis: prefill.primaryDiagnosis || '',
+      },
+      contactInfo: {
+        ...base.formData.contactInfo,
+        mobile: prefill.clientPhone || '',
+        homePhone: prefill.clientPhone || '',
+        email: prefill.clientEmail || '',
+      },
+      physicianInfo: {
+        ...base.formData.physicianInfo,
+        primaryPhysician: prefill.physicianName || '',
+      },
+      allergies: {
+        ...base.formData.allergies,
+        details: prefill.allergies || '',
+      },
+      coordinatorNotes: prefill.careNotes || '',
+    },
+  };
+}
 
 export default function ClientAssessmentForm() {
   const { id } = useParams();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
   const authUser = useSelector((state) => state.auth.user);
   const agencyName = authUser?.agencyName ?? '';
@@ -24,7 +65,7 @@ export default function ClientAssessmentForm() {
 
   useEffect(() => {
     if (!isEdit) {
-      setForm({ ...EMPTY_ASSESSMENT });
+      setForm(applyLeadPrefill(location.state?.leadPrefill));
       setStep(1);
       setLoading(false);
       return;
@@ -34,7 +75,7 @@ export default function ClientAssessmentForm() {
       .then((data) => { setForm(assessmentToForm(data)); setStep(1); })
       .catch(() => navigate(ROUTES.AGENCY_ASSESSMENTS))
       .finally(() => setLoading(false));
-  }, [dispatch, id, isEdit, navigate]);
+  }, [dispatch, id, isEdit, location.state, navigate]);
 
   const onHeaderChange = (field, value) => setForm((p) => ({ ...p, [field]: value }));
 

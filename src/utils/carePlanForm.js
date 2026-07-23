@@ -208,12 +208,30 @@ export function carePlanToForm(plan, client = null) {
     };
   }
   const fd = plan.formData || {};
+  const careNeeds = (Array.isArray(fd.careNeeds) && fd.careNeeds.length
+    ? fd.careNeeds
+    : empty.careNeeds
+  ).map((row, i) => {
+    const base = empty.careNeeds[i] || buildEmptyCareNeed(CARE_NEED_AREAS[i] || CARE_NEED_AREAS[0]);
+    return {
+      ...base,
+      ...row,
+      interventions: { ...base.interventions, ...(row.interventions || {}) },
+      scheduleDays: Array.isArray(row.scheduleDays) ? row.scheduleDays : (base.scheduleDays || []),
+      startTime: row.startTime ?? base.startTime ?? '',
+      endTime: row.endTime ?? base.endTime ?? '',
+      graceMinutes: row.graceMinutes ?? base.graceMinutes ?? 15,
+      responsibleStaffId: row.responsibleStaffId ?? base.responsibleStaffId ?? '',
+      responsibleStaff: row.responsibleStaff ?? base.responsibleStaff ?? '',
+    };
+  });
   const merged = {
     ...empty,
     ...fd,
     clientInfo: { ...empty.clientInfo, ...(fd.clientInfo || {}) },
     medicalInfo: { ...empty.medicalInfo, ...(fd.medicalInfo || {}) },
     supplementary: { ...empty.supplementary, ...(fd.supplementary || {}) },
+    careNeeds,
   };
   if (client) {
     const patch = clientToFormPatch(client);

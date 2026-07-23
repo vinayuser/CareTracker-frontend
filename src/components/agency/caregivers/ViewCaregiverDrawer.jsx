@@ -32,7 +32,7 @@ export default function ViewCaregiverDrawer({ open, onClose, caregiver }) {
             label="Added"
             value={
               caregiver.createdAt
-                ? new Date(caregiver.createdAt).toLocaleDateString()
+                ? new Date(caregiver.createdAt).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
                 : ''
             }
           />

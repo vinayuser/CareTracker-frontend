@@ -23,6 +23,7 @@ import {
   fetchVisitSchedules,
 } from '../../../redux/slices/visitSchedulesSlice';
 import { confirmAlert } from '../../../utils/swal';
+import { formatVisitTime, formatTimezoneAbbr } from '../../../utils/visitTimezone';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -46,11 +47,8 @@ function toDateKey(date) {
   return `${y}-${m}-${d}`;
 }
 
-function formatTime(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+function formatTime(iso, timeZone) {
+  return formatVisitTime(iso, timeZone);
 }
 
 function monthRange(year, month) {
@@ -131,10 +129,9 @@ export default function Schedules() {
   };
 
   const selectedLabel = selectedDate
-    ? new Date(`${selectedDate}T12:00:00`).toLocaleDateString(undefined, {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
+    ? new Date(`${selectedDate}T12:00:00`).toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
         year: 'numeric',
       })
     : '';
@@ -259,7 +256,10 @@ export default function Schedules() {
                           <div>
                             <p className={`text-sm font-semibold ${alert ? 'text-red-900' : 'text-gray-900'}`}>{visit.clientName}</p>
                             <p className={`mt-0.5 text-xs ${alert ? 'text-red-700' : 'text-gray-500'}`}>
-                              {formatTime(visit.scheduledStartAt)} – {formatTime(visit.scheduledEndAt)}
+                              {formatTime(visit.scheduledStartAt, visit.timezone)} – {formatTime(visit.scheduledEndAt, visit.timezone)}
+                              {formatTimezoneAbbr(visit.scheduledStartAt, visit.timezone)
+                                ? ` ${formatTimezoneAbbr(visit.scheduledStartAt, visit.timezone)}`
+                                : ''}
                             </p>
                           </div>
                           <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${statusStyles[visit.status] || statusStyles.Scheduled}`}>

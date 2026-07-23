@@ -11,6 +11,7 @@ import {
   fetchVisitTimer,
 } from '../../redux/slices/visitSchedulesSlice';
 import { toDateKey } from '../../utils/evvVisitLogs';
+import { formatVisitTime, formatTimezoneAbbr } from '../../utils/visitTimezone';
 
 function formatElapsedSeconds(totalSeconds) {
   const total = Math.max(0, Math.floor(Number(totalSeconds) || 0));
@@ -20,11 +21,8 @@ function formatElapsedSeconds(totalSeconds) {
   return `${h}:${m}:${s}`;
 }
 
-function formatTime(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+function formatTime(iso, timeZone) {
+  return formatVisitTime(iso, timeZone);
 }
 
 function formatDuration(checkInAt, checkOutAt, billableMinutes) {
@@ -44,7 +42,7 @@ function formatDuration(checkInAt, checkOutAt, billableMinutes) {
 
 function visitLabel(visit) {
   if (!visit) return '';
-  return `${visit.clientName || 'Client'} · ${visit.serviceArea || 'Visit'} · ${formatTime(visit.scheduledStartAt)}`;
+  return `${visit.clientName || 'Client'} · ${visit.serviceArea || 'Visit'} · ${formatTime(visit.scheduledStartAt, visit.timezone)}`;
 }
 
 async function readGeo() {
@@ -253,7 +251,10 @@ export default function CaregiverClock() {
               <MapPin size={12} />
               {selectedVisit.address || 'Address on file'}
               {' · '}
-              {formatTime(selectedVisit.scheduledStartAt)} – {formatTime(selectedVisit.scheduledEndAt)}
+              {formatTime(selectedVisit.scheduledStartAt, selectedVisit.timezone)} – {formatTime(selectedVisit.scheduledEndAt, selectedVisit.timezone)}
+              {formatTimezoneAbbr(selectedVisit.scheduledStartAt, selectedVisit.timezone)
+                ? ` ${formatTimezoneAbbr(selectedVisit.scheduledStartAt, selectedVisit.timezone)}`
+                : ''}
             </p>
             {selectedVisit.graceMinutes != null && (
               <p className="mt-1 text-xs text-gray-400">

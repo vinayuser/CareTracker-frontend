@@ -15,6 +15,7 @@ const PATH_MODULE_PREFIXES = [
   { prefix: '/agency/hr/jobs', key: 'AGENCY_JOBS' },
   { prefix: '/agency/hr/candidates', key: 'AGENCY_CANDIDATES' },
   { prefix: '/agency/insurance-intake', key: 'AGENCY_INSURANCE_INTAKE' },
+  { prefix: '/agency/leads', key: 'AGENCY_LEADS' },
   { prefix: '/agency/assessments', key: 'AGENCY_ASSESSMENTS' },
   { prefix: '/agency/care-plans', key: 'AGENCY_CARE_PLANS' },
   { prefix: '/agency/clients', key: 'AGENCY_CLIENTS' },

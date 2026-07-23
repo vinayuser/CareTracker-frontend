@@ -196,7 +196,7 @@ export default function Caregivers() {
                     </td>
                     <td className="px-5 py-4 text-gray-500">
                       {caregiver.createdAt
-                        ? new Date(caregiver.createdAt).toLocaleDateString()
+                        ? new Date(caregiver.createdAt).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
                         : '—'}
                     </td>
                     <td className="px-5 py-4">

@@ -473,8 +473,30 @@
 
 .cp-th-area { width: 0.85in; }
 .cp-th-interventions { width: 1.55in; }
-.cp-th-freq { width: 0.5in; }
-.cp-th-staff { width: 0.58in; }
+.cp-th-freq { width: 0.45in; }
+.cp-th-staff { width: 0.85in; }
+
+.cp-staff-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.01in;
+}
+
+.cp-staff-name {
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.cp-staff-meta {
+  font-size: 4.8pt;
+  line-height: 1.25;
+  color: #334155;
+}
+
+.cp-staff-meta-label {
+  font-weight: 700;
+  color: #4b2c82;
+}
 
 .cp-area {
   display: flex;

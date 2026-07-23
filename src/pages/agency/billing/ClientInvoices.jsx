@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { FileText, Mail, Ban, CheckCircle2, Plus } from 'lucide-react';
+import { FileText, Mail, Ban, CheckCircle2, Plus, Printer } from 'lucide-react';
 import Drawer from '../../../components/ui/Drawer';
+import InvoiceDetailView from '../../../components/agency/billing/InvoiceDetailView';
 import {
   fetchInvoices,
+  fetchInvoiceById,
   generateInvoice,
   sendInvoice,
   markInvoicePaid,
@@ -29,9 +31,11 @@ export default function ClientInvoices() {
   const dispatch = useDispatch();
   const { list, loading, actionLoading } = useSelector((state) => state.invoices);
   const { list: clients } = useSelector((state) => state.clients);
+  const authUser = useSelector((state) => state.auth.user);
   const [statusFilter, setStatusFilter] = useState('All');
   const [generateOpen, setGenerateOpen] = useState(false);
   const [detail, setDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [form, setForm] = useState(() => {
     const to = new Date();
     const from = new Date();
@@ -54,12 +58,26 @@ export default function ClientInvoices() {
     return list.filter((inv) => inv.status === statusFilter);
   }, [list, statusFilter]);
 
+  const openDetail = async (inv) => {
+    setDetail(inv);
+    setDetailLoading(true);
+    try {
+      const full = await dispatch(fetchInvoiceById(inv.id)).unwrap();
+      setDetail(full);
+    } catch {
+      // keep list snapshot
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
   const handleGenerate = async (e) => {
     e.preventDefault();
     if (!form.client_id) return;
     try {
-      await dispatch(generateInvoice(form)).unwrap();
+      const created = await dispatch(generateInvoice(form)).unwrap();
       setGenerateOpen(false);
+      if (created) openDetail(created);
     } catch {
       // toast in slice
     }
@@ -72,6 +90,10 @@ export default function ClientInvoices() {
     } catch {
       // toast in slice
     }
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   return (
@@ -114,7 +136,7 @@ export default function ClientInvoices() {
                 <th className="px-5 py-3">Invoice</th>
                 <th className="px-5 py-3">Client</th>
                 <th className="px-5 py-3">Period</th>
-                <th className="px-5 py-3">Lines</th>
+                <th className="px-5 py-3">Visits</th>
                 <th className="px-5 py-3">Total</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3">Actions</th>
@@ -135,7 +157,12 @@ export default function ClientInvoices() {
                 filtered.map((inv) => (
                   <tr key={inv.id} className="hover:bg-gray-50">
                     <td className="px-5 py-4 font-medium text-primary">{inv.invoiceCode}</td>
-                    <td className="px-5 py-4 text-gray-900">{inv.clientName}</td>
+                    <td className="px-5 py-4">
+                      <p className="font-medium text-gray-900">{inv.clientName}</p>
+                      {inv.clientEmail ? (
+                        <p className="text-xs text-gray-500">{inv.clientEmail}</p>
+                      ) : null}
+                    </td>
                     <td className="px-5 py-4 text-gray-700">
                       {inv.periodFrom} → {inv.periodTo}
                     </td>
@@ -152,7 +179,7 @@ export default function ClientInvoices() {
                       <div className="flex flex-wrap gap-1.5">
                         <button
                           type="button"
-                          onClick={() => setDetail(inv)}
+                          onClick={() => openDetail(inv)}
                           className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
                         >
                           <FileText size={12} /> View
@@ -204,7 +231,7 @@ export default function ClientInvoices() {
       <Drawer open={generateOpen} onClose={() => setGenerateOpen(false)} title="Generate invoice">
         <form onSubmit={handleGenerate} className="space-y-4">
           <p className="text-sm text-gray-500">
-            Pulls Approved, not-yet-invoiced visits for the client in the selected period.
+            Pulls Approved, not-yet-invoiced visits for the client in the selected period — each visit becomes a detailed line with service, caregiver, times, hours, rate, and amount.
           </p>
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-gray-700">Client</span>
@@ -263,41 +290,54 @@ export default function ClientInvoices() {
         </form>
       </Drawer>
 
-      <Drawer open={Boolean(detail)} onClose={() => setDetail(null)} title={detail?.invoiceCode || 'Invoice'}>
-        {detail && (
-          <div className="space-y-4">
-            <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 text-sm">
-              <p className="font-medium text-gray-900">{detail.clientName}</p>
-              <p className="text-gray-500">{detail.clientEmail || 'No email on file'}</p>
-              <p className="mt-1 text-gray-600">{detail.periodFrom} → {detail.periodTo}</p>
-              <p className="mt-2 text-lg font-semibold text-gray-900">${Number(detail.total || 0).toFixed(2)}</p>
+      <Drawer
+        open={Boolean(detail)}
+        onClose={() => setDetail(null)}
+        title={detail?.invoiceCode || 'Invoice'}
+        width="3xl"
+        footer={(
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={handlePrint}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <Printer size={15} /> Print
+            </button>
+            <div className="flex flex-wrap gap-2">
+              {detail?.status === 'Draft' && (
+                <button
+                  type="button"
+                  disabled={actionLoading}
+                  onClick={() => runAction(sendInvoice, detail.id)}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  <Mail size={15} /> Send to client
+                </button>
+              )}
+              {(detail?.status === 'Draft' || detail?.status === 'Sent') && (
+                <button
+                  type="button"
+                  disabled={actionLoading}
+                  onClick={() => runAction(markInvoicePaid, detail.id)}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  <CheckCircle2 size={15} /> Mark paid
+                </button>
+              )}
             </div>
-            <div className="overflow-x-auto rounded-lg border border-gray-200">
-              <table className="min-w-full text-xs">
-                <thead>
-                  <tr className="bg-gray-50 text-left text-gray-500">
-                    <th className="px-3 py-2">Date</th>
-                    <th className="px-3 py-2">Service</th>
-                    <th className="px-3 py-2">Hours</th>
-                    <th className="px-3 py-2">Rate</th>
-                    <th className="px-3 py-2">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {(detail.lines || []).map((line) => (
-                    <tr key={String(line.visitId)}>
-                      <td className="px-3 py-2 text-gray-800">{line.date}</td>
-                      <td className="px-3 py-2 text-gray-700">{line.serviceArea || '—'}</td>
-                      <td className="px-3 py-2">{line.billableHours}</td>
-                      <td className="px-3 py-2">${Number(line.hourlyRate || 0).toFixed(2)}</td>
-                      <td className="px-3 py-2 font-medium">${Number(line.amount || 0).toFixed(2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {detail.notes ? <p className="text-sm text-gray-600">{detail.notes}</p> : null}
           </div>
+        )}
+      >
+        {detailLoading && !detail?.lines?.some((l) => l.checkInAt) ? (
+          <p className="py-10 text-center text-sm text-gray-500">Loading invoice details…</p>
+        ) : (
+          <InvoiceDetailView
+            invoice={{
+              ...detail,
+              agencyName: detail?.agencyName || authUser?.agencyName || '',
+            }}
+          />
         )}
       </Drawer>
     </div>

@@ -316,8 +316,8 @@ export function formatBillingCycle(cycle) {
 export function formatPlanDate(date) {
   if (!date) return '—';
   return new Date(`${date}T00:00:00`).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
     year: 'numeric',
   });
 }

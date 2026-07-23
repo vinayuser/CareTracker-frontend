@@ -14,6 +14,16 @@ export const fetchInvoices = createAsyncThunk('invoices/fetchAll', async (params
   }
 });
 
+export const fetchInvoiceById = createAsyncThunk('invoices/fetchById', async (id, { rejectWithValue }) => {
+  try {
+    const response = await axiosInstance.get(`${API_ROUTES.AGENCY.INVOICES.LIST}/${id}`);
+    return response.data.data;
+  } catch (error) {
+    toast.error(error.response?.data?.message || 'Failed to load invoice');
+    return rejectWithValue(error.response?.data || error.message);
+  }
+});
+
 export const generateInvoice = createAsyncThunk('invoices/generate', async (payload, { rejectWithValue }) => {
   try {
     const response = await axiosInstance.post(API_ROUTES.AGENCY.INVOICES.GENERATE, payload);

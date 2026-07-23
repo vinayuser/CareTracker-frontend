@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   LayoutDashboard,
   Users,
+  UserPlus,
   ClipboardList,
   HeartHandshake,
   FileText,
@@ -41,6 +42,7 @@ import CareTrackerLogo from '../../brand/CareTrackerLogo';
 const iconMap = {
   LayoutDashboard,
   Users,
+  UserPlus,
   ClipboardList,
   HeartHandshake,
   FileText,

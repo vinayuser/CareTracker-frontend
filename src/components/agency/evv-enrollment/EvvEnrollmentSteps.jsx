@@ -182,11 +182,11 @@ export function EvvEnrollmentStepTwo({ form, onFormDataChange, readOnly = false,
               <Field label="Client / Representative Signature">
                 <DigitalSignaturePad value={d.authorization.clientSignature} onChange={(v) => patch('authorization', 'clientSignature', v)} />
               </Field>
-              <InputOrRead label="Date" value={d.authorization.clientDate} onChange={(v) => patch('authorization', 'clientDate', v)} />
+              <InputOrRead label="Date" type="date" value={d.authorization.clientDate} onChange={(v) => patch('authorization', 'clientDate', v)} />
               <Field label="Caregiver / Employee Signature">
                 <DigitalSignaturePad value={d.authorization.caregiverSignature} onChange={(v) => patch('authorization', 'caregiverSignature', v)} />
               </Field>
-              <InputOrRead label="Date" value={d.authorization.caregiverDate} onChange={(v) => patch('authorization', 'caregiverDate', v)} />
+              <InputOrRead label="Date" type="date" value={d.authorization.caregiverDate} onChange={(v) => patch('authorization', 'caregiverDate', v)} />
             </>
           ) : (
             <>
@@ -209,7 +209,7 @@ export function EvvEnrollmentStepTwo({ form, onFormDataChange, readOnly = false,
               <Field label="Caregiver / Employee Signature">
                 <DigitalSignaturePad value={d.trainingAck.caregiverSignature} onChange={(v) => patch('trainingAck', 'caregiverSignature', v)} />
               </Field>
-              <InputOrRead label="Date" value={d.trainingAck.date} onChange={(v) => patch('trainingAck', 'date', v)} />
+              <InputOrRead label="Date" type="date" value={d.trainingAck.date} onChange={(v) => patch('trainingAck', 'date', v)} />
             </>
           ) : (
             <>
@@ -224,11 +224,11 @@ export function EvvEnrollmentStepTwo({ form, onFormDataChange, readOnly = false,
         <Section n="9" title="For Office Use Only">
           <div className="grid gap-4 sm:grid-cols-2">
             <InputOrRead label="EVV System" value={d.officeUse.evvSystem} onChange={(v) => patch('officeUse', 'evvSystem', v)} readOnly={readOnly && form.status !== 'Submitted'} />
-            <InputOrRead label="Enrollment Date" value={d.officeUse.enrollmentDate} onChange={(v) => patch('officeUse', 'enrollmentDate', v)} readOnly={readOnly && form.status !== 'Submitted'} />
+            <InputOrRead label="Enrollment Date" type="date" value={d.officeUse.enrollmentDate} onChange={(v) => patch('officeUse', 'enrollmentDate', v)} readOnly={readOnly && form.status !== 'Submitted'} />
             <InputOrRead label="Staff Initials" value={d.officeUse.staffInitials} onChange={(v) => patch('officeUse', 'staffInitials', v)} readOnly={readOnly && form.status !== 'Submitted'} />
             <InputOrRead label="Method Set Up By" value={d.officeUse.methodSetUpBy} onChange={(v) => patch('officeUse', 'methodSetUpBy', v)} readOnly={readOnly && form.status !== 'Submitted'} />
             <InputOrRead label="Verified By" value={d.officeUse.verifiedBy} onChange={(v) => patch('officeUse', 'verifiedBy', v)} readOnly={readOnly && form.status !== 'Submitted'} />
-            <InputOrRead label="Verification Date" value={d.officeUse.verificationDate} onChange={(v) => patch('officeUse', 'verificationDate', v)} readOnly={readOnly && form.status !== 'Submitted'} />
+            <InputOrRead label="Verification Date" type="date" value={d.officeUse.verificationDate} onChange={(v) => patch('officeUse', 'verificationDate', v)} readOnly={readOnly && form.status !== 'Submitted'} />
             <div className="sm:col-span-2">
               {readOnly && form.status !== 'Submitted' ? (
                 <ReadField label="Notes" value={d.officeUse.notes} />

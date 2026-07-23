@@ -63,8 +63,8 @@ function agencyKey(agencyName) {
 export function formatHrDate(isoString) {
   if (!isoString) return '—';
   return new Date(isoString).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
     year: 'numeric',
   });
 }

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { formatVisitTime } from '../../../utils/visitTimezone';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -19,11 +20,8 @@ function toDateKey(date) {
   return `${y}-${m}-${d}`;
 }
 
-function formatTime(isoOrDate) {
-  if (!isoOrDate) return '';
-  const d = new Date(isoOrDate);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+function formatTime(isoOrDate, timeZone) {
+  return formatVisitTime(isoOrDate, timeZone);
 }
 
 function buildMonthGrid(year, month) {
@@ -131,7 +129,7 @@ export default function VisitMonthCalendar({
                     } ${selectedVisitId === visit.id ? 'ring-1 ring-primary' : ''}`}
                     title={`${visit.clientName} · ${visit.caregiverName}`}
                   >
-                    {formatTime(visit.scheduledStartAt)} {visit.clientName}
+                    {formatTime(visit.scheduledStartAt, visit.timezone)} {visit.clientName}
                   </button>
                 ))}
                 {dayVisits.length > 3 && (

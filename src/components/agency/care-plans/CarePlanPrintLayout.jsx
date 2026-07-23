@@ -114,6 +114,39 @@ function dispDate(v) {
   return disp(v);
 }
 
+function formatPrintTime(t) {
+  if (!t) return '';
+  const m = String(t).match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return String(t);
+  let h = Number(m[1]);
+  const min = m[2];
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${min} ${ampm}`;
+}
+
+function StaffScheduleCell({ row }) {
+  const days = Array.isArray(row.scheduleDays) ? row.scheduleDays.filter(Boolean) : [];
+  const start = formatPrintTime(row.startTime);
+  const end = formatPrintTime(row.endTime);
+  const timeLine = start && end ? `${start} – ${end}` : (start || end);
+  return (
+    <div className="cp-cell-box sm cp-staff-cell">
+      <div className="cp-staff-name">{disp(row.responsibleStaff)}</div>
+      {days.length > 0 && (
+        <div className="cp-staff-meta">
+          <span className="cp-staff-meta-label">Days:</span> {days.join(', ')}
+        </div>
+      )}
+      {timeLine && (
+        <div className="cp-staff-meta">
+          <span className="cp-staff-meta-label">Time:</span> {timeLine}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AssessorLine({ label, value }) {
   return (
     <div className="cp-assessor-line">
@@ -284,7 +317,7 @@ export default function CarePlanPrintLayout({
                 <th>Goals / Expected Outcomes</th>
                 <th className="cp-th-interventions">Interventions / Services (Check all that apply)</th>
                 <th className="cp-th-freq">Frequency</th>
-                <th className="cp-th-staff">Responsible Staff</th>
+                <th className="cp-th-staff">Responsible Staff / Schedule</th>
               </tr>
             </thead>
             <tbody>
@@ -310,7 +343,7 @@ export default function CarePlanPrintLayout({
                       ) : null}
                     </td>
                     <td><div className="cp-cell-box sm">{disp(row.frequency)}</div></td>
-                    <td><div className="cp-cell-box sm">{disp(row.responsibleStaff)}</div></td>
+                    <td><StaffScheduleCell row={row} /></td>
                   </tr>
                 );
               })}

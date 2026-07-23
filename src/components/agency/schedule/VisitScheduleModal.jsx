@@ -9,6 +9,7 @@ import {
   fetchVisitScheduleOptions,
   updateVisitSchedule,
 } from '../../../redux/slices/visitSchedulesSlice';
+import { detectBrowserTimezone, DEFAULT_TIMEZONE, FALLBACK_TIMEZONES } from '../../../utils/visitTimezone';
 
 const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15';
 const labelClass = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500';
@@ -30,7 +31,7 @@ function inferRecurrence(frequency = '') {
   return 'Weekly';
 }
 
-function buildCardFromNeed(need, clientAddress) {
+function buildCardFromNeed(need, clientAddress, timezone) {
   return {
     enabled: true,
     care_need_area_key: need.area_key || '',
@@ -44,6 +45,7 @@ function buildCardFromNeed(need, clientAddress) {
     start_time: need.start_time || '09:00',
     end_time: need.end_time || '11:00',
     grace_minutes: need.grace_minutes || 15,
+    timezone: timezone || detectBrowserTimezone(),
     effective_from: new Date().toISOString().slice(0, 10),
     effective_to: '',
     notes: '',
@@ -56,6 +58,7 @@ function CaregiverScheduleCard({
   index,
   recurrenceOptions,
   graceOptions,
+  timezoneOptions,
   onChange,
   onToggleDay,
 }) {
@@ -168,8 +171,19 @@ function CaregiverScheduleCard({
           </Field>
         )}
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Field label="Start time">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <Field label="Timezone" className="sm:col-span-2 xl:col-span-2">
+            <select
+              className={inputClass}
+              value={card.timezone || DEFAULT_TIMEZONE}
+              onChange={(e) => onChange(index, { timezone: e.target.value })}
+            >
+              {timezoneOptions.map((tz) => (
+                <option key={tz.value} value={tz.value}>{tz.label}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Start time (local)">
             <input
               type="time"
               className={inputClass}
@@ -177,7 +191,7 @@ function CaregiverScheduleCard({
               onChange={(e) => onChange(index, { start_time: e.target.value })}
             />
           </Field>
-          <Field label="End time">
+          <Field label="End time (local)">
             <input
               type="time"
               className={inputClass}
@@ -193,6 +207,8 @@ function CaregiverScheduleCard({
               onChange={(e) => onChange(index, { effective_from: e.target.value })}
             />
           </Field>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Field label="Effective to (optional)">
             <input
               type="date"
@@ -202,6 +218,9 @@ function CaregiverScheduleCard({
             />
           </Field>
         </div>
+        <p className="text-xs text-gray-500">
+          Start/end times are wall-clock times in the selected timezone and are stored as UTC so clock-in windows stay correct on the server.
+        </p>
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <Field label="Visit address">
@@ -284,6 +303,7 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
         start_time: schedule.startTime || '09:00',
         end_time: schedule.endTime || '11:00',
         grace_minutes: schedule.graceMinutes || 15,
+        timezone: schedule.timezone || detectBrowserTimezone(),
         effective_from: schedule.effectiveFrom || new Date().toISOString().slice(0, 10),
         effective_to: schedule.effectiveTo || '',
         notes: schedule.notes || '',
@@ -329,7 +349,8 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
         if (cancelled) return;
         setSources(data);
         const needs = (data.care_needs || []).filter((need) => need.caregiver_account_id);
-        setCards(needs.map((need) => buildCardFromNeed(need, data.client?.address || '')));
+        const defaultTz = detectBrowserTimezone();
+        setCards(needs.map((need) => buildCardFromNeed(need, data.client?.address || '', defaultTz)));
       })
       .catch(() => {
         if (!cancelled) {
@@ -346,6 +367,12 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
 
   const recurrenceOptions = options?.recurrence_types || ['Daily', 'Weekly', 'Monthly'];
   const graceOptions = options?.grace_minutes || [15, 30];
+  const timezoneOptions = useMemo(() => {
+    const list = options?.timezones?.length ? options.timezones : FALLBACK_TIMEZONES;
+    const browserTz = detectBrowserTimezone();
+    if (list.some((tz) => tz.value === browserTz)) return list;
+    return [{ value: browserTz, label: `${browserTz} (detected)` }, ...list];
+  }, [options?.timezones]);
 
   const updateCard = (index, patch) => {
     setCards((prev) => prev.map((card, i) => (i === index ? { ...card, ...patch } : card)));
@@ -393,6 +420,7 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
           start_time: card.start_time,
           end_time: card.end_time,
           grace_minutes: card.grace_minutes,
+          timezone: card.timezone || detectBrowserTimezone(),
           effective_from: card.effective_from,
           effective_to: card.effective_to || '',
           notes: card.notes,
@@ -471,6 +499,7 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
                 index={0}
                 recurrenceOptions={recurrenceOptions}
                 graceOptions={graceOptions}
+                timezoneOptions={timezoneOptions}
                 onChange={(_, patch) => setEditForm((prev) => ({ ...prev, ...patch }))}
                 onToggleDay={(_, day) => {
                   setEditForm((prev) => {
@@ -579,6 +608,7 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
                       index={index}
                       recurrenceOptions={recurrenceOptions}
                       graceOptions={graceOptions}
+                      timezoneOptions={timezoneOptions}
                       onChange={updateCard}
                       onToggleDay={toggleDay}
                     />

@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { AlertTriangle, Check, Download, Search, X } from 'lucide-react';
+import { AlertTriangle, Check, Download, Pencil, Search, X } from 'lucide-react';
 import {
   approveVisit,
   fetchAgencyVisits,
   fetchCaregiverVisits,
   rejectVisit,
   resolveVisitException,
+  updateVisitLog,
 } from '../../../redux/slices/visitSchedulesSlice';
+import EditVisitLogModal from './EditVisitLogModal';
 
 import {
   filterVisitLogs,
@@ -67,6 +69,7 @@ export default function EvvVisitLogsTable({
   });
   const [toDate, setToDate] = useState(toDateKey(new Date()));
   const [actionId, setActionId] = useState(null);
+  const [editingRow, setEditingRow] = useState(null);
 
   const isCaregiver = audience === 'caregiver';
   const sourceVisits = isCaregiver ? caregiverVisits : visits;
@@ -148,6 +151,26 @@ export default function EvvVisitLogsTable({
         if (mode === 'day') dispatch(fetchAgencyVisits({ date }));
         else dispatch(fetchAgencyVisits({ from: effectiveFrom, to: effectiveTo }));
       }
+    } catch {
+      // toast in slice
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const refreshVisits = () => {
+    if (skipFetch) return;
+    if (mode === 'day') dispatch(fetchAgencyVisits({ date }));
+    else dispatch(fetchAgencyVisits({ from: effectiveFrom, to: effectiveTo }));
+  };
+
+  const handleSaveLog = async (payload) => {
+    if (!editingRow?.visitId) return;
+    setActionId(editingRow.visitId);
+    try {
+      await dispatch(updateVisitLog({ id: editingRow.visitId, payload })).unwrap();
+      setEditingRow(null);
+      refreshVisits();
     } catch {
       // toast in slice
     } finally {
@@ -421,44 +444,53 @@ export default function EvvVisitLogsTable({
                     </td>
                     {!isCaregiver && (
                       <td className="px-5 py-4">
-                        {(row.canApprove || (row.alert && !row.exceptionResolved)) ? (
-                          <div className="flex flex-wrap gap-1.5">
-                            {row.canApprove ? (
-                              <>
-                                <button
-                                  type="button"
-                                  disabled={actionId === row.visitId}
-                                  onClick={() => handleApprove(row)}
-                                  className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-                                >
-                                  <Check size={12} /> Approve
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={actionId === row.visitId}
-                                  onClick={() => handleReject(row)}
-                                  className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
-                                >
-                                  <X size={12} /> Reject
-                                </button>
-                              </>
-                            ) : null}
-                            {row.alert && !row.exceptionResolved ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {row.canEditLog ? (
+                            <button
+                              type="button"
+                              disabled={actionId === row.visitId}
+                              onClick={() => setEditingRow(row)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700 hover:border-primary/30 hover:bg-gray-50 hover:text-primary disabled:opacity-50"
+                            >
+                              <Pencil size={12} /> Edit
+                            </button>
+                          ) : null}
+                          {row.canApprove ? (
+                            <>
                               <button
                                 type="button"
                                 disabled={actionId === row.visitId}
-                                onClick={() => handleResolveException(row)}
-                                className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+                                onClick={() => handleApprove(row)}
+                                className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
                               >
-                                Resolve
+                                <Check size={12} /> Approve
                               </button>
-                            ) : null}
-                          </div>
-                        ) : row.exceptionResolved ? (
-                          <span className="text-xs text-emerald-600">Resolved</span>
-                        ) : (
-                          <span className="text-xs text-gray-400">—</span>
-                        )}
+                              <button
+                                type="button"
+                                disabled={actionId === row.visitId}
+                                onClick={() => handleReject(row)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                              >
+                                <X size={12} /> Reject
+                              </button>
+                            </>
+                          ) : null}
+                          {row.alert && !row.exceptionResolved ? (
+                            <button
+                              type="button"
+                              disabled={actionId === row.visitId}
+                              onClick={() => handleResolveException(row)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+                            >
+                              Resolve
+                            </button>
+                          ) : null}
+                          {!row.canEditLog && !row.canApprove && !(row.alert && !row.exceptionResolved) ? (
+                            row.exceptionResolved
+                              ? <span className="text-xs text-emerald-600">Resolved</span>
+                              : <span className="text-xs text-gray-400">—</span>
+                          ) : null}
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -476,10 +508,20 @@ export default function EvvVisitLogsTable({
           <p className="text-xs text-gray-500">
             {isCaregiver
               ? 'Ended visits wait for agency approval. Late check-ins stay highlighted in red.'
-              : 'Ended visits need Approve or Reject. Late check-ins stay highlighted in red.'}
+              : 'Use Edit to correct Missed or completed times, then Approve. Late check-ins stay highlighted in red.'}
           </p>
         </div>
       </div>
+
+      {!isCaregiver && (
+        <EditVisitLogModal
+          open={Boolean(editingRow)}
+          row={editingRow}
+          saving={Boolean(editingRow && actionId === editingRow.visitId)}
+          onClose={() => setEditingRow(null)}
+          onSave={handleSaveLog}
+        />
+      )}
     </div>
   );
 }

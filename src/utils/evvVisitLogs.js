@@ -9,18 +9,24 @@ export function toDateKey(date = new Date()) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
-export function formatClock(iso) {
+export function formatClock(iso, timeZone) {
   if (!iso) return '—';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const opts = { hour: 'numeric', minute: '2-digit' };
+  if (timeZone) opts.timeZone = timeZone;
+  try {
+    return d.toLocaleTimeString([], opts);
+  } catch {
+    return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  }
 }
 
 export function formatDisplayDate(dateKey) {
   if (!dateKey) return '—';
   const d = new Date(`${dateKey}T12:00:00`);
   if (Number.isNaN(d.getTime())) return dateKey;
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  return d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
 }
 
 export function formatDuration(checkInAt, checkOutAt, billableMinutes = null) {
@@ -92,18 +98,20 @@ export function mapVisitToEvvLog(visit) {
     visitId: visit.id,
     date: formatDisplayDate(visit.scheduledDate),
     dateKey: visit.scheduledDate,
-    timeRange: `${formatClock(visit.scheduledStartAt)} – ${formatClock(visit.scheduledEndAt)}`,
+    timeRange: `${formatClock(visit.scheduledStartAt, visit.timezone)} – ${formatClock(visit.scheduledEndAt, visit.timezone)}`,
     client: visit.clientName || '—',
     caregiver: visit.caregiverName || '—',
     caregiverInitials: initialsFromName(visit.caregiverName),
     service: visit.serviceArea || '—',
     checkIn: {
-      time: formatClock(visit.checkInAt),
+      time: formatClock(visit.checkInAt, visit.timezone),
       address: visit.address || '—',
+      at: visit.checkInAt || null,
     },
     checkOut: {
-      time: formatClock(visit.checkOutAt),
+      time: formatClock(visit.checkOutAt, visit.timezone),
       address: visit.address || '—',
+      at: visit.checkOutAt || null,
     },
     method,
     methodTone: method.toLowerCase().includes('telephony')
@@ -128,6 +136,11 @@ export function mapVisitToEvvLog(visit) {
     visitStatus: visit.status,
     approvalStatus,
     canApprove: Boolean(visit.canApprove ?? (visit.checkOutAt && approvalStatus === 'Pending')),
+    canEditLog: Boolean(visit.canEditLog ?? (visit.status !== 'Cancelled' && !visit.isTimerRunning)),
+    timezone: visit.timezone || '',
+    scheduledStartAt: visit.scheduledStartAt || null,
+    scheduledEndAt: visit.scheduledEndAt || null,
+    notes: visit.notes || '',
     approvedByName: visit.approvedByName || '',
     approvedAt: visit.approvedAt || null,
     rejectionReason: visit.rejectionReason || '',

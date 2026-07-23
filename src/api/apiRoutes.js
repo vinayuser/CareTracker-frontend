@@ -85,6 +85,11 @@ const API_ROUTES = {
       STATS: '/agency/clients/stats',
       LIST: '/agency/clients',
     },
+    LEADS: {
+      OPTIONS: '/agency/leads/options',
+      STATS: '/agency/leads/stats',
+      LIST: '/agency/leads',
+    },
     ASSESSMENTS: {
       OPTIONS: '/agency/assessments/options',
       STATS: '/agency/assessments/stats',
@@ -118,6 +123,7 @@ const API_ROUTES = {
       APPROVE: '/agency/visits',
       REJECT: '/agency/visits',
       RESOLVE_EXCEPTION: '/agency/visits',
+      UPDATE_LOG: '/agency/visits',
     },
     EVV_DASHBOARD: '/agency/evv/dashboard',
     EVV_SETTINGS: '/agency/evv/settings',

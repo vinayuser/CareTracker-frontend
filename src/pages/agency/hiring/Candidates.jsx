@@ -127,7 +127,7 @@ export default function Candidates() {
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-gray-600">
-                      {app.appliedAt ? new Date(app.appliedAt).toLocaleDateString() : '—'}
+                      {app.appliedAt ? new Date(app.appliedAt).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : '—'}
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-0.5">

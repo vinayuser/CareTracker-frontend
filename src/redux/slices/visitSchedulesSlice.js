@@ -179,6 +179,17 @@ export const resolveVisitException = createAsyncThunk('visitSchedules/resolveExc
   }
 });
 
+export const updateVisitLog = createAsyncThunk('visitSchedules/updateLog', async ({ id, payload = {} }, { rejectWithValue }) => {
+  try {
+    const response = await axiosInstance.put(`${API_ROUTES.AGENCY.VISITS.UPDATE_LOG}/${id}/log`, payload);
+    toast.success(response.data.message || 'Visit log updated');
+    return response.data.data;
+  } catch (error) {
+    toast.error(error.response?.data?.message || 'Failed to update visit log');
+    return rejectWithValue(error.response?.data || error.message);
+  }
+});
+
 const visitSchedulesSlice = createSlice({
   name: 'visitSchedules',
   initialState: {
@@ -276,6 +287,10 @@ const visitSchedulesSlice = createSlice({
         state.visits = state.visits.map((item) => (item.id === visit.id ? visit : item));
       })
       .addCase(resolveVisitException.fulfilled, (state, action) => {
+        const visit = action.payload;
+        state.visits = state.visits.map((item) => (item.id === visit.id ? visit : item));
+      })
+      .addCase(updateVisitLog.fulfilled, (state, action) => {
         const visit = action.payload;
         state.visits = state.visits.map((item) => (item.id === visit.id ? visit : item));
       });

@@ -36,6 +36,8 @@ import Candidates from './pages/agency/hiring/Candidates';
 import Caregivers from './pages/agency/caregivers/Caregivers';
 import Clients from './pages/agency/clients/Clients';
 import ClientIntake from './pages/agency/clients/ClientIntake';
+import Leads from './pages/agency/leads/Leads';
+import LeadFormPage from './pages/agency/leads/LeadFormPage';
 import Assessments from './pages/agency/assessments/Assessments';
 import ClientAssessmentForm from './pages/agency/assessments/ClientAssessmentForm';
 import AssessmentPrintPage from './pages/agency/assessments/AssessmentPrintPage';
@@ -176,6 +178,10 @@ export default function App() {
               <Route path={ROUTES.AGENCY_INSURANCE_INTAKE} element={<InsuranceIntakes />} />
               <Route path={ROUTES.AGENCY_INSURANCE_INTAKE_CREATE} element={<ClientInsuranceIntakeForm />} />
               <Route path={ROUTES.AGENCY_INSURANCE_INTAKE_EDIT} element={<ClientInsuranceIntakeForm />} />
+              <Route path={ROUTES.AGENCY_LEADS} element={<Leads />} />
+              <Route path={ROUTES.AGENCY_LEADS_CREATE} element={<LeadFormPage />} />
+              <Route path={ROUTES.AGENCY_LEADS_EDIT} element={<LeadFormPage />} />
+              <Route path={ROUTES.AGENCY_LEADS_DETAIL} element={<LeadFormPage />} />
               <Route path={ROUTES.AGENCY_ASSESSMENTS} element={<Assessments />} />
               <Route path={ROUTES.AGENCY_ASSESSMENTS_CREATE} element={<ClientAssessmentForm />} />
               <Route path={ROUTES.AGENCY_ASSESSMENTS_EDIT} element={<ClientAssessmentForm />} />

@@ -50,8 +50,10 @@ export default function CaregiverEvvEnrollments() {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold text-gray-900">{item.clientName}</p>
+                        <p className="mt-0.5 text-sm font-medium text-primary">
+                          {(item.serviceAreas || []).join(', ') || item.serviceAreaKey || 'Service'}
+                        </p>
                         <p className="text-sm text-gray-500">Plan {item.planCode} · {item.enrollmentCode}</p>
-                        <p className="mt-1 text-xs text-gray-500">{(item.serviceAreas || []).join(', ')}</p>
                       </div>
                       <StatusBadge status={item.status} />
                     </div>
@@ -78,6 +80,9 @@ export default function CaregiverEvvEnrollments() {
                     <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
                       <div>
                         <p className="font-medium text-gray-900">{item.clientName}</p>
+                        <p className="text-sm font-medium text-gray-700">
+                          {(item.serviceAreas || []).join(', ') || item.serviceAreaKey || 'Service'}
+                        </p>
                         <p className="text-sm text-gray-500">{item.planCode} · {item.enrollmentCode}</p>
                       </div>
                       <div className="flex items-center gap-3">

@@ -15,6 +15,7 @@ import {
   checkOutVisit,
   fetchCaregiverVisits,
 } from '../../redux/slices/visitSchedulesSlice';
+import { formatVisitTime, formatTimezoneAbbr } from '../../utils/visitTimezone';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -66,11 +67,8 @@ function toDateKey(date) {
   return `${y}-${m}-${d}`;
 }
 
-function formatTime(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+function formatTime(iso, timeZone) {
+  return formatVisitTime(iso, timeZone);
 }
 
 function monthRange(year, month) {
@@ -181,10 +179,9 @@ export default function CaregiverJobs() {
   };
 
   const selectedLabel = selectedDate
-    ? new Date(`${selectedDate}T12:00:00`).toLocaleDateString(undefined, {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
+    ? new Date(`${selectedDate}T12:00:00`).toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
         year: 'numeric',
       })
     : '';
@@ -311,7 +308,10 @@ export default function CaregiverJobs() {
                               {visit.clientName}
                             </p>
                             <p className={`mt-0.5 text-xs ${late || pastGrace ? 'text-red-700' : 'text-gray-500'}`}>
-                              {formatTime(visit.scheduledStartAt)} – {formatTime(visit.scheduledEndAt)}
+                              {formatTime(visit.scheduledStartAt, visit.timezone)} – {formatTime(visit.scheduledEndAt, visit.timezone)}
+                              {formatTimezoneAbbr(visit.scheduledStartAt, visit.timezone)
+                                ? ` ${formatTimezoneAbbr(visit.scheduledStartAt, visit.timezone)}`
+                                : ''}
                             </p>
                           </div>
                           <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${statusStyles[visit.status] || statusStyles.Scheduled}`}>
@@ -328,17 +328,17 @@ export default function CaregiverJobs() {
                         )}
                         <p className="mt-1 text-xs text-gray-500">
                           Grace: ±{visit.graceMinutes || 15} min
-                          {visit.latestCheckInAt ? ` · On-time until ${formatTime(visit.latestCheckInAt)}` : ''}
-                          {lateUntil ? ` · Late allowed until ${formatTime(lateUntil)}` : ''}
+                          {visit.latestCheckInAt ? ` · On-time until ${formatTime(visit.latestCheckInAt, visit.timezone)}` : ''}
+                          {lateUntil ? ` · Late allowed until ${formatTime(lateUntil, visit.timezone)}` : ''}
                         </p>
                         {tooEarly && (
                           <p className="mt-2 rounded-lg bg-amber-50 px-2 py-1.5 text-[11px] font-medium text-amber-800">
-                            Too early to clock in. Window opens at {formatTime(visit.earliestCheckInAt)}.
+                            Too early to clock in. Window opens at {formatTime(visit.earliestCheckInAt, visit.timezone)}.
                           </p>
                         )}
                         {pastGrace && !checkInClosed && canStart && (
                           <p className="mt-2 rounded-lg bg-red-100 px-2 py-1.5 text-[11px] font-semibold text-red-800">
-                            Past grace. You can still clock in until {formatTime(lateUntil)} — it will be marked late (red) for the agency.
+                            Past grace. You can still clock in until {formatTime(lateUntil, visit.timezone)} — it will be marked late (red) for the agency.
                           </p>
                         )}
                         {checkInClosed && !visit.checkInAt && (
