@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
   ArrowLeft, ChevronDown, Flame, MoreHorizontal, Pencil,
-  Save, UserCheck, ClipboardPlus,
+  Save, ClipboardPlus,
 } from 'lucide-react';
 import LeadFormSections from '../../../components/agency/leads/LeadFormSections';
 import LeadStageStepper from '../../../components/agency/leads/LeadStageStepper';
@@ -13,7 +13,6 @@ import ScheduleHomeAssessmentForm from '../../../components/agency/leads/Schedul
 import {
   addLead,
   clearCurrentLead,
-  convertLead,
   createAssessmentFromLead,
   fetchLead,
   logLeadContact,
@@ -21,9 +20,8 @@ import {
   updateLead,
 } from '../../../redux/slices/leadsSlice';
 import { ROUTES } from '../../../routes/routes';
-import { formToPayload, leadToForm } from '../../../utils/leadForm';
+import { formToPayload, joinLeadName, leadToForm } from '../../../utils/leadForm';
 import { formatDateTimeUS } from '../../../utils/dateFormat';
-import { confirmAlert } from '../../../utils/swal';
 
 function assignedInitials(name = '') {
   return name
@@ -100,8 +98,21 @@ export default function LeadFormPage() {
 
   const validate = () => {
     const basic = form.formData?.basicInfo || {};
-    if (!String(basic.fullName || '').trim()) {
-      window.alert('Full Name is required.');
+    const recipient = form.formData?.careRecipient || {};
+    if (!String(basic.firstName || '').trim()) {
+      window.alert('Contact first name is required.');
+      return false;
+    }
+    if (!String(basic.lastName || '').trim()) {
+      window.alert('Contact last name is required.');
+      return false;
+    }
+    if (!String(recipient.firstName || '').trim()) {
+      window.alert('Care recipient first name is required.');
+      return false;
+    }
+    if (!String(recipient.lastName || '').trim()) {
+      window.alert('Care recipient last name is required.');
       return false;
     }
     if (!String(basic.phone || '').trim()) {
@@ -139,34 +150,6 @@ export default function LeadFormPage() {
       }
     } catch {
       // toast in slice
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleConvert = async () => {
-    if (isCreate) {
-      window.alert('Save the lead before converting to a client.');
-      return;
-    }
-    const ok = await confirmAlert({
-      title: 'Convert to client?',
-      text: 'Creates a client record from this lead so you can continue with assessment.',
-      confirmText: 'Convert',
-    });
-    if (!ok) return;
-    setSaving(true);
-    try {
-      if (isEdit) {
-        await dispatch(updateLead({ id, payload: formToPayload(form) })).unwrap();
-      }
-      const result = await dispatch(convertLead(id)).unwrap();
-      const lead = result?.lead || result;
-      setForm(leadToForm(lead));
-      setActiveView('Converted');
-      navigate(ROUTES.AGENCY_LEADS_DETAIL.replace(':id', id));
-    } catch {
-      // toast
     } finally {
       setSaving(false);
     }
@@ -243,7 +226,10 @@ export default function LeadFormPage() {
     setForm((prev) => ({ ...prev, stage: step }));
   };
 
-  const fullName = form.formData?.basicInfo?.fullName || '';
+  const fullName = joinLeadName(
+    form.formData?.basicInfo?.firstName,
+    form.formData?.basicInfo?.lastName,
+  ) || form.formData?.basicInfo?.fullName || '';
   const initials = (fullName || 'LD')
     .split(/\s+/)
     .filter(Boolean)
@@ -258,7 +244,10 @@ export default function LeadFormPage() {
 
   const subtitle = useMemo(() => {
     const care = form.formData?.careSummary || {};
-    const recipient = form.formData?.careRecipient?.name;
+    const recipient = joinLeadName(
+      form.formData?.careRecipient?.firstName,
+      form.formData?.careRecipient?.lastName,
+    ) || form.formData?.careRecipient?.name;
     const careType = care.careTypeRequested || 'Home Care Support';
     const forWhom = care.careRequiredFor || '';
     if (!fullName && isCreate) return 'Capture a new inquiry before assessment';
@@ -279,8 +268,6 @@ export default function LeadFormPage() {
     'inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50';
   const btnPrimary =
     'inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover disabled:opacity-50';
-  const btnSuccess =
-    'inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50';
 
   const leadForForms = { ...form, id, formData: form.formData, assessmentId: form.assessmentId };
 
@@ -391,11 +378,6 @@ export default function LeadFormPage() {
                   <ClipboardPlus size={15} /> Open Assessment
                 </Link>
               ) : null}
-              {form.stage !== 'Converted' && !disqualified ? (
-                <button type="button" disabled={saving} onClick={handleConvert} className={btnSuccess}>
-                  <UserCheck size={15} /> Convert to Client
-                </button>
-              ) : null}
               <div className="relative">
                 <button type="button" onClick={() => setMoreOpen((v) => !v)} className={btnGhost}>
                   More <ChevronDown size={14} />
@@ -434,11 +416,6 @@ export default function LeadFormPage() {
               <button type="button" disabled={saving} onClick={handleSave} className={btnPrimary}>
                 <Save size={15} /> {saving ? 'Saving…' : 'Save Lead'}
               </button>
-              {!isCreate && form.stage !== 'Converted' ? (
-                <button type="button" disabled={saving} onClick={handleConvert} className={btnSuccess}>
-                  <UserCheck size={15} /> Convert to Client
-                </button>
-              ) : null}
             </>
           )}
         </div>

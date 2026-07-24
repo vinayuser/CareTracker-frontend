@@ -77,7 +77,12 @@ export function AssessmentStepOne({ form, onHeaderChange, onFormDataChange, erro
     onFormDataChange(section, { [field]: arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item] });
   };
   const setMed = (i, field, val) => {
-    const meds = [...d.medications];
+    const base = (d.medications?.length
+      ? d.medications
+      : Array.from({ length: 6 }, () => ({ name: '', dosage: '', frequency: '', purpose: '', selfManaged: false }))
+    );
+    const meds = base.map((m) => ({ ...m }));
+    while (meds.length <= i) meds.push({ name: '', dosage: '', frequency: '', purpose: '', selfManaged: false });
     meds[i] = { ...meds[i], [field]: val };
     onFormDataChange('medications', meds, true);
   };
@@ -118,7 +123,12 @@ export function AssessmentStepOne({ form, onHeaderChange, onFormDataChange, erro
 
       <Section n="1" title="Client Information" subtitle="Basic demographics and clinical details">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Client Name" required error={errors.clientName} className="sm:col-span-2"><input value={d.clientInfo.clientName} onChange={set('clientInfo', 'clientName')} className={inputClass} /></Field>
+          <Field label="First Name" required error={errors.firstName}>
+            <input value={d.clientInfo.firstName || ''} onChange={set('clientInfo', 'firstName')} className={inputClass} />
+          </Field>
+          <Field label="Last Name" required error={errors.lastName}>
+            <input value={d.clientInfo.lastName || ''} onChange={set('clientInfo', 'lastName')} className={inputClass} />
+          </Field>
           <Field label="DOB">
             <input
               type="date"
@@ -230,14 +240,14 @@ export function AssessmentStepOne({ form, onHeaderChange, onFormDataChange, erro
 
       <Section n="9" title="Current Medications" subtitle="List all medications with dosage and self-management status">
         <div className="space-y-3">
-          {d.medications.map((med, i) => (
+          {(d.medications?.length ? d.medications : Array.from({ length: 6 }, () => ({ name: '', dosage: '', frequency: '', purpose: '', selfManaged: false }))).map((med, i) => (
             <div key={i} className="grid gap-2 rounded-xl border border-gray-100 bg-gray-50 p-3 sm:grid-cols-5">
-              <input placeholder="Medication" value={med.name} onChange={(e) => setMed(i, 'name', e.target.value)} className={inputClass} />
-              <input placeholder="Dosage" value={med.dosage} onChange={(e) => setMed(i, 'dosage', e.target.value)} className={inputClass} />
-              <input placeholder="Frequency" value={med.frequency} onChange={(e) => setMed(i, 'frequency', e.target.value)} className={inputClass} />
-              <input placeholder="Purpose" value={med.purpose} onChange={(e) => setMed(i, 'purpose', e.target.value)} className={inputClass} />
+              <input placeholder="Medication" value={med.name || ''} onChange={(e) => setMed(i, 'name', e.target.value)} className={inputClass} />
+              <input placeholder="Dosage" value={med.dosage || ''} onChange={(e) => setMed(i, 'dosage', e.target.value)} className={inputClass} />
+              <input placeholder="Frequency" value={med.frequency || ''} onChange={(e) => setMed(i, 'frequency', e.target.value)} className={inputClass} />
+              <input placeholder="Purpose" value={med.purpose || ''} onChange={(e) => setMed(i, 'purpose', e.target.value)} className={inputClass} />
               <label className="flex items-center gap-2 text-xs text-gray-600">
-                <input type="checkbox" checked={med.selfManaged} onChange={(e) => setMed(i, 'selfManaged', e.target.checked)} /> Self managed
+                <input type="checkbox" checked={Boolean(med.selfManaged)} onChange={(e) => setMed(i, 'selfManaged', e.target.checked)} /> Self managed
               </label>
             </div>
           ))}

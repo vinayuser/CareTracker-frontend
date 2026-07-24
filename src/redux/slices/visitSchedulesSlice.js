@@ -74,6 +74,17 @@ export const deleteVisitSchedule = createAsyncThunk('visitSchedules/delete', asy
   }
 });
 
+export const deleteVisit = createAsyncThunk('visitSchedules/deleteVisit', async (id, { rejectWithValue }) => {
+  try {
+    await axiosInstance.delete(`${API_ROUTES.AGENCY.VISITS.LIST}/${id}`);
+    toast.success('Visit deleted for that day');
+    return id;
+  } catch (error) {
+    toast.error(error.response?.data?.message || 'Failed to delete visit');
+    return rejectWithValue(error.response?.data || error.message);
+  }
+});
+
 export const fetchAgencyVisits = createAsyncThunk('visitSchedules/fetchVisits', async (params = {}, { rejectWithValue }) => {
   try {
     const query = new URLSearchParams(params).toString();

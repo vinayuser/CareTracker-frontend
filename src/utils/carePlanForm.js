@@ -155,7 +155,7 @@ export function clientToFormPatch(client) {
       zip: client.zipCode || '',
       phone: client.phone || client.phoneHome || '',
       email: client.email || '',
-      primaryLanguage: client.primaryLanguage || '',
+      primaryLanguage: client.primaryLanguage || client.preferredLanguage || '',
       clientId: client.clientCode || '',
       gender: client.gender || '',
       maritalStatus: client.maritalStatus || '',
@@ -238,6 +238,10 @@ export function carePlanToForm(plan, client = null) {
     merged.clientInfo = mergeFilled(merged.clientInfo, patch.clientInfo);
     merged.medicalInfo = mergeFilled(merged.medicalInfo, patch.medicalInfo);
     merged.supplementary = mergeFilled(merged.supplementary, patch.supplementary);
+    // Always prefer live client code for the display-only Client ID field
+    if (client.clientCode) {
+      merged.clientInfo.clientId = client.clientCode;
+    }
   }
   return {
     clientId: plan.clientId || '',

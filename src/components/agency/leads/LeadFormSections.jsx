@@ -114,8 +114,11 @@ export default function LeadFormSections({
   const basicCard = (
     <SectionCard title="Basic Information">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Full Name" required>
-          <input disabled={readOnly} value={basic.fullName} onChange={(e) => patch('basicInfo', 'fullName', e.target.value)} className={inputClass} placeholder="Robert Johnson" />
+        <Field label="First Name" required>
+          <input disabled={readOnly} value={basic.firstName || ''} onChange={(e) => patch('basicInfo', 'firstName', e.target.value)} className={inputClass} placeholder="Robert" />
+        </Field>
+        <Field label="Last Name" required>
+          <input disabled={readOnly} value={basic.lastName || ''} onChange={(e) => patch('basicInfo', 'lastName', e.target.value)} className={inputClass} placeholder="Johnson" />
         </Field>
         <Field label="Relationship">
           <select disabled={readOnly} value={basic.relationship} onChange={(e) => patch('basicInfo', 'relationship', e.target.value)} className={inputClass}>
@@ -163,8 +166,11 @@ export default function LeadFormSections({
   const recipientCard = (
     <SectionCard title="Care Recipient Details">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Name">
-          <input disabled={readOnly} value={recipient.name} onChange={(e) => patch('careRecipient', 'name', e.target.value)} className={inputClass} placeholder="Mary Johnson" />
+        <Field label="First Name" required>
+          <input disabled={readOnly} value={recipient.firstName || ''} onChange={(e) => patch('careRecipient', 'firstName', e.target.value)} className={inputClass} placeholder="Mary" />
+        </Field>
+        <Field label="Last Name" required>
+          <input disabled={readOnly} value={recipient.lastName || ''} onChange={(e) => patch('careRecipient', 'lastName', e.target.value)} className={inputClass} placeholder="Johnson" />
         </Field>
         <Field label="Age / DOB">
           <input disabled={readOnly} value={recipient.ageOrDob} onChange={(e) => patch('careRecipient', 'ageOrDob', e.target.value)} className={inputClass} placeholder="82 Years (12 May 1944)" />

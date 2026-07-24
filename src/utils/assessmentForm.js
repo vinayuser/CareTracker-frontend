@@ -64,7 +64,7 @@ const emptyAdls = () => Object.fromEntries(ADL_ITEMS.map((i) => [i, '']));
 
 export const buildEmptyFormData = () => ({
   clientInfo: {
-    clientName: '', dob: '', age: '', gender: '', ssn: '', primaryLanguage: '', religion: '',
+    firstName: '', lastName: '', clientName: '', dob: '', age: '', gender: '', ssn: '', primaryLanguage: '', religion: '',
     height: '', weight: '', interpreterNeeded: false, maritalStatus: '',
     primaryDiagnosis: '', secondaryDiagnoses: '',
   },
@@ -131,14 +131,43 @@ export const EMPTY_ASSESSMENT = {
   formData: buildEmptyFormData(),
 };
 
+/** Join first + last for list/search display */
+export function joinClientName(firstName = '', lastName = '') {
+  return `${String(firstName || '').trim()} ${String(lastName || '').trim()}`.trim();
+}
+
+/** Normalize legacy single clientName into first/last when loading */
+export function normalizeClientInfo(clientInfo = {}) {
+  const empty = buildEmptyFormData().clientInfo;
+  const ci = { ...empty, ...(clientInfo || {}) };
+  let firstName = String(ci.firstName || '').trim();
+  let lastName = String(ci.lastName || '').trim();
+  if (!firstName && !lastName && ci.clientName) {
+    const parts = String(ci.clientName).trim().split(/\s+/).filter(Boolean);
+    firstName = parts[0] || '';
+    lastName = parts.slice(1).join(' ') || '';
+  }
+  const clientName = joinClientName(firstName, lastName) || String(ci.clientName || '').trim();
+  return { ...ci, firstName, lastName, clientName };
+}
+
 export function assessmentToForm(assessment) {
   if (!assessment) return { ...EMPTY_ASSESSMENT, assessmentDate: todayIso(), formData: buildEmptyFormData() };
+  const empty = buildEmptyFormData();
+  const formData = { ...empty, ...(assessment.formData || {}) };
+  formData.clientInfo = normalizeClientInfo(formData.clientInfo);
+  // Lead-created assessments often store medications: [] — restore editable rows
+  const savedMeds = Array.isArray(formData.medications) ? formData.medications : [];
+  formData.medications = Array.from({ length: Math.max(6, savedMeds.length) }, (_, i) => ({
+    ...emptyMed(),
+    ...(savedMeds[i] || {}),
+  }));
   return {
     assessorName: assessment.assessorName || '',
     assessorTitle: assessment.assessorTitle || 'Care Assessment Specialist',
     assessorPhoto: assessment.assessorPhoto || '',
     assessmentDate: assessment.assessmentDate || todayIso(),
     assessmentTypes: assessment.assessmentTypes || [],
-    formData: { ...buildEmptyFormData(), ...assessment.formData },
+    formData,
   };
 }

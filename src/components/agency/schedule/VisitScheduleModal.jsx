@@ -409,7 +409,7 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
           setSaving(false);
           return;
         }
-        await dispatch(createVisitSchedule({
+        const result = await dispatch(createVisitSchedule({
           care_plan_id: carePlanId,
           caregiver_account_id: card.caregiver_account_id,
           service_area: card.service_area,
@@ -427,9 +427,9 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
           address: card.address,
           status: 'Active',
         })).unwrap();
-        created += 1;
+        created += Number(result?.created_count || result?.schedules?.length || 1);
       }
-      toast.success(`Created ${created} schedule${created === 1 ? '' : 's'}`);
+      toast.success(`Created ${created} day schedule${created === 1 ? '' : 's'}`);
       onSaved?.();
       onClose();
     } catch {
@@ -446,9 +446,20 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
       await dispatch(updateVisitSchedule({
         id: schedule.id,
         payload: {
-          ...editForm,
-          day_of_month: editForm.recurrence_type === 'Monthly' ? Number(editForm.day_of_month) || 1 : null,
+          caregiver_account_id: editForm.caregiver_account_id,
+          service_area: editForm.service_area,
+          recurrence_type: editForm.recurrence_type,
           days_of_week: editForm.recurrence_type === 'Weekly' ? editForm.days_of_week : [],
+          day_of_month: editForm.recurrence_type === 'Monthly' ? Number(editForm.day_of_month) || 1 : null,
+          start_time: editForm.start_time,
+          end_time: editForm.end_time,
+          grace_minutes: editForm.grace_minutes,
+          timezone: editForm.timezone,
+          effective_from: editForm.effective_from,
+          effective_to: editForm.effective_to || '',
+          notes: editForm.notes,
+          address: editForm.address,
+          status: editForm.status,
         },
       })).unwrap();
       onSaved?.();
@@ -617,7 +628,7 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
               )}
 
               <p className="text-xs text-gray-500">
-                Visits are generated for the next 6 weeks. Caregivers can clock in within the grace window around the scheduled start time. EVV enrollment must be verified first.
+                Each selected day in the date range is saved as its own schedule record, so you can edit or delete one day without affecting the others.
               </p>
             </div>
           )}

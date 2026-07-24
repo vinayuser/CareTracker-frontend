@@ -17,7 +17,7 @@ import AgencyKpiCard from '../../../components/agency/dashboard/AgencyKpiCard';
 import VisitScheduleModal from '../../../components/agency/schedule/VisitScheduleModal';
 import VisitMonthCalendar from '../../../components/agency/schedule/VisitMonthCalendar';
 import {
-  deleteVisitSchedule,
+  deleteVisit,
   fetchAgencyVisits,
   fetchVisitScheduleStats,
   fetchVisitSchedules,
@@ -79,11 +79,16 @@ export default function Schedules() {
     loadMonth();
   }, [dispatch, cursor.year, cursor.month]);
 
+  const activeVisits = useMemo(
+    () => (visits || []).filter((visit) => visit.status !== 'Cancelled'),
+    [visits],
+  );
+
   const dayVisits = useMemo(
-    () => visits
+    () => activeVisits
       .filter((visit) => visit.scheduledDate === selectedDate)
       .sort((a, b) => new Date(a.scheduledStartAt) - new Date(b.scheduledStartAt)),
-    [visits, selectedDate],
+    [activeVisits, selectedDate],
   );
 
   const shiftMonth = (delta) => {
@@ -114,16 +119,15 @@ export default function Schedules() {
   };
 
   const handleDeleteFromVisit = async (visit) => {
-    const schedule = list.find((item) => item.id === visit.scheduleId);
-    if (!schedule) return;
+    if (!visit?.id) return;
     const confirmed = await confirmAlert({
-      title: 'Delete schedule?',
-      text: `Delete ${schedule.scheduleCode}? Future scheduled visits will be removed.`,
+      title: 'Delete this day’s visit?',
+      text: `Remove the visit for ${visit.scheduledDate || 'this day'} only. Other days stay scheduled.`,
       confirmText: 'Delete',
       danger: true,
     });
     if (!confirmed) return;
-    await dispatch(deleteVisitSchedule(schedule.id));
+    await dispatch(deleteVisit(visit.id));
     loadMonth();
     setSelectedVisit(null);
   };
@@ -202,7 +206,7 @@ export default function Schedules() {
             <VisitMonthCalendar
               year={cursor.year}
               month={cursor.month}
-              visits={visits}
+              visits={activeVisits}
               selectedDate={selectedDate}
               selectedVisitId={selectedVisit?.id}
               onSelectDate={(dateKey) => {

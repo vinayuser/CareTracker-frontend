@@ -107,8 +107,27 @@ export const PREFERRED_TIMES = [
 
 export const todayIso = () => new Date().toISOString().slice(0, 10);
 
+export const joinLeadName = (firstName = '', lastName = '') =>
+  [firstName, lastName].map((p) => String(p || '').trim()).filter(Boolean).join(' ');
+
+/** Load names into first/last; only split legacy full name when first/last are empty. */
+export const normalizeLeadPerson = (person = {}, fullKey = 'fullName') => {
+  let firstName = String(person.firstName || '').trim();
+  let lastName = String(person.lastName || '').trim();
+  const legacy = String(person[fullKey] || person.name || '').trim();
+  if (!firstName && !lastName && legacy) {
+    const parts = legacy.split(/\s+/).filter(Boolean);
+    firstName = parts[0] || '';
+    lastName = parts.slice(1).join(' ') || '';
+  }
+  const fullName = joinLeadName(firstName, lastName) || legacy;
+  return { ...person, firstName, lastName, [fullKey]: fullName, ...(fullKey === 'name' ? { name: fullName } : {}) };
+};
+
 export const buildEmptyLeadFormData = () => ({
   basicInfo: {
+    firstName: '',
+    lastName: '',
     fullName: '',
     relationship: '',
     phone: '',
@@ -122,6 +141,8 @@ export const buildEmptyLeadFormData = () => ({
     zipLocation: '',
   },
   careRecipient: {
+    firstName: '',
+    lastName: '',
     name: '',
     ageOrDob: '',
     gender: '',
@@ -182,10 +203,12 @@ export const leadToForm = (lead) => {
     assessmentId: lead.assessmentId || null,
     createdAt: lead.createdAt || null,
     formData: {
-      basicInfo: { ...empty.basicInfo, ...(fd.basicInfo || {}) },
+      basicInfo: normalizeLeadPerson({ ...empty.basicInfo, ...(fd.basicInfo || {}) }, 'fullName'),
       careRecipient: {
-        ...empty.careRecipient,
-        ...(fd.careRecipient || {}),
+        ...normalizeLeadPerson({
+          ...empty.careRecipient,
+          ...(fd.careRecipient || {}),
+        }, 'name'),
         medicalConditions: Array.isArray(fd.careRecipient?.medicalConditions)
           ? fd.careRecipient.medicalConditions
           : [],
@@ -215,8 +238,18 @@ export const leadToForm = (lead) => {
 };
 
 export const formToPayload = (form) => {
+  const basic = normalizeLeadPerson(form.formData?.basicInfo || {}, 'fullName');
+  const recipient = normalizeLeadPerson(form.formData?.careRecipient || {}, 'name');
   const fd = {
     ...form.formData,
+    basicInfo: {
+      ...basic,
+      fullName: joinLeadName(basic.firstName, basic.lastName),
+    },
+    careRecipient: {
+      ...recipient,
+      name: joinLeadName(recipient.firstName, recipient.lastName),
+    },
     statusInfo: {
       ...(form.formData.statusInfo || {}),
       stage: form.stage || form.formData.statusInfo?.stage || 'New Lead',
@@ -238,14 +271,18 @@ export const formToPayload = (form) => {
 /** Prefill assessment form state from a lead */
 export const leadToAssessmentPrefill = (lead) => {
   const fd = lead?.formData || {};
-  const basic = fd.basicInfo || {};
-  const recipient = fd.careRecipient || {};
+  const basic = normalizeLeadPerson(fd.basicInfo || {}, 'fullName');
+  const recipient = normalizeLeadPerson(fd.careRecipient || {}, 'name');
   const care = fd.careSummary || {};
   const conditions = Array.isArray(recipient.medicalConditions)
     ? recipient.medicalConditions.join(', ')
     : '';
+  const firstName = recipient.firstName || basic.firstName || '';
+  const lastName = recipient.lastName || basic.lastName || '';
   return {
-    clientName: recipient.name || basic.fullName || lead?.fullName || '',
+    firstName,
+    lastName,
+    clientName: joinLeadName(firstName, lastName),
     clientPhone: basic.phone || lead?.phone || '',
     clientEmail: basic.email || lead?.email || '',
     primaryDiagnosis: conditions,

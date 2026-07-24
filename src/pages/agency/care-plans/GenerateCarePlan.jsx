@@ -38,7 +38,8 @@ export default function GenerateCarePlan() {
 
   useEffect(() => {
     if (!existingPlan || !isEdit) return;
-    const client = existingPlan.client || clients.find((c) => c.id === existingPlan.clientId);
+    const client = existingPlan.client
+      || clients.find((c) => String(c.id) === String(existingPlan.clientId));
     setForm(carePlanToForm(existingPlan, client));
     setClientId(existingPlan.clientId || '');
   }, [clients, existingPlan, isEdit]);
@@ -146,6 +147,7 @@ export default function GenerateCarePlan() {
             onHeaderChange={onHeaderChange}
             onFormDataChange={onFormDataChange}
             agencyName={agencyName}
+            clientInfoLocked={isEdit || Boolean(clientId)}
           />
         ) : (
           <CarePlanStepTwo form={form} onFormDataChange={onFormDataChange} caregivers={caregivers} />

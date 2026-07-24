@@ -9,6 +9,7 @@ import {
   EMPTY_ASSESSMENT,
   assessmentToForm,
   buildEmptyFormData,
+  joinClientName,
   todayIso,
 } from '../../../utils/assessmentForm';
 import { ROUTES } from '../../../routes/routes';
@@ -21,13 +22,17 @@ function applyLeadPrefill(prefill) {
     formData: buildEmptyFormData(),
   };
   if (!prefill) return base;
+  const firstName = prefill.firstName || '';
+  const lastName = prefill.lastName || '';
   return {
     ...base,
     formData: {
       ...base.formData,
       clientInfo: {
         ...base.formData.clientInfo,
-        clientName: prefill.clientName || '',
+        firstName,
+        lastName,
+        clientName: joinClientName(firstName, lastName),
         primaryDiagnosis: prefill.primaryDiagnosis || '',
       },
       contactInfo: {
@@ -83,31 +88,50 @@ export default function ClientAssessmentForm() {
     setForm((p) => {
       if (isRoot) return { ...p, formData: { ...p.formData, [section]: patchOrValue } };
       if (typeof patchOrValue === 'object' && !Array.isArray(patchOrValue)) {
-        return { ...p, formData: { ...p.formData, [section]: { ...p.formData[section], ...patchOrValue } } };
+        const nextSection = { ...p.formData[section], ...patchOrValue };
+        if (section === 'clientInfo') {
+          nextSection.clientName = joinClientName(nextSection.firstName, nextSection.lastName);
+        }
+        return { ...p, formData: { ...p.formData, [section]: nextSection } };
       }
       return p;
     });
-    if (section === 'clientInfo' && patchOrValue?.clientName !== undefined) {
-      setErrors((e) => { const n = { ...e }; delete n.clientName; return n; });
+    if (section === 'clientInfo') {
+      setErrors((e) => {
+        const n = { ...e };
+        if (patchOrValue?.firstName !== undefined) delete n.firstName;
+        if (patchOrValue?.lastName !== undefined) delete n.lastName;
+        return n;
+      });
     }
   };
 
   const validateStep1 = () => {
     const e = {};
-    if (!form.formData.clientInfo.clientName?.trim()) e.clientName = 'Client name is required';
+    if (!form.formData.clientInfo.firstName?.trim()) e.firstName = 'First name is required';
+    if (!form.formData.clientInfo.lastName?.trim()) e.lastName = 'Last name is required';
     setErrors(e);
     return !Object.keys(e).length;
   };
 
   const handleSubmit = async () => {
     setSubmitting(true);
+    const ci = form.formData.clientInfo || {};
     const payload = {
       assessorName: form.assessorName,
       assessorTitle: form.assessorTitle,
       assessorPhoto: form.assessorPhoto,
       assessmentDate: form.assessmentDate,
       assessmentTypes: form.assessmentTypes,
-      formData: form.formData,
+      formData: {
+        ...form.formData,
+        clientInfo: {
+          ...ci,
+          firstName: String(ci.firstName || '').trim(),
+          lastName: String(ci.lastName || '').trim(),
+          clientName: joinClientName(ci.firstName, ci.lastName),
+        },
+      },
     };
     try {
       if (isEdit) await dispatch(updateAssessment({ id, payload })).unwrap();

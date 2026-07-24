@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Check, Phone } from 'lucide-react';
-import { RELATIONSHIPS } from '../../../utils/leadForm';
+import { RELATIONSHIPS, joinLeadName } from '../../../utils/leadForm';
 import { formatDateUS, nowInputDateTimeLocal, todayInputDate, toInputDate } from '../../../utils/dateFormat';
 
 const CONTACT_METHODS = [
@@ -56,7 +56,10 @@ function Field({ label, required, children, className = '' }) {
 
 function buildInitial(lead, authUser) {
   const log = lead?.formData?.contactLog || {};
-  const defaultSpokeWith = lead?.formData?.basicInfo?.fullName || lead?.fullName || '';
+  const defaultSpokeWith = joinLeadName(
+    lead?.formData?.basicInfo?.firstName,
+    lead?.formData?.basicInfo?.lastName,
+  ) || lead?.formData?.basicInfo?.fullName || lead?.fullName || '';
   const defaultAssignee = lead?.assignedToName || authUser?.fullName || authUser?.name || '';
   let contactedAt = nowInputDateTimeLocal();
   if (log.contactedAt) {

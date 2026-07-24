@@ -81,7 +81,11 @@ function SigBlock({ label, signature, date }) {
 function S01({ ci }) {
   return (
     <Section n="1" title="CLIENT INFORMATION">
-      <div className="ap-row"><Field label="Client Name:" value={ci.clientName} className="w100" /></div>
+      <div className="ap-row tight">
+        <Field label="First Name:" value={ci.firstName} className="w50" />
+        <Field label="Last Name:" value={ci.lastName} className="w50" />
+      </div>
+      <div className="ap-row"><Field label="Client Name:" value={ci.clientName || [ci.firstName, ci.lastName].filter(Boolean).join(' ')} className="w100" /></div>
       <div className="ap-row tight">
         <Field label="DOB:" value={ci.dob} className="w33" />
         <Field label="Age:" value={ci.age} className="w33" />

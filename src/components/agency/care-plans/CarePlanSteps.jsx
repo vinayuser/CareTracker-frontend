@@ -7,6 +7,7 @@ import {
 import { Fragment } from 'react';
 
 const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100';
+const readOnlyClass = 'w-full rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 text-sm text-gray-700';
 const labelClass = 'mb-1.5 block text-sm font-medium text-gray-700';
 
 function Field({ label, required, children, className = '' }) {
@@ -15,6 +16,32 @@ function Field({ label, required, children, className = '' }) {
       <label className={labelClass}>{label}{required && <span className="text-red-500"> *</span>}</label>
       {children}
     </div>
+  );
+}
+
+function ReadField({ label, value, className = '' }) {
+  return (
+    <div className={className}>
+      <p className={labelClass}>{label}</p>
+      <div className={readOnlyClass}>{value || '—'}</div>
+    </div>
+  );
+}
+
+function InputOrRead({
+  label, value, onChange, readOnly, type = 'text', rows, className = '',
+}) {
+  if (readOnly) {
+    return <ReadField label={label} value={value} className={className} />;
+  }
+  return (
+    <Field label={label} className={className}>
+      {rows ? (
+        <textarea value={value || ''} onChange={(e) => onChange(e.target.value)} rows={rows} className={inputClass} />
+      ) : (
+        <input type={type} value={value || ''} onChange={(e) => onChange(e.target.value)} className={inputClass} />
+      )}
+    </Field>
   );
 }
 
@@ -33,7 +60,16 @@ function Section({ n, title, subtitle, children }) {
   );
 }
 
-function Chips({ label, options, values, onToggle, single }) {
+function Chips({ label, options, values, onToggle, single, disabled = false }) {
+  if (disabled) {
+    const display = single ? values : (values || []).join(', ');
+    return (
+      <div>
+        {label && <p className={labelClass}>{label}</p>}
+        <div className={readOnlyClass}>{display || '—'}</div>
+      </div>
+    );
+  }
   return (
     <div>
       {label && <p className={labelClass}>{label}</p>}
@@ -41,7 +77,14 @@ function Chips({ label, options, values, onToggle, single }) {
         {options.map((opt) => {
           const on = single ? values === opt : (values || []).includes(opt);
           return (
-            <button key={opt} type="button" onClick={() => onToggle(opt)} className={`rounded-xl border px-3 py-2 text-sm font-medium ${on ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>{opt}</button>
+            <button
+              key={opt}
+              type="button"
+              onClick={() => onToggle(opt)}
+              className={`rounded-xl border px-3 py-2 text-sm font-medium ${on ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+            >
+              {opt}
+            </button>
           );
         })}
       </div>
@@ -60,12 +103,28 @@ function YesNo({ label, value, onChange }) {
   );
 }
 
-function YesNoNull({ label, value, onChange }) {
+function YesNoNull({ label, value, onChange, disabled = false }) {
+  if (disabled) {
+    const display = value === true ? 'Yes' : value === false ? 'No' : '—';
+    return (
+      <div>
+        <p className={labelClass}>{label}</p>
+        <div className={readOnlyClass}>{display}</div>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-wrap items-center gap-3">
       <span className="text-sm font-medium text-gray-700">{label}</span>
       {['Yes', 'No'].map((t) => (
-        <button key={t} type="button" onClick={() => onChange(value === (t === 'Yes') ? null : t === 'Yes')} className={`rounded-lg border px-3 py-1.5 text-sm ${value === (t === 'Yes') ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-gray-200'}`}>{t}</button>
+        <button
+          key={t}
+          type="button"
+          onClick={() => onChange(value === (t === 'Yes') ? null : t === 'Yes')}
+          className={`rounded-lg border px-3 py-1.5 text-sm ${value === (t === 'Yes') ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-gray-200'}`}
+        >
+          {t}
+        </button>
       ))}
     </div>
   );
@@ -73,13 +132,16 @@ function YesNoNull({ label, value, onChange }) {
 
 export function CarePlanStepOne({
   form, clients, clientId, onClientChange, onHeaderChange, onFormDataChange, agencyName = '',
+  clientInfoLocked = false,
 }) {
   const d = form.formData;
   const set = (section, field) => (e) => onFormDataChange(section, { [field]: e.target.value });
+  const patch = (section, field) => (value) => onFormDataChange(section, { [field]: value });
   const ci = d.clientInfo;
   const med = d.medicalInfo;
   const sup = d.supplementary;
   const assessor = d.assessor;
+  const locked = Boolean(clientInfoLocked);
 
   return (
     <div className="space-y-6">
@@ -87,13 +149,19 @@ export function CarePlanStepOne({
         <p className="text-center text-lg font-bold uppercase tracking-wide text-violet-800">Care Plan</p>
         <p className="text-center text-sm text-gray-500">Person-Centered. Compassionate. Consistent.</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Agency Name"><input value={agencyName} readOnly className={`${inputClass} bg-gray-50`} /></Field>
-          <Field label="Plan ID"><input value={form.planCode || 'Auto-generated on save'} readOnly className={`${inputClass} bg-gray-50`} /></Field>
+          <ReadField label="Agency Name" value={agencyName} />
+          <ReadField label="Plan ID" value={form.planCode || 'Auto-generated on save'} />
           <Field label="Effective Date"><input value={form.effectiveDate} onChange={(e) => onHeaderChange('effectiveDate', e.target.value)} className={inputClass} /></Field>
           <Field label="Review Date"><input value={form.reviewDate} onChange={(e) => onHeaderChange('reviewDate', e.target.value)} className={inputClass} /></Field>
         </div>
         <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Client ID"><input value={ci.clientId} onChange={set('clientInfo', 'clientId')} className={inputClass} /></Field>
+          <Field label="Client ID">
+            <input
+              value={ci.clientId || clients.find((c) => String(c.id) === String(clientId))?.clientCode || ''}
+              onChange={set('clientInfo', 'clientId')}
+              className={inputClass}
+            />
+          </Field>
           <Field label="Version"><input value={form.version} onChange={(e) => onHeaderChange('version', e.target.value)} className={inputClass} /></Field>
           {!form.planCode && (
             <Field label="Select Client *">
@@ -130,22 +198,33 @@ export function CarePlanStepOne({
         </div>
       </div>
 
-      <Section n="1" title="Client Information" subtitle="Basic demographics and emergency contact">
+      <Section
+        n="1"
+        title="Client Information"
+        subtitle={locked ? 'From the client record — display only. Update the client profile to change these.' : 'Basic demographics and emergency contact'}
+      >
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Client Name" className="sm:col-span-2"><input value={ci.clientName} onChange={set('clientInfo', 'clientName')} className={inputClass} /></Field>
-          <Field label="Date of Birth"><input type="date" value={ci.dob} onChange={set('clientInfo', 'dob')} className={inputClass} /></Field>
-          <Field label="Address" className="sm:col-span-2"><input value={ci.address} onChange={set('clientInfo', 'address')} className={inputClass} /></Field>
-          <Field label="City"><input value={ci.city} onChange={set('clientInfo', 'city')} className={inputClass} /></Field>
-          <Field label="State"><input value={ci.state} onChange={set('clientInfo', 'state')} className={inputClass} /></Field>
-          <Field label="ZIP"><input value={ci.zip} onChange={set('clientInfo', 'zip')} className={inputClass} /></Field>
-          <Field label="Phone"><input value={ci.phone} onChange={set('clientInfo', 'phone')} className={inputClass} /></Field>
-          <Field label="Email"><input type="email" value={ci.email} onChange={set('clientInfo', 'email')} className={inputClass} /></Field>
-          <Field label="Primary Language"><input value={ci.primaryLanguage} onChange={set('clientInfo', 'primaryLanguage')} className={inputClass} /></Field>
-          <Chips label="Gender" options={GENDERS} values={ci.gender} single onToggle={(g) => onFormDataChange('clientInfo', { gender: ci.gender === g ? '' : g })} />
-          <Field label="Marital Status"><input value={ci.maritalStatus} onChange={set('clientInfo', 'maritalStatus')} className={inputClass} /></Field>
-          <Field label="Emergency Contact"><input value={ci.emergencyContact} onChange={set('clientInfo', 'emergencyContact')} className={inputClass} /></Field>
-          <Field label="Relationship"><input value={ci.emergencyRelationship} onChange={set('clientInfo', 'emergencyRelationship')} className={inputClass} /></Field>
-          <Field label="Emergency Phone"><input value={ci.emergencyPhone} onChange={set('clientInfo', 'emergencyPhone')} className={inputClass} /></Field>
+          <InputOrRead label="Client Name" value={ci.clientName} onChange={patch('clientInfo', 'clientName')} readOnly={locked} className="sm:col-span-2" />
+          <InputOrRead label="Date of Birth" type="date" value={ci.dob} onChange={patch('clientInfo', 'dob')} readOnly={locked} />
+          <InputOrRead label="Address" value={ci.address} onChange={patch('clientInfo', 'address')} readOnly={locked} className="sm:col-span-2" />
+          <InputOrRead label="City" value={ci.city} onChange={patch('clientInfo', 'city')} readOnly={locked} />
+          <InputOrRead label="State" value={ci.state} onChange={patch('clientInfo', 'state')} readOnly={locked} />
+          <InputOrRead label="ZIP" value={ci.zip} onChange={patch('clientInfo', 'zip')} readOnly={locked} />
+          <InputOrRead label="Phone" value={ci.phone} onChange={patch('clientInfo', 'phone')} readOnly={locked} />
+          <InputOrRead label="Email" type="email" value={ci.email} onChange={patch('clientInfo', 'email')} readOnly={locked} />
+          <InputOrRead label="Primary Language" value={ci.primaryLanguage} onChange={patch('clientInfo', 'primaryLanguage')} readOnly={locked} />
+          <Chips
+            label="Gender"
+            options={GENDERS}
+            values={ci.gender}
+            single
+            disabled={locked}
+            onToggle={(g) => onFormDataChange('clientInfo', { gender: ci.gender === g ? '' : g })}
+          />
+          <InputOrRead label="Marital Status" value={ci.maritalStatus} onChange={patch('clientInfo', 'maritalStatus')} readOnly={locked} />
+          <InputOrRead label="Emergency Contact" value={ci.emergencyContact} onChange={patch('clientInfo', 'emergencyContact')} readOnly={locked} />
+          <InputOrRead label="Relationship" value={ci.emergencyRelationship} onChange={patch('clientInfo', 'emergencyRelationship')} readOnly={locked} />
+          <InputOrRead label="Emergency Phone" value={ci.emergencyPhone} onChange={patch('clientInfo', 'emergencyPhone')} readOnly={locked} />
         </div>
       </Section>
 
