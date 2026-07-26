@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { Search, Pencil, Trash2, HeartHandshake, Users, UserX } from 'lucide-react';
+import { Search, Pencil, Trash2, HeartHandshake, Users, UserX, Download } from 'lucide-react';
 import AgencyKpiCard from '../../../components/agency/dashboard/AgencyKpiCard';
+import ClientFormsExportModal from '../../../components/agency/clients/ClientFormsExportModal';
 import { fetchClients, fetchClientStats, deleteClient } from '../../../redux/slices/clientsSlice';
 import { ROUTES } from '../../../routes/routes';
 import { confirmAlert } from '../../../utils/swal';
+
+const actionBtn = 'inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold shadow-sm transition-colors';
+const actionBtnNeutral = `${actionBtn} border-gray-200 bg-white text-gray-700 hover:border-primary/30 hover:bg-gray-50 hover:text-primary`;
+const actionBtnDanger = `${actionBtn} border-red-200 bg-white text-red-600 hover:bg-red-50`;
 
 function StatusBadge({ status }) {
   const styles = {
@@ -21,6 +26,7 @@ export default function Clients() {
   const { list, stats, loading } = useSelector((state) => state.clients);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [exportClient, setExportClient] = useState(null);
 
   const load = () => {
     dispatch(fetchClients());
@@ -112,11 +118,24 @@ export default function Clients() {
                     <td className="px-5 py-4 text-gray-700">{client.phone || '—'}</td>
                     <td className="px-5 py-4"><StatusBadge status={client.status} /></td>
                     <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <Link to={`${ROUTES.AGENCY_INSURANCE_INTAKE_CREATE}?clientId=${client.id}`} className="text-sm font-medium text-primary hover:underline">Insurance</Link>
-                        <Link to={`${ROUTES.AGENCY_CARE_PLANS_CREATE}?clientId=${client.id}`} className="text-sm font-medium text-primary hover:underline">Care Plan</Link>
-                        <Link to={ROUTES.AGENCY_CLIENTS_EDIT.replace(':id', client.id)} className="text-gray-500 hover:text-primary"><Pencil size={15} /></Link>
-                        <button type="button" onClick={() => handleDelete(client)} className="text-gray-500 hover:text-red-600"><Trash2 size={15} /></button>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          title="Download assessment, care plan, insurance, and documents as ZIP"
+                          onClick={() => setExportClient(client)}
+                          className={actionBtnNeutral}
+                        >
+                          <Download size={16} /> Forms
+                        </button>
+                        <Link
+                          to={ROUTES.AGENCY_CLIENTS_EDIT.replace(':id', client.id)}
+                          className={actionBtnNeutral}
+                        >
+                          <Pencil size={16} /> Edit
+                        </Link>
+                        <button type="button" onClick={() => handleDelete(client)} className={actionBtnDanger}>
+                          <Trash2 size={16} /> Delete
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -126,6 +145,12 @@ export default function Clients() {
           </div>
         )}
       </div>
+
+      <ClientFormsExportModal
+        open={Boolean(exportClient)}
+        client={exportClient}
+        onClose={() => setExportClient(null)}
+      />
     </div>
   );
 }

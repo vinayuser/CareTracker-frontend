@@ -62,6 +62,15 @@ export const deleteClient = createAsyncThunk('clients/delete', async (id, { reje
   }
 });
 
+export const fetchClientRelatedForms = createAsyncThunk('clients/relatedForms', async (id, { rejectWithValue }) => {
+  try {
+    const response = await axiosInstance.get(`${API_ROUTES.AGENCY.CLIENTS.RELATED_FORMS}/${id}/related-forms`);
+    return response.data.data;
+  } catch (error) {
+    return rejectWithValue(error.response?.data || error.message);
+  }
+});
+
 const clientsSlice = createSlice({
   name: 'clients',
   initialState: { list: [], selected: null, stats: { total: 0, active: 0, inactive: 0, pending: 0 }, loading: false },

@@ -155,12 +155,23 @@
   justify-content: space-between;
 }
 
-.ii-field { display: inline-flex; align-items: baseline; gap: 0.02in; flex: 1 1 auto; min-width: 0; margin-bottom: 0.01in; }
+.ii-field { display: inline-flex; align-items: flex-end; gap: 0.02in; flex: 1 1 auto; min-width: 0; margin-bottom: 0.01in; }
 .ii-field.w100 { flex: 1 1 100%; width: 100%; }
 .ii-field.w50 { flex: 1 1 45%; }
 .ii-field.w33 { flex: 1 1 30%; }
 .ii-label { font-weight: 700; color: #1a3a6c; white-space: nowrap; font-size: 5.8pt; }
-.ii-value { flex: 1; border-bottom: 1px solid #888; min-height: 0.1in; font-size: 5.8pt; word-break: break-word; line-height: 1.2; }
+.ii-value {
+  flex: 1;
+  min-height: 0.1in;
+  font-size: 5.8pt;
+  word-break: break-word;
+  line-height: 1.2;
+  padding-bottom: 1px;
+  background-image: linear-gradient(#888, #888);
+  background-size: 100% 1px;
+  background-position: left bottom;
+  background-repeat: no-repeat;
+}
 .ii-field.multiline .ii-value { min-height: 0.14in; white-space: pre-wrap; }
 
 .ii-checks { display: flex; flex-wrap: wrap; gap: 0.01in 0.035in; margin-bottom: 0.012in; align-items: center; }

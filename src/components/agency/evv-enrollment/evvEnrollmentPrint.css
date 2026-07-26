@@ -98,7 +98,7 @@
 
 .ev-field {
   display: inline-flex;
-  align-items: baseline;
+  align-items: flex-end;
   gap: 0.015in;
   flex: 1 1 auto;
   min-width: 0;
@@ -114,8 +114,16 @@
 
 .ev-label { font-weight: 700; color: #1a3a6c; white-space: nowrap; font-size: 5.6pt; }
 .ev-value {
-  flex: 1; border-bottom: 1px solid #888; min-height: 0.092in;
-  font-size: 5.6pt; word-break: break-word; padding-bottom: 0.003in;
+  flex: 1;
+  min-height: 0.092in;
+  font-size: 5.6pt;
+  word-break: break-word;
+  padding-bottom: 2px;
+  line-height: 1.2;
+  background-image: linear-gradient(#888, #888);
+  background-size: 100% 1px;
+  background-position: left bottom;
+  background-repeat: no-repeat;
 }
 
 .ev-checks {

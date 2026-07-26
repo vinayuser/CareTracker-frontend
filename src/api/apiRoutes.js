@@ -84,6 +84,7 @@ const API_ROUTES = {
       OPTIONS: '/agency/clients/options',
       STATS: '/agency/clients/stats',
       LIST: '/agency/clients',
+      RELATED_FORMS: '/agency/clients',
     },
     LEADS: {
       OPTIONS: '/agency/leads/options',
