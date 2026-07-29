@@ -42,6 +42,8 @@ export const ROUTES = {
   AGENCY_CARE_PLANS: '/agency/care-plans',
   AGENCY_CARE_PLANS_CREATE: '/agency/care-plans/create',
   AGENCY_CARE_PLANS_EDIT: '/agency/care-plans/:id/edit',
+  AGENCY_CARE_PLANS_VERSIONS: '/agency/care-plans/:id/versions',
+  AGENCY_CARE_PLANS_VERSION_PRINT: '/agency/care-plans/:id/versions/:historyId/print',
   AGENCY_CARE_PLANS_PRINT: '/agency/care-plans/:id/print',
   AGENCY_CARE_PLANS_PRINT_DRAFT: '/agency/care-plans/draft/print',
   AGENCY_SERVICE_NOTES: '/agency/service-notes',

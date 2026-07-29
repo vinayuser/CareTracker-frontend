@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Search, Pencil, Trash2, HeartHandshake, Users, UserX, Download } from 'lucide-react';
 import AgencyKpiCard from '../../../components/agency/dashboard/AgencyKpiCard';
 import ClientFormsExportModal from '../../../components/agency/clients/ClientFormsExportModal';
+import { AssessorDetailCell } from '../../../components/ui/AssessorPhotoUpload';
 import { fetchClients, fetchClientStats, deleteClient } from '../../../redux/slices/clientsSlice';
 import { ROUTES } from '../../../routes/routes';
 import { confirmAlert } from '../../../utils/swal';
@@ -20,6 +21,24 @@ function StatusBadge({ status }) {
   };
   return <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[status] || styles.Inactive}`}>{status}</span>;
 }
+
+const formatDate = (value) => {
+  if (!value) return '—';
+  try {
+    return new Date(value).toLocaleString();
+  } catch {
+    return String(value);
+  }
+};
+
+const clientSubtitle = (client) => {
+  const parts = [
+    client.clientCode,
+    client.age != null ? `Age ${client.age}` : '',
+    client.gender || '',
+  ].filter(Boolean);
+  return parts.join(' · ') || 'Client';
+};
 
 export default function Clients() {
   const dispatch = useDispatch();
@@ -39,7 +58,7 @@ export default function Clients() {
     const matchesStatus = statusFilter === 'All' || client.status === statusFilter;
     const q = search.trim().toLowerCase();
     if (!q) return matchesStatus;
-    const haystack = [client.fullName, client.email, client.phone, client.clientCode].join(' ').toLowerCase();
+    const haystack = [client.fullName, client.email, client.phone, client.clientCode, client.address].join(' ').toLowerCase();
     return matchesStatus && haystack.includes(q);
   }), [list, search, statusFilter]);
 
@@ -101,8 +120,9 @@ export default function Clients() {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
                   <th className="px-5 py-3">Client</th>
-                  <th className="px-5 py-3">Client ID</th>
-                  <th className="px-5 py-3">Phone</th>
+                  <th className="px-5 py-3">Contact</th>
+                  <th className="px-5 py-3">Location</th>
+                  <th className="px-5 py-3">Last updated</th>
                   <th className="px-5 py-3">Status</th>
                   <th className="px-5 py-3">Actions</th>
                 </tr>
@@ -111,11 +131,28 @@ export default function Clients() {
                 {filtered.map((client) => (
                   <tr key={client.id} className="hover:bg-gray-50">
                     <td className="px-5 py-4">
-                      <p className="font-medium text-gray-900">{client.fullName}</p>
+                      <AssessorDetailCell
+                        name={client.fullName}
+                        title={clientSubtitle(client)}
+                        photo={client.profilePic}
+                        fallbackTitle="Client"
+                      />
+                    </td>
+                    <td className="px-5 py-4">
+                      <p className="text-gray-900">{client.phone || client.phoneHome || '—'}</p>
                       <p className="text-xs text-gray-500">{client.email || '—'}</p>
                     </td>
-                    <td className="px-5 py-4 text-gray-700">{client.clientCode}</td>
-                    <td className="px-5 py-4 text-gray-700">{client.phone || '—'}</td>
+                    <td className="px-5 py-4">
+                      <p className="max-w-[220px] truncate text-gray-700" title={client.address || ''}>
+                        {client.address || '—'}
+                      </p>
+                      {(client.city || client.state) && (
+                        <p className="text-xs text-gray-500">
+                          {[client.city, client.state].filter(Boolean).join(', ')}
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-5 py-4 text-gray-700">{formatDate(client.updatedAt)}</td>
                     <td className="px-5 py-4"><StatusBadge status={client.status} /></td>
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap items-center gap-2">

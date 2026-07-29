@@ -162,7 +162,9 @@ export function CarePlanStepOne({
               className={inputClass}
             />
           </Field>
-          <Field label="Version"><input value={form.version} onChange={(e) => onHeaderChange('version', e.target.value)} className={inputClass} /></Field>
+          <Field label="Version">
+            <input value={form.version || 'v1'} readOnly className={`${inputClass} bg-gray-50 text-gray-600`} title="Version is updated automatically on save" />
+          </Field>
           {!form.planCode && (
             <Field label="Select Client *">
               <select value={clientId} onChange={(e) => onClientChange(e.target.value)} className={inputClass}>

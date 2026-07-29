@@ -19,6 +19,7 @@ import EditCaregiverDrawer from '../../../components/agency/caregivers/EditCareg
 import ViewCaregiverDrawer from '../../../components/agency/caregivers/ViewCaregiverDrawer';
 import SendCaregiverEmailDrawer from '../../../components/agency/caregivers/SendCaregiverEmailDrawer';
 import ActionIconButton from '../../../components/ui/ActionIconButton';
+import { AssessorDetailCell } from '../../../components/ui/AssessorPhotoUpload';
 import {
   fetchCaregivers,
   fetchCaregiverStats,
@@ -38,6 +39,23 @@ function StatusBadge({ status }) {
     </span>
   );
 }
+
+const formatDate = (value) => {
+  if (!value) return '—';
+  try {
+    return new Date(value).toLocaleString();
+  } catch {
+    return String(value);
+  }
+};
+
+const caregiverSubtitle = (caregiver) => {
+  const parts = [
+    caregiver.userId,
+    caregiver.employeeId ? `ID ${caregiver.employeeId}` : '',
+  ].filter(Boolean);
+  return parts.join(' · ') || 'Caregiver';
+};
 
 export default function Caregivers() {
   const dispatch = useDispatch();
@@ -67,8 +85,11 @@ export default function Caregivers() {
       const haystack = [
         caregiver.fullName,
         caregiver.email,
+        caregiver.phone,
         caregiver.userId,
+        caregiver.employeeId,
         caregiver.source_job_title,
+        caregiver.experience,
         caregiver.candidate?.first_name,
         caregiver.candidate?.last_name,
       ]
@@ -173,10 +194,10 @@ export default function Caregivers() {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
                   <th className="px-5 py-3">Caregiver</th>
-                  <th className="px-5 py-3">Login ID</th>
-                  <th className="px-5 py-3">Hired for Job</th>
+                  <th className="px-5 py-3">Contact</th>
+                  <th className="px-5 py-3">Role / Job</th>
+                  <th className="px-5 py-3">Last updated</th>
                   <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3">Added</th>
                   <th className="px-5 py-3">Actions</th>
                 </tr>
               </thead>
@@ -184,20 +205,33 @@ export default function Caregivers() {
                 {filtered.map((caregiver) => (
                   <tr key={caregiver.id} className="hover:bg-gray-50">
                     <td className="px-5 py-4">
-                      <p className="font-medium text-gray-900">{caregiver.fullName}</p>
-                      <p className="text-xs text-gray-500">{caregiver.email}</p>
+                      <AssessorDetailCell
+                        name={caregiver.fullName}
+                        title={caregiverSubtitle(caregiver)}
+                        photo={caregiver.profilePic || caregiver.candidate?.profile_pic_url}
+                        fallbackTitle="Caregiver"
+                      />
                     </td>
-                    <td className="px-5 py-4 text-gray-700">{caregiver.userId}</td>
+                    <td className="px-5 py-4">
+                      <p className="text-gray-900">{caregiver.phone || caregiver.candidate?.phone || '—'}</p>
+                      <p className="text-xs text-gray-500">{caregiver.email || '—'}</p>
+                    </td>
+                    <td className="px-5 py-4">
+                      <p className="font-medium text-gray-900">{caregiver.source_job_title || '—'}</p>
+                      {(caregiver.experience || caregiver.dateOfBirth) && (
+                        <p className="text-xs text-gray-500">
+                          {[
+                            caregiver.experience ? `Exp: ${caregiver.experience}` : '',
+                            caregiver.dateOfBirth ? `DOB: ${caregiver.dateOfBirth}` : '',
+                          ].filter(Boolean).join(' · ')}
+                        </p>
+                      )}
+                    </td>
                     <td className="px-5 py-4 text-gray-700">
-                      {caregiver.source_job_title || '—'}
+                      {formatDate(caregiver.updatedAt || caregiver.createdAt)}
                     </td>
                     <td className="px-5 py-4">
                       <StatusBadge status={caregiver.status} />
-                    </td>
-                    <td className="px-5 py-4 text-gray-500">
-                      {caregiver.createdAt
-                        ? new Date(caregiver.createdAt).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
-                        : '—'}
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-0.5">

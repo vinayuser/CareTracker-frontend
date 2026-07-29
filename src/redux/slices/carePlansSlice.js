@@ -71,16 +71,49 @@ export const deleteCarePlan = createAsyncThunk('carePlans/delete', async (id, { 
   }
 });
 
+export const fetchCarePlanVersions = createAsyncThunk('carePlans/fetchVersions', async (id, { rejectWithValue }) => {
+  try {
+    const response = await axiosInstance.get(`${API_ROUTES.AGENCY.CARE_PLANS.LIST}/${id}/versions`);
+    return response.data.data;
+  } catch (error) {
+    return rejectWithValue(error.response?.data || error.message);
+  }
+});
+
+export const fetchCarePlanVersion = createAsyncThunk('carePlans/fetchVersion', async ({ id, historyId }, { rejectWithValue }) => {
+  try {
+    const response = await axiosInstance.get(`${API_ROUTES.AGENCY.CARE_PLANS.LIST}/${id}/versions/${historyId}`);
+    return response.data.data;
+  } catch (error) {
+    return rejectWithValue(error.response?.data || error.message);
+  }
+});
+
+export const sendCarePlanVersion = createAsyncThunk('carePlans/sendVersion', async ({ id, historyId }, { rejectWithValue }) => {
+  try {
+    const body = historyId && historyId !== 'latest' ? { historyId } : {};
+    const response = await axiosInstance.post(`${API_ROUTES.AGENCY.CARE_PLANS.LIST}/${id}/versions/send`, body);
+    toast.success('Care plan emailed to client and agency owner');
+    return response.data.data;
+  } catch (error) {
+    return rejectWithValue(error.response?.data || error.message);
+  }
+});
+
 const carePlansSlice = createSlice({
   name: 'carePlans',
   initialState: {
     list: [],
     selected: null,
+    versions: null,
     options: null,
     stats: { total: 0, active: 0, draft: 0, archived: 0 },
     loading: false,
   },
-  reducers: { clearSelectedCarePlan(state) { state.selected = null; } },
+  reducers: {
+    clearSelectedCarePlan(state) { state.selected = null; },
+    clearCarePlanVersions(state) { state.versions = null; },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchCarePlans.pending, (state) => { state.loading = true; })
@@ -100,9 +133,15 @@ const carePlansSlice = createSlice({
       })
       .addCase(deleteCarePlan.fulfilled, (state, action) => {
         state.list = state.list.filter((p) => p.id !== action.payload);
-      });
+      })
+      .addCase(fetchCarePlanVersions.pending, (state) => { state.loading = true; })
+      .addCase(fetchCarePlanVersions.fulfilled, (state, action) => {
+        state.loading = false;
+        state.versions = action.payload;
+      })
+      .addCase(fetchCarePlanVersions.rejected, (state) => { state.loading = false; });
   },
 });
 
-export const { clearSelectedCarePlan } = carePlansSlice.actions;
+export const { clearSelectedCarePlan, clearCarePlanVersions } = carePlansSlice.actions;
 export default carePlansSlice.reducer;

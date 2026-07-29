@@ -72,6 +72,16 @@ export const generateAssessmentQuote = createAsyncThunk('assessments/generateQuo
   }
 });
 
+export const updateAssessmentQuote = createAsyncThunk('assessments/updateQuote', async ({ id, pricing }, { rejectWithValue }) => {
+  try {
+    const res = await axiosInstance.put(`${API_ROUTES.AGENCY.ASSESSMENTS.LIST}/${id}/update-quote`, pricing);
+    toast.success('Quote updated — email sent to client and agency');
+    return res.data.data;
+  } catch (e) {
+    return rejectWithValue(e.response?.data || e.message);
+  }
+});
+
 export const acceptAssessmentQuote = createAsyncThunk('assessments/acceptQuote', async (id, { rejectWithValue }) => {
   try {
     const res = await axiosInstance.post(`${API_ROUTES.AGENCY.ASSESSMENTS.LIST}/${id}/accept-quote`);
@@ -100,6 +110,10 @@ const assessmentsSlice = createSlice({
       })
       .addCase(deleteAssessment.fulfilled, (s, a) => { s.list = s.list.filter((x) => x.id !== a.payload); })
       .addCase(generateAssessmentQuote.fulfilled, (s, a) => {
+        const i = s.list.findIndex((x) => x.id === a.payload.assessment.id);
+        if (i !== -1) s.list[i] = a.payload.assessment;
+      })
+      .addCase(updateAssessmentQuote.fulfilled, (s, a) => {
         const i = s.list.findIndex((x) => x.id === a.payload.assessment.id);
         if (i !== -1) s.list[i] = a.payload.assessment;
       })

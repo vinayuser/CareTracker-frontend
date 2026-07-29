@@ -44,6 +44,8 @@ import AssessmentPrintPage from './pages/agency/assessments/AssessmentPrintPage'
 import CarePlans from './pages/agency/care-plans/CarePlans';
 import GenerateCarePlan from './pages/agency/care-plans/GenerateCarePlan';
 import CarePlanPrintPage from './pages/agency/care-plans/CarePlanPrintPage';
+import CarePlanVersions from './pages/agency/care-plans/CarePlanVersions';
+import CarePlanVersionPrintPage from './pages/agency/care-plans/CarePlanVersionPrintPage';
 import InsuranceIntakes from './pages/agency/insurance-intake/InsuranceIntakes';
 import ClientInsuranceIntakeForm from './pages/agency/insurance-intake/ClientInsuranceIntakeForm';
 import InsuranceIntakePrintPage from './pages/agency/insurance-intake/InsuranceIntakePrintPage';
@@ -164,6 +166,7 @@ export default function App() {
             <Route path={ROUTES.AGENCY_ASSESSMENTS_PRINT_DRAFT} element={<AssessmentPrintPage />} />
             <Route path={ROUTES.AGENCY_CARE_PLANS_PRINT} element={<CarePlanPrintPage />} />
             <Route path={ROUTES.AGENCY_CARE_PLANS_PRINT_DRAFT} element={<CarePlanPrintPage />} />
+            <Route path={ROUTES.AGENCY_CARE_PLANS_VERSION_PRINT} element={<CarePlanVersionPrintPage />} />
             <Route path={ROUTES.AGENCY_INSURANCE_INTAKE_PRINT} element={<InsuranceIntakePrintPage />} />
             <Route path={ROUTES.AGENCY_INSURANCE_INTAKE_PRINT_DRAFT} element={<InsuranceIntakePrintPage />} />
             <Route path={ROUTES.AGENCY_EVV_ENROLLMENT_PRINT} element={<EvvEnrollmentPrintPage />} />
@@ -188,6 +191,7 @@ export default function App() {
               <Route path={ROUTES.AGENCY_CARE_PLANS} element={<CarePlans />} />
               <Route path={ROUTES.AGENCY_CARE_PLANS_CREATE} element={<GenerateCarePlan />} />
               <Route path={ROUTES.AGENCY_CARE_PLANS_EDIT} element={<GenerateCarePlan />} />
+              <Route path={ROUTES.AGENCY_CARE_PLANS_VERSIONS} element={<CarePlanVersions />} />
               <Route path={ROUTES.AGENCY_SERVICE_NOTES} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_MEDICATIONS} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_EMAR} element={<AgencyModulePage />} />

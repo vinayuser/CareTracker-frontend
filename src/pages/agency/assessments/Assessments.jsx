@@ -9,6 +9,7 @@ import {
   fetchAssessments,
   fetchAssessmentStats,
   generateAssessmentQuote,
+  updateAssessmentQuote,
 } from '../../../redux/slices/assessmentsSlice';
 import { ROUTES } from '../../../routes/routes';
 import { confirmAlert } from '../../../utils/swal';
@@ -29,16 +30,25 @@ const actionBtnEmerald = `${actionBtn} border-emerald-200 bg-emerald-50 text-eme
 const actionBtnPrimary = `${actionBtn} border-primary/20 bg-primary/5 text-primary hover:bg-primary/10`;
 const actionBtnDanger = `${actionBtn} border-red-200 bg-white text-red-600 hover:bg-red-50`;
 
-function QuoteModal({ open, onClose, onSubmit, loading, defaultHours }) {
+function QuoteModal({ open, onClose, onSubmit, loading, defaults, isEdit }) {
   const [hourlyRate, setHourlyRate] = useState('35');
-  const [weeklyHours, setWeeklyHours] = useState(defaultHours || '20');
+  const [weeklyHours, setWeeklyHours] = useState('20');
+
+  useEffect(() => {
+    if (!open) return;
+    setHourlyRate(String(defaults?.hourlyRate ?? 35));
+    setWeeklyHours(String(defaults?.weeklyHours ?? 20));
+  }, [open, defaults?.hourlyRate, defaults?.weeklyHours]);
+
   if (!open) return null;
   const monthly = Math.round(Number(weeklyHours || 0) * Number(hourlyRate || 0) * 4.33 * 100) / 100;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-        <h3 className="text-lg font-semibold text-gray-900">Generate Care Plan Quote</h3>
-        <p className="mt-1 text-sm text-gray-500">Price the recommended care plan for the client to review.</p>
+        <h3 className="text-lg font-semibold text-gray-900">{isEdit ? 'Update Care Plan Quote' : 'Generate Care Plan Quote'}</h3>
+        <p className="mt-1 text-sm text-gray-500">
+          {isEdit ? 'Update pricing and resend the quote email to the client and agency owner.' : 'Price the recommended care plan for the client to review.'}
+        </p>
         <div className="mt-5 space-y-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">Hourly rate ($)</label>
@@ -55,7 +65,7 @@ function QuoteModal({ open, onClose, onSubmit, loading, defaultHours }) {
         <div className="mt-6 flex gap-3">
           <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium">Cancel</button>
           <button type="button" disabled={loading} onClick={() => onSubmit({ hourlyRate: Number(hourlyRate), weeklyHours: Number(weeklyHours), quotedMonthlyPrice: monthly })} className="flex-1 rounded-xl bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-50">
-            {loading ? 'Generating...' : 'Generate Quote'}
+            {loading ? 'Saving...' : isEdit ? 'Update & Email' : 'Generate Quote'}
           </button>
         </div>
       </div>
@@ -70,6 +80,7 @@ export default function Assessments() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [quoteTarget, setQuoteTarget] = useState(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
+  const isEditQuote = Boolean(quoteTarget?.carePlanId);
 
   const load = () => {
     dispatch(fetchAssessments());
@@ -93,7 +104,8 @@ export default function Assessments() {
   const handleQuote = async (pricing) => {
     setQuoteLoading(true);
     try {
-      await dispatch(generateAssessmentQuote({ id: quoteTarget.id, pricing })).unwrap();
+      const action = isEditQuote ? updateAssessmentQuote : generateAssessmentQuote;
+      await dispatch(action({ id: quoteTarget.id, pricing })).unwrap();
       setQuoteTarget(null);
       load();
     } catch { /* toast */ }
@@ -109,6 +121,15 @@ export default function Assessments() {
     await dispatch(acceptAssessmentQuote(item.id));
     load();
   };
+
+  const quoteDefaults = quoteTarget
+    ? {
+      hourlyRate: quoteTarget.hourlyRate ?? 35,
+      weeklyHours: quoteTarget.weeklyHours
+        ?? quoteTarget.formData?.carePlanSummary?.recommendedWeeklyHours
+        ?? 20,
+    }
+    : null;
 
   return (
     <div className="space-y-5">
@@ -207,6 +228,11 @@ export default function Assessments() {
                             <DollarSign size={16} /> Quote
                           </button>
                         )}
+                        {a.carePlanId && (a.status === 'Quoted' || a.status === 'Accepted') && (
+                          <button type="button" onClick={() => setQuoteTarget(a)} className={actionBtnAmber}>
+                            <DollarSign size={16} /> Edit Quote
+                          </button>
+                        )}
                         {a.status === 'Quoted' && (
                           <button type="button" onClick={() => handleAccept(a)} className={actionBtnEmerald}>
                             <UserCheck size={16} /> Onboard
@@ -237,7 +263,8 @@ export default function Assessments() {
         onClose={() => setQuoteTarget(null)}
         onSubmit={handleQuote}
         loading={quoteLoading}
-        defaultHours={quoteTarget?.formData?.carePlanSummary?.recommendedWeeklyHours}
+        defaults={quoteDefaults}
+        isEdit={isEditQuote}
       />
     </div>
   );

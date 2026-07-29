@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Plus, Search, Pencil, Trash2, Shield, FileCheck, Clock, Printer, Download } from 'lucide-react';
 import { toast } from 'react-toastify';
 import AgencyKpiCard from '../../../components/agency/dashboard/AgencyKpiCard';
+import { AssessorDetailCell } from '../../../components/ui/AssessorPhotoUpload';
 import {
   fetchInsuranceIntakes,
   fetchInsuranceIntakeStats,
@@ -26,6 +27,23 @@ function StatusBadge({ status }) {
   return <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[status] || styles.Draft}`}>{status}</span>;
 }
 
+const formatDate = (value) => {
+  if (!value) return '—';
+  try {
+    return new Date(value).toLocaleString();
+  } catch {
+    return String(value);
+  }
+};
+
+const clientSubtitle = (item) => {
+  const parts = [
+    item.clientCode || item.intakeCode,
+    item.clientPhone || item.clientEmail || '',
+  ].filter(Boolean);
+  return parts.join(' · ') || 'Client';
+};
+
 export default function InsuranceIntakes() {
   const dispatch = useDispatch();
   const { list, stats, loading } = useSelector((state) => state.insuranceIntakes);
@@ -43,7 +61,16 @@ export default function InsuranceIntakes() {
     const matchesStatus = statusFilter === 'All' || item.status === statusFilter;
     const q = search.trim().toLowerCase();
     if (!q) return matchesStatus;
-    const haystack = [item.intakeCode, item.clientName, item.clientEmail, item.clientPhone].join(' ').toLowerCase();
+    const haystack = [
+      item.intakeCode,
+      item.clientName,
+      item.clientEmail,
+      item.clientPhone,
+      item.clientCode,
+      item.insuranceCompany,
+      item.memberId,
+      item.planName,
+    ].join(' ').toLowerCase();
     return matchesStatus && haystack.includes(q);
   }), [list, search, statusFilter]);
 
@@ -120,9 +147,10 @@ export default function InsuranceIntakes() {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
                   <th className="px-5 py-3">Client</th>
-                  <th className="px-5 py-3">Intake ID</th>
-                  <th className="px-5 py-3">Intake Date</th>
+                  <th className="px-5 py-3">Insurance</th>
+                  <th className="px-5 py-3">Intake</th>
                   <th className="px-5 py-3">Docs</th>
+                  <th className="px-5 py-3">Last updated</th>
                   <th className="px-5 py-3">Status</th>
                   <th className="px-5 py-3">Actions</th>
                 </tr>
@@ -131,12 +159,36 @@ export default function InsuranceIntakes() {
                 {filtered.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50">
                     <td className="px-5 py-4">
-                      <p className="font-medium text-gray-900">{item.clientName || '—'}</p>
-                      <p className="text-xs text-gray-500">{item.clientPhone || item.clientEmail || '—'}</p>
+                      <AssessorDetailCell
+                        name={item.clientName || item.client?.fullName || '—'}
+                        title={clientSubtitle(item)}
+                        photo={item.clientPhoto || item.client?.profilePic}
+                        fallbackTitle="Client"
+                      />
+                      {(item.clientEmail || item.clientAddress) && (
+                        <p className="mt-1 max-w-[240px] truncate text-xs text-gray-500" title={item.clientAddress || item.clientEmail}>
+                          {item.clientEmail || item.clientAddress}
+                        </p>
+                      )}
                     </td>
-                    <td className="px-5 py-4 text-gray-700">{item.intakeCode}</td>
-                    <td className="px-5 py-4 text-gray-700">{item.intakeDate || '—'}</td>
+                    <td className="px-5 py-4">
+                      <p className="font-medium text-gray-900">{item.insuranceCompany || '—'}</p>
+                      <p className="text-xs text-gray-500">
+                        {[
+                          item.memberId ? `Member # ${item.memberId}` : '',
+                          item.planName || '',
+                          item.groupNumber ? `Group ${item.groupNumber}` : '',
+                        ].filter(Boolean).join(' · ') || 'No policy details'}
+                      </p>
+                    </td>
+                    <td className="px-5 py-4">
+                      <p className="font-medium text-gray-900">{item.intakeCode}</p>
+                      <p className="text-xs text-gray-500">
+                        Intake date: {item.intakeDate || '—'}
+                      </p>
+                    </td>
                     <td className="px-5 py-4 text-gray-700">{item.documentCount || 0}</td>
+                    <td className="px-5 py-4 text-gray-700">{formatDate(item.updatedAt || item.createdAt)}</td>
                     <td className="px-5 py-4"><StatusBadge status={item.status} /></td>
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap items-center gap-2">

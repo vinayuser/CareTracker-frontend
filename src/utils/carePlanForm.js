@@ -195,7 +195,7 @@ export function carePlanToForm(plan, client = null) {
     const patch = client ? clientToFormPatch(client) : {};
     return {
       clientId: '',
-      version: '1.0',
+      version: 'v1',
       effectiveDate: formatDisplayDate(),
       reviewDate: formatDisplayDate(new Date(Date.now() + 30 * 86400000)),
       status: 'Active',
@@ -245,7 +245,7 @@ export function carePlanToForm(plan, client = null) {
   }
   return {
     clientId: plan.clientId || '',
-    version: plan.version || '1.0',
+    version: plan.version || 'v1',
     effectiveDate: plan.effectiveDate || formatDisplayDate(),
     reviewDate: plan.reviewDate || formatDisplayDate(new Date(Date.now() + 30 * 86400000)),
     status: plan.status || 'Active',

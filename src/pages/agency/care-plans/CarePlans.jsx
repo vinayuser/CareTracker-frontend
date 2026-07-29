@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, FileText, CheckCircle2, Archive, Printer } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, FileText, CheckCircle2, Archive, Printer, History } from 'lucide-react';
 import AgencyKpiCard from '../../../components/agency/dashboard/AgencyKpiCard';
 import { fetchCarePlans, fetchCarePlanStats, deleteCarePlan } from '../../../redux/slices/carePlansSlice';
 import { ROUTES } from '../../../routes/routes';
@@ -105,6 +105,7 @@ export default function CarePlans() {
                   <th className="px-5 py-3">Client</th>
                   <th className="px-5 py-3">Assessor Details</th>
                   <th className="px-5 py-3">Effective Date</th>
+                  {/* <th className="px-5 py-3">Version</th> */}
                   <th className="px-5 py-3">Status</th>
                   <th className="px-5 py-3">Actions</th>
                 </tr>
@@ -125,12 +126,20 @@ export default function CarePlans() {
                       />
                     </td>
                     <td className="px-5 py-4 text-gray-700">{plan.effectiveDate || '—'}</td>
+                    <td className="px-5 py-4">
+                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+                        {plan.version || 'v1'}
+                      </span>
+                    </td>
                     <td className="px-5 py-4"><StatusBadge status={plan.status} /></td>
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap items-center gap-2">
                         <Link to={ROUTES.AGENCY_CARE_PLANS_EDIT.replace(':id', plan.id)} className={actionBtnNeutral}>
                           <Pencil size={16} /> Edit
                         </Link>
+                        {/* <Link to={ROUTES.AGENCY_CARE_PLANS_VERSIONS.replace(':id', plan.id)} className={actionBtnNeutral}>
+                          <History size={16} /> Versions
+                        </Link> */}
                         <button
                           type="button"
                           onClick={() => window.open(ROUTES.AGENCY_CARE_PLANS_PRINT.replace(':id', plan.id), '_blank')}
