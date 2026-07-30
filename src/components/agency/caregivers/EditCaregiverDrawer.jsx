@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import Drawer from '../../ui/Drawer';
+import AssessorPhotoUpload from '../../ui/AssessorPhotoUpload';
 import { editCaregiver } from '../../../redux/slices/caregiversSlice';
 
 const inputClass =
@@ -14,6 +15,7 @@ const EMPTY = {
   employeeId: '',
   dateOfBirth: '',
   status: 'Active',
+  profilePic: '',
 };
 
 export default function EditCaregiverDrawer({ open, onClose, caregiver, onSuccess }) {
@@ -32,6 +34,7 @@ export default function EditCaregiverDrawer({ open, onClose, caregiver, onSucces
       employeeId: caregiver.employeeId || '',
       dateOfBirth: caregiver.dateOfBirth || '',
       status: caregiver.status || 'Active',
+      profilePic: caregiver.profilePic || caregiver.candidate?.profile_pic_url || '',
     });
     setErrors({});
   }, [open, caregiver]);
@@ -67,6 +70,7 @@ export default function EditCaregiverDrawer({ open, onClose, caregiver, onSucces
             employeeId: form.employeeId.trim(),
             dateOfBirth: form.dateOfBirth,
             status: form.status,
+            profilePic: form.profilePic || '',
           },
         }),
       ).unwrap();
@@ -105,6 +109,12 @@ export default function EditCaregiverDrawer({ open, onClose, caregiver, onSucces
       )}
     >
       <form id="edit-caregiver-form" onSubmit={handleSubmit} className="space-y-4">
+        <AssessorPhotoUpload
+          label="Caregiver Photo"
+          value={form.profilePic || ''}
+          onChange={(photo) => setForm((prev) => ({ ...prev, profilePic: photo }))}
+          shape="circle"
+        />
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">
             Full name <span className="text-red-500">*</span>

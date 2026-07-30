@@ -189,6 +189,8 @@ const mergeFilled = (base = {}, patch = {}) => {
   return out;
 };
 
+const clientPhotoFrom = (client) => client?.profilePic || client?.photo || '';
+
 export function carePlanToForm(plan, client = null) {
   const empty = buildEmptyFormData();
   if (!plan) {
@@ -199,6 +201,7 @@ export function carePlanToForm(plan, client = null) {
       effectiveDate: formatDisplayDate(),
       reviewDate: formatDisplayDate(new Date(Date.now() + 30 * 86400000)),
       status: 'Active',
+      clientPhoto: clientPhotoFrom(client),
       formData: {
         ...empty,
         clientInfo: mergeFilled(empty.clientInfo, patch.clientInfo),
@@ -250,6 +253,7 @@ export function carePlanToForm(plan, client = null) {
     reviewDate: plan.reviewDate || formatDisplayDate(new Date(Date.now() + 30 * 86400000)),
     status: plan.status || 'Active',
     planCode: plan.planCode || '',
+    clientPhoto: clientPhotoFrom(client) || clientPhotoFrom(plan.client),
     formData: merged,
   };
 }

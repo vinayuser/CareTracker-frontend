@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { X, ArrowRight, ArrowLeft, UserCheck, Ban, Loader2, RotateCcw, FileText, ClipboardCheck } from 'lucide-react';
+import { X, ArrowRight, ArrowLeft, UserCheck, Ban, Loader2, RotateCcw, FileText, ClipboardCheck, Trash2 } from 'lucide-react';
 import {
   fetchStageCandidates,
   moveToNextStage,
   moveToPreviousStage,
   rejectCandidate,
+  deleteCandidate,
   completeCandidateHire,
   undoCandidateHire,
 } from '../../../redux/slices/candidatesSlice';
@@ -167,6 +168,17 @@ function CandidateRow({ application, onAction, loadingId, viewType, onOpenForms,
               Rejected
             </span>
           )}
+          {!(application.status === 'Hired' && info.hiring_completed) && (
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={() => onAction('delete', application)}
+              className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+            >
+              <Trash2 size={14} />
+              Delete
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -269,6 +281,19 @@ export default function StageCandidatesModal({
           return;
         }
         await dispatch(rejectCandidate(application.id)).unwrap();
+      } else if (action === 'delete') {
+        const name = `${application.candidate?.first_name} ${application.candidate?.last_name}`.trim();
+        const confirmed = await confirmAlert({
+          title: 'Delete candidate?',
+          text: `Permanently delete ${name || 'this candidate'} and their application data? This cannot be undone.`,
+          confirmText: 'Delete',
+          danger: true,
+        });
+        if (!confirmed) {
+          setActionId(null);
+          return;
+        }
+        await dispatch(deleteCandidate(application.id)).unwrap();
       } else if (action === 'hire') {
         const result = await dispatch(completeCandidateHire(application.id)).unwrap();
         setHireResult(result);

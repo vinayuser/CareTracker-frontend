@@ -80,6 +80,7 @@ export const EMPTY_CLIENT_FORM = {
   carePlanStartDate: '',
   status: 'Pending',
   notes: '',
+  profilePic: '',
 };
 
 export function clientToForm(client) {
@@ -103,6 +104,7 @@ export function clientToForm(client) {
   if (!form.livingArrangements.length && client.livingArrangement) {
     form.livingArrangements = client.livingArrangement.split(',').map((s) => s.trim()).filter(Boolean);
   }
+  form.profilePic = client.profilePic || '';
 
   return form;
 }

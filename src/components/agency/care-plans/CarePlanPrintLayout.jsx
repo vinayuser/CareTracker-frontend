@@ -64,33 +64,23 @@ function SigBlock({ label, block }) {
   );
 }
 
-function BrandLogo() {
+function ClientAgencyHeader({ clientName, clientPhoto, agencyName }) {
+  const hasPhoto = Boolean(clientPhoto);
   return (
-    <div className="cp-brand">
-      <svg className="cp-brand-mark" viewBox="0 0 48 48" aria-hidden>
-        <defs>
-          <linearGradient id="cp-logo-bg" x1="8" y1="4" x2="40" y2="44" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#6b4fd4" />
-            <stop offset="1" stopColor="#4b2c82" />
-          </linearGradient>
-        </defs>
-        <rect width="48" height="48" rx="10" fill="url(#cp-logo-bg)" />
-        <path
-          d="M24 10 L34 18 V30 C34 34 24 38 24 38 C24 38 14 34 14 30 V18 Z"
-          fill="none"
-          stroke="#fff"
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M20 24 C20 21.5 21.8 20 24 20 C26.2 20 28 21.5 28 24 C28 27 24 31 24 31 C24 31 20 27 20 24 Z"
-          fill="#fff"
-          opacity="0.95"
-        />
-      </svg>
-      <div>
-        <div className="cp-brand-name">CareTraker</div>
-        <div className="cp-brand-tag">Compassionate Care. Trusted Support.</div>
+    <div className="cp-client-agency">
+      <div className="cp-client-head">
+        {hasPhoto ? (
+          <img src={clientPhoto} alt={clientName || 'Client'} className="cp-client-photo" />
+        ) : (
+          <div className="cp-client-photo cp-client-photo-empty">
+            <AssessorPhotoPlaceholder />
+          </div>
+        )}
+        <div className="cp-client-name">{disp(clientName) || 'Client Name'}</div>
+      </div>
+      <div className="cp-agency-under">
+        <div className="cp-agency-label">Agency</div>
+        <div className="cp-agency-name">{disp(agencyName) || 'Your Agency Name'}</div>
       </div>
     </div>
   );
@@ -166,7 +156,7 @@ function AssessorPhotoPlaceholder() {
 }
 
 function AssessorBox({ assessor }) {
-  const hasPhoto = assessor.photo?.startsWith?.('data:image');
+  const hasPhoto = Boolean(assessor.photo);
   return (
     <div className="cp-assessor-box">
       <div className="cp-assessor-head">CARE PLAN ASSESSOR</div>
@@ -221,10 +211,17 @@ export default function CarePlanPrintLayout({
   const auth = d.authorization || {};
   const sig = d.signatures || {};
 
+  const clientName = ci.clientName || form?.client?.fullName || form?.client?.name || '';
+  const clientPhoto = form?.clientPhoto || form?.client?.profilePic || form?.client?.photo || '';
+
   return (
     <div className="cp-page">
       <header className="cp-header">
-        <BrandLogo />
+        <ClientAgencyHeader
+          clientName={clientName}
+          clientPhoto={clientPhoto}
+          agencyName={agencyName}
+        />
         <div className="cp-title-block">
           <div className="cp-main-title">CARE PLAN</div>
           <div className="cp-subtitle">Person-Centered. Compassionate. Consistent.</div>

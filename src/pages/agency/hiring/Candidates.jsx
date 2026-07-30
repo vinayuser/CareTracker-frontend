@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Plus, FileText, ClipboardCheck, Mail } from 'lucide-react';
+import { Plus, FileText, ClipboardCheck, Mail, Trash2 } from 'lucide-react';
 import AddCandidateDrawer from '../../../components/agency/hiring/AddCandidateDrawer';
 import CandidateFormsPanel from '../../../components/agency/hiring/CandidateFormsPanel';
 import CandidateFeedbackViewPanel from '../../../components/agency/hiring/CandidateFeedbackViewPanel';
 import SendCandidateEmailDrawer from '../../../components/agency/hiring/SendCandidateEmailDrawer';
 import ActionIconButton from '../../../components/ui/ActionIconButton';
 import { fetchJobs } from '../../../redux/slices/jobsSlice';
-import { fetchApplications } from '../../../redux/slices/candidatesSlice';
+import { deleteCandidate, fetchApplications } from '../../../redux/slices/candidatesSlice';
+import { confirmAlert } from '../../../utils/swal';
 
 export default function Candidates() {
   const dispatch = useDispatch();
@@ -19,6 +20,7 @@ export default function Candidates() {
   const [formsOpen, setFormsOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   const load = () => {
     dispatch(fetchJobs());
@@ -41,30 +43,35 @@ export default function Candidates() {
     if (action === 'email') setEmailOpen(true);
   };
 
+  const handleDelete = async (app) => {
+    const name = `${app.candidate?.first_name || ''} ${app.candidate?.last_name || ''}`.trim();
+    const confirmed = await confirmAlert({
+      title: 'Delete candidate?',
+      text: `Permanently delete ${name || 'this candidate'} and their application data? This cannot be undone.`,
+      confirmText: 'Delete',
+      danger: true,
+    });
+    if (!confirmed) return;
+    setDeletingId(app.id);
+    try {
+      await dispatch(deleteCandidate(app.id)).unwrap();
+    } catch {
+      // toast in slice
+    }
+    setDeletingId(null);
+  };
+
   const stageIdForApp = (app) => app?.stage?.id || app?.agencyStageId || '';
+
+  const canDelete = (app) => {
+    if (app.status !== 'Hired') return true;
+    const jobHiring = app.job?.hiring_status || app.job?.hiringStatus || app.stage_info?.job_hiring_status;
+    return jobHiring !== 'Complete';
+  };
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Candidates</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            View all candidates across jobs. Use the Jobs page to move candidates through pipeline stages.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            setSelectedJob(null);
-            setDrawerOpen(true);
-          }}
-          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-hover"
-        >
-          <Plus size={16} />
-          Add Candidate
-        </button>
-      </div>
-
+      
       <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="border-b border-gray-100 px-5 py-4">
           <h2 className="text-sm font-semibold text-gray-900">All Candidates</h2>
@@ -152,6 +159,16 @@ export default function Candidates() {
                         >
                           <Mail size={16} />
                         </ActionIconButton>
+                        {canDelete(app) && (
+                          <ActionIconButton
+                            label="Delete candidate"
+                            onClick={() => handleDelete(app)}
+                            disabled={deletingId === app.id}
+                            className="text-red-500 hover:bg-red-50 hover:text-red-700"
+                          >
+                            <Trash2 size={16} />
+                          </ActionIconButton>
+                        )}
                       </div>
                     </td>
                   </tr>

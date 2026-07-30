@@ -17,9 +17,22 @@ export default function ViewCaregiverDrawer({ open, onClose, caregiver }) {
   return (
     <Drawer open={open} onClose={onClose} title="Caregiver details" width="md">
       <div className="space-y-4">
-        <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-          <p className="font-medium text-gray-900">{caregiver.fullName}</p>
-          <p className="text-sm text-gray-500">{caregiver.email}</p>
+        <div className="flex items-center gap-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+          {caregiver.profilePic ? (
+            <img
+              src={caregiver.profilePic}
+              alt={caregiver.fullName || 'Caregiver'}
+              className="h-16 w-16 shrink-0 rounded-full border border-gray-200 object-cover"
+            />
+          ) : (
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gray-200 text-lg font-semibold text-gray-500">
+              {(caregiver.fullName || '?').charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="font-medium text-gray-900">{caregiver.fullName}</p>
+            <p className="text-sm text-gray-500">{caregiver.email}</p>
+          </div>
         </div>
         <dl>
           <Row label="Login ID" value={caregiver.userId} />

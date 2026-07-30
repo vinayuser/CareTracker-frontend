@@ -50,7 +50,7 @@ export const editCaregiver = createAsyncThunk(
   'caregivers/update',
   async ({ id, updates }, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.put(`${base}/${id}`, updates);
+      const response = await axiosInstance.put(`${base}/${id}`, updates, { timeout: 60000 });
       toast.success('Caregiver updated');
       return response.data.data;
     } catch (error) {

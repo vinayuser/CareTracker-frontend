@@ -1,5 +1,13 @@
-export default function ActionIconButton({ label, onClick, className = '', children, to, as: Component }) {
-  const classes = `rounded-lg p-1.5 transition-colors ${className}`;
+export default function ActionIconButton({
+  label,
+  onClick,
+  className = '',
+  children,
+  to,
+  as: Component,
+  disabled = false,
+}) {
+  const classes = `rounded-lg p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${className}`;
 
   if (to && Component) {
     return (
@@ -20,6 +28,7 @@ export default function ActionIconButton({ label, onClick, className = '', child
       title={label}
       aria-label={label}
       onClick={onClick}
+      disabled={disabled}
       className={classes}
     >
       {children}

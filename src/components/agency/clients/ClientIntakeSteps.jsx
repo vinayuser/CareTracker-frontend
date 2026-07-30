@@ -12,6 +12,7 @@ import {
   RESIDENCE_TYPES,
   SERVICE_TYPES,
 } from '../../../constants/clientIntakeOptions';
+import AssessorPhotoUpload from '../../ui/AssessorPhotoUpload';
 
 export const inputClass =
   'w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10';
@@ -131,6 +132,12 @@ export function ClientIntakeStepOne({ form, onChange, errors = {} }) {
       </div>
 
       <SectionCard number="1" title="Client Information" subtitle="Basic demographics and contact details">
+        <AssessorPhotoUpload
+          label="Client Photo"
+          value={form.profilePic || ''}
+          onChange={(photo) => onChange('profilePic', photo)}
+          shape="circle"
+        />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="First Name" required error={errors.firstName}>
             <input value={form.firstName} onChange={set('firstName')} className={inputClass} placeholder="First name" />

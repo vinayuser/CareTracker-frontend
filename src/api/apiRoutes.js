@@ -61,6 +61,7 @@ const API_ROUTES = {
       NEXT_STAGE: '/agency/job-applications',
       PREVIOUS_STAGE: '/agency/job-applications',
       REJECT: '/agency/job-applications',
+      DELETE: '/agency/job-applications',
       UNDO_HIRE: '/agency/job-applications',
       COMPLETE_HIRE: '/agency/job-applications',
       HIRED: '/agency/job-applications/hired',

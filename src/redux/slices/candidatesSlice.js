@@ -122,6 +122,21 @@ export const rejectCandidate = createAsyncThunk(
   },
 );
 
+export const deleteCandidate = createAsyncThunk(
+  'candidates/delete',
+  async (id, { rejectWithValue }) => {
+    try {
+      await axiosInstance.delete(`${API_ROUTES.AGENCY.JOB_APPLICATIONS.DELETE}/${id}`);
+      toast.success('Candidate deleted');
+      return id;
+    } catch (error) {
+      const message = error.response?.data?.message || 'Failed to delete candidate';
+      toast.error(message);
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  },
+);
+
 export const completeCandidateHire = createAsyncThunk(
   'candidates/completeHire',
   async (id, { rejectWithValue }) => {
@@ -170,6 +185,9 @@ const candidatesSlice = createSlice({
       .addCase(fetchApplications.rejected, (state) => { state.loading = false; })
       .addCase(addCandidateToJob.fulfilled, (state, action) => {
         state.applications.unshift(action.payload);
+      })
+      .addCase(deleteCandidate.fulfilled, (state, action) => {
+        state.applications = state.applications.filter((app) => app.id !== action.payload);
       });
   },
 });

@@ -23,7 +23,7 @@
 /* ── Header ── */
 .cp-header {
   display: grid;
-  grid-template-columns: 1.2in 1fr 1.9in;
+  grid-template-columns: 1.45in 1fr 1.9in;
   gap: 0.06in;
   align-items: stretch;
   margin-bottom: 0.04in;
@@ -32,31 +32,75 @@
   flex-shrink: 0;
 }
 
-.cp-brand {
+.cp-client-agency {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.035in;
+  min-width: 0;
+}
+
+.cp-client-head {
   display: flex;
   align-items: center;
   gap: 0.05in;
+  min-width: 0;
 }
 
-.cp-brand-mark {
-  width: 0.38in;
-  height: 0.38in;
+.cp-client-photo {
+  width: 0.42in;
+  height: 0.42in;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid #9b7ec8;
   flex-shrink: 0;
+  display: block;
+  background: #fff;
 }
 
-.cp-brand-name {
-  font-size: 9pt;
+.cp-client-photo-empty {
+  background: #ebe4f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.cp-client-photo-empty .cp-assessor-placeholder-icon {
+  width: 70%;
+  height: 70%;
+}
+
+.cp-client-name {
+  font-size: 8pt;
   font-weight: 800;
   color: #4b2c82;
-  line-height: 1.05;
-  letter-spacing: -0.01em;
+  line-height: 1.15;
+  word-break: break-word;
 }
 
-.cp-brand-tag {
-  font-size: 5pt;
-  color: #666;
-  line-height: 1.15;
+.cp-agency-under {
+  margin-left: 0.02in;
+  padding-left: 0.06in;
+  border-left: 2px solid #c9b8e8;
+}
+
+.cp-agency-label {
+  font-size: 4.8pt;
+  font-weight: 700;
+  color: #777;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.cp-agency-name {
+  font-size: 7pt;
+  font-weight: 700;
+  color: #333;
+  line-height: 1.2;
   margin-top: 0.01in;
+  word-break: break-word;
 }
 
 .cp-title-block {

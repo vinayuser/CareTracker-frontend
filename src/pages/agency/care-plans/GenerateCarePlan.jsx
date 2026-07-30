@@ -52,6 +52,7 @@ export default function GenerateCarePlan() {
     setForm((p) => ({
       ...p,
       clientId,
+      clientPhoto: client.profilePic || client.photo || '',
       formData: {
         ...p.formData,
         clientInfo: { ...p.formData.clientInfo, ...patch.clientInfo },
@@ -81,6 +82,7 @@ export default function GenerateCarePlan() {
     setForm((p) => ({
       ...p,
       clientId: newClientId,
+      clientPhoto: client.profilePic || client.photo || '',
       formData: {
         ...p.formData,
         clientInfo: { ...p.formData.clientInfo, ...patch.clientInfo },

@@ -34,7 +34,7 @@ export const fetchClient = createAsyncThunk('clients/fetchOne', async (id, { rej
 
 export const addClient = createAsyncThunk('clients/create', async (payload, { rejectWithValue }) => {
   try {
-    const response = await axiosInstance.post(API_ROUTES.AGENCY.CLIENTS.LIST, payload);
+    const response = await axiosInstance.post(API_ROUTES.AGENCY.CLIENTS.LIST, payload, { timeout: 60000 });
     toast.success('Client created successfully');
     return response.data.data;
   } catch (error) {
@@ -44,7 +44,7 @@ export const addClient = createAsyncThunk('clients/create', async (payload, { re
 
 export const updateClient = createAsyncThunk('clients/update', async ({ id, payload }, { rejectWithValue }) => {
   try {
-    const response = await axiosInstance.put(`${API_ROUTES.AGENCY.CLIENTS.LIST}/${id}`, payload);
+    const response = await axiosInstance.put(`${API_ROUTES.AGENCY.CLIENTS.LIST}/${id}`, payload, { timeout: 60000 });
     toast.success('Client updated successfully');
     return response.data.data;
   } catch (error) {
