@@ -137,9 +137,9 @@ export default function CarePlans() {
                         <Link to={ROUTES.AGENCY_CARE_PLANS_EDIT.replace(':id', plan.id)} className={actionBtnNeutral}>
                           <Pencil size={16} /> Edit
                         </Link>
-                        {/* <Link to={ROUTES.AGENCY_CARE_PLANS_VERSIONS.replace(':id', plan.id)} className={actionBtnNeutral}>
+                        <Link to={ROUTES.AGENCY_CARE_PLANS_VERSIONS.replace(':id', plan.id)} className={actionBtnNeutral}>
                           <History size={16} /> Versions
-                        </Link> */}
+                        </Link>
                         <button
                           type="button"
                           onClick={() => window.open(ROUTES.AGENCY_CARE_PLANS_PRINT.replace(':id', plan.id), '_blank')}
