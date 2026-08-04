@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
+import { Save } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axiosInstance from '../../../api/axiosInstance';
 import API_ROUTES from '../../../api/apiRoutes';
+import SubmitButton from '../../../components/ui/SubmitButton';
+import useSubmitLock from '../../../hooks/useSubmitLock';
 
 const METHOD_OPTIONS = [
   'Mobile App (GPS)',
@@ -23,7 +26,7 @@ const emptyForm = {
 export default function EvvSettings() {
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [saving, runLocked] = useSubmitLock();
 
   useEffect(() => {
     let cancelled = false;
@@ -63,29 +66,28 @@ export default function EvvSettings() {
     });
   };
 
-  const handleSave = async (e) => {
+  const handleSave = (e) => {
     e.preventDefault();
-    setSaving(true);
-    try {
-      const response = await axiosInstance.put(API_ROUTES.AGENCY.EVV_SETTINGS, form);
-      const data = response.data.data;
-      if (data) {
-        setForm({
-          vendorName: data.vendorName || '',
-          complianceGoalPercent: data.complianceGoalPercent ?? 90,
-          defaultGraceMinutes: data.defaultGraceMinutes ?? 15,
-          geoRadiusMeters: data.geoRadiusMeters ?? 500,
-          geoEnforcement: data.geoEnforcement || 'warn',
-          allowedMethods: data.allowedMethods?.length ? data.allowedMethods : [...METHOD_OPTIONS],
-          medicaidExportEnabled: Boolean(data.medicaidExportEnabled),
-        });
+    return runLocked(async () => {
+      try {
+        const response = await axiosInstance.put(API_ROUTES.AGENCY.EVV_SETTINGS, form);
+        const data = response.data.data;
+        if (data) {
+          setForm({
+            vendorName: data.vendorName || '',
+            complianceGoalPercent: data.complianceGoalPercent ?? 90,
+            defaultGraceMinutes: data.defaultGraceMinutes ?? 15,
+            geoRadiusMeters: data.geoRadiusMeters ?? 500,
+            geoEnforcement: data.geoEnforcement || 'warn',
+            allowedMethods: data.allowedMethods?.length ? data.allowedMethods : [...METHOD_OPTIONS],
+            medicaidExportEnabled: Boolean(data.medicaidExportEnabled),
+          });
+        }
+        toast.success(response.data.message || 'EVV settings saved');
+      } catch (error) {
+        toast.error(error.response?.data?.message || 'Failed to save settings');
       }
-      toast.success(response.data.message || 'EVV settings saved');
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to save settings');
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
   if (loading) {
@@ -205,13 +207,14 @@ export default function EvvSettings() {
               </label>
             ))}
           </div>
-          <button
+          <SubmitButton
             type="submit"
-            disabled={saving}
-            className="mt-5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-50"
+            loading={saving}
+            icon={Save}
+            className="mt-5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover"
           >
-            {saving ? 'Saving…' : 'Save Settings'}
-          </button>
+            Save Settings
+          </SubmitButton>
         </section>
       </form>
     </div>

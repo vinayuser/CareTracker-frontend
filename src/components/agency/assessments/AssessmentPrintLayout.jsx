@@ -12,6 +12,37 @@ function val(v) {
   return String(v);
 }
 
+function ClientPhotoPlaceholder() {
+  return (
+    <svg className="ap-client-placeholder-icon" viewBox="0 0 64 80" aria-hidden>
+      <circle cx="32" cy="24" r="14" fill="#9eb4d4" />
+      <path d="M10 72c4-16 14-24 22-24s18 8 22 24" fill="#9eb4d4" />
+    </svg>
+  );
+}
+
+function ClientAgencyHeader({ clientName, clientPhoto, agencyName }) {
+  const hasPhoto = Boolean(clientPhoto);
+  return (
+    <div className="ap-client-agency">
+      <div className="ap-client-head">
+        {hasPhoto ? (
+          <img src={clientPhoto} alt={clientName || 'Client'} className="ap-client-photo" />
+        ) : (
+          <div className="ap-client-photo ap-client-photo-empty">
+            <ClientPhotoPlaceholder />
+          </div>
+        )}
+        <div className="ap-client-name">{val(clientName) || 'Client Name'}</div>
+      </div>
+      <div className="ap-agency-under">
+        <div className="ap-agency-label">Agency</div>
+        <div className="ap-agency-name">{val(agencyName) || 'CareTraker Agency'}</div>
+      </div>
+    </div>
+  );
+}
+
 function Field({ label, value, className = '' }) {
   return (
     <div className={`ap-field ${className}`}>
@@ -492,24 +523,28 @@ function S23({ sig }) {
 
 export default function AssessmentPrintLayout({ form, agencyName = 'CareTraker Agency' }) {
   const d = form?.formData || {};
+  const ci = d.clientInfo || {};
+  const clientName = ci.clientName
+    || [ci.firstName, ci.lastName].filter(Boolean).join(' ')
+    || form?.clientName
+    || '';
+  const clientPhoto = form?.clientPhoto || form?.client?.profilePic || form?.client?.photo || '';
 
   return (
     <div className="ap-page">
       {/* Header */}
       <header className="ap-header">
-        <div className="ap-agency">
-          <div className="ap-logo">♥</div>
-          <div className="ap-agency-block">
-            <div className="ap-agency-label">AGENCY NAME:</div>
-            <div className="ap-agency-name">{agencyName}</div>
-          </div>
-        </div>
+        <ClientAgencyHeader
+          clientName={clientName}
+          clientPhoto={clientPhoto}
+          agencyName={agencyName}
+        />
         <div className="ap-title-block">
           <div className="ap-main-title">CLIENT ASSESSMENT FORM</div>
           <div className="ap-assess-date">ASSESSMENT DATE: {val(form?.assessmentDate) || '________________'}</div>
         </div>
         <div className="ap-assessor">
-          {form?.assessorPhoto?.startsWith?.('data:image') ? (
+          {form?.assessorPhoto ? (
             <img src={form.assessorPhoto} alt="Assessor" className="ap-assessor-photo" />
           ) : (
             <div className="ap-assessor-photo ap-assessor-photo-empty" />

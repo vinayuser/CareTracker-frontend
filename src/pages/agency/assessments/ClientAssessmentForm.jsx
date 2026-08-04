@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { ArrowLeft, ArrowRight, ClipboardList, Printer, Save } from 'lucide-react';
 import AssessmentStepper from '../../../components/agency/assessments/AssessmentStepper';
 import { AssessmentStepOne, AssessmentStepTwo } from '../../../components/agency/assessments/AssessmentSteps';
+import SubmitButton from '../../../components/ui/SubmitButton';
 import { addAssessment, fetchAssessment, updateAssessment } from '../../../redux/slices/assessmentsSlice';
 import {
   EMPTY_ASSESSMENT,
@@ -14,6 +15,7 @@ import {
 } from '../../../utils/assessmentForm';
 import { ROUTES } from '../../../routes/routes';
 import { saveAssessmentPrintDraft } from './AssessmentPrintPage';
+import useSubmitLock from '../../../hooks/useSubmitLock';
 
 function applyLeadPrefill(prefill) {
   const base = {
@@ -66,7 +68,7 @@ export default function ClientAssessmentForm() {
   const [form, setForm] = useState(EMPTY_ASSESSMENT);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(isEdit);
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, runLocked] = useSubmitLock();
 
   useEffect(() => {
     if (!isEdit) {
@@ -114,8 +116,7 @@ export default function ClientAssessmentForm() {
     return !Object.keys(e).length;
   };
 
-  const handleSubmit = async () => {
-    setSubmitting(true);
+  const handleSubmit = () => runLocked(async () => {
     const ci = form.formData.clientInfo || {};
     const payload = {
       assessorName: form.assessorName,
@@ -138,8 +139,7 @@ export default function ClientAssessmentForm() {
       else await dispatch(addAssessment(payload)).unwrap();
       navigate(ROUTES.AGENCY_ASSESSMENTS);
     } catch { /* toast */ }
-    setSubmitting(false);
-  };
+  });
 
   const handlePrint = () => {
     saveAssessmentPrintDraft(form, agencyName);
@@ -192,9 +192,14 @@ export default function ClientAssessmentForm() {
               Next: Functional Assessment <ArrowRight size={18} />
             </button>
           ) : (
-            <button type="button" disabled={submitting} onClick={handleSubmit} className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover disabled:opacity-50">
-              <Save size={18} /> {submitting ? 'Saving...' : 'Save Assessment'}
-            </button>
+            <SubmitButton
+              loading={submitting}
+              onClick={handleSubmit}
+              icon={Save}
+              className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover"
+            >
+              Save Assessment
+            </SubmitButton>
           )}
         </div>
       </div>

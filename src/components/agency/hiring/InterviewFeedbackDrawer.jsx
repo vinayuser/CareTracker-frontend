@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { ChevronDown, Download, Loader2 } from 'lucide-react';
+import { ChevronDown, Download, Loader2, Save } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axiosInstance from '../../../api/axiosInstance';
 import API_ROUTES from '../../../api/apiRoutes';
 import { ROUTES } from '../../../routes/routes';
 import Drawer from '../../ui/Drawer';
 import DigitalSignaturePad from '../../ui/DigitalSignaturePad';
+import SubmitButton from '../../ui/SubmitButton';
+import useSubmitLock from '../../../hooks/useSubmitLock';
 
 const inputClass =
   'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/15';
@@ -291,7 +293,7 @@ export default function InterviewFeedbackDrawer({
   const authUser = useSelector((state) => state.auth.user);
   const recruiterName = authUser?.name || authUser?.fullName || authUser?.email || '';
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [saving, runLocked] = useSubmitLock();
   const [options, setOptions] = useState({
     skills: DEFAULT_SKILLS,
     recommendations: DEFAULT_RECS,
@@ -414,30 +416,29 @@ export default function InterviewFeedbackDrawer({
     setActiveStageId(sid);
   };
 
-  const save = async (status) => {
+  const save = (status) => {
     if (!activeStageId || !formsByStage[activeStageId]) return;
-    setSaving(true);
-    try {
-      const form_data = {
-        ...formsByStage[activeStageId],
-        recruiter: recruiterName || formsByStage[activeStageId].recruiter || '',
-      };
-      await axiosInstance.put(
-        `${API_ROUTES.AGENCY.JOB_APPLICATIONS.INTERVIEW_FEEDBACK}/${application.id}/interview-feedback/${activeStageId}`,
-        { status, form_data },
-      );
-      toast.success(status === 'Submitted' ? 'Interview feedback submitted' : 'Draft saved');
-      setStatusByStage((prev) => ({ ...prev, [activeStageId]: status }));
-      setFormsByStage((prev) => ({
-        ...prev,
-        [activeStageId]: { ...prev[activeStageId], ...form_data },
-      }));
-      onSaved?.();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to save feedback');
-    } finally {
-      setSaving(false);
-    }
+    return runLocked(async () => {
+      try {
+        const form_data = {
+          ...formsByStage[activeStageId],
+          recruiter: recruiterName || formsByStage[activeStageId].recruiter || '',
+        };
+        await axiosInstance.put(
+          `${API_ROUTES.AGENCY.JOB_APPLICATIONS.INTERVIEW_FEEDBACK}/${application.id}/interview-feedback/${activeStageId}`,
+          { status, form_data },
+        );
+        toast.success(status === 'Submitted' ? 'Interview feedback submitted' : 'Draft saved');
+        setStatusByStage((prev) => ({ ...prev, [activeStageId]: status }));
+        setFormsByStage((prev) => ({
+          ...prev,
+          [activeStageId]: { ...prev[activeStageId], ...form_data },
+        }));
+        onSaved?.();
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Failed to save feedback');
+      }
+    });
   };
 
   const downloadPdf = (sid = activeStageId) => {
@@ -480,22 +481,27 @@ export default function InterviewFeedbackDrawer({
                 Download PDF
               </button>
             )}
-            <button
+            <SubmitButton
               type="button"
-              disabled={saving || loading || !activeStageId}
+              disabled={loading || !activeStageId}
+              loading={saving}
               onClick={() => save('Draft')}
-              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              loadingLabel="Saving..."
+              className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
               Save Draft
-            </button>
-            <button
+            </SubmitButton>
+            <SubmitButton
               type="button"
-              disabled={saving || loading || !activeStageId}
+              disabled={loading || !activeStageId}
+              loading={saving}
+              icon={Save}
               onClick={() => save('Submitted')}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
+              loadingLabel="Saving..."
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover"
             >
-              {saving ? 'Saving…' : 'Submit Feedback'}
-            </button>
+              Submit Feedback
+            </SubmitButton>
           </div>
         </div>
       )}

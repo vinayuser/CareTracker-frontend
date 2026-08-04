@@ -1,6 +1,7 @@
 import {
   Phone, Mail, MapPin, Calendar, Plus,
 } from 'lucide-react';
+import SubmitButton from '../../ui/SubmitButton';
 import {
   PREFERRED_CONTACT_METHODS,
   LEAD_SOURCES,
@@ -93,6 +94,7 @@ export default function LeadFormSections({
   onHeaderChange,
   readOnly = false,
   onSaveNote,
+  saving = false,
 }) {
   const empty = buildEmptyLeadFormData();
   const d = form?.formData || empty;
@@ -269,13 +271,14 @@ export default function LeadFormSections({
       />
       {!readOnly ? (
         <div className="mt-3 flex justify-end">
-          <button
-            type="button"
+          <SubmitButton
+            loading={saving}
             onClick={() => onSaveNote?.()}
+            loadingLabel="Saving..."
             className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover"
           >
             Save Note
-          </button>
+          </SubmitButton>
         </div>
       ) : null}
     </SectionCard>

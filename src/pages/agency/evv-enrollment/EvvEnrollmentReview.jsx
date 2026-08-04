@@ -3,9 +3,11 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { ArrowLeft, ArrowRight, CheckCircle, Printer, XCircle } from 'lucide-react';
 import { EvvEnrollmentStepOne, EvvEnrollmentStepTwo } from '../../../components/agency/evv-enrollment/EvvEnrollmentSteps';
+import SubmitButton from '../../../components/ui/SubmitButton';
 import { fetchEvvEnrollment, verifyEvvEnrollment } from '../../../redux/slices/evvEnrollmentsSlice';
 import { evvEnrollmentToForm, WIZARD_STEPS } from '../../../utils/evvEnrollmentForm';
 import { ROUTES } from '../../../routes/routes';
+import useSubmitLock from '../../../hooks/useSubmitLock';
 
 function Stepper({ currentStep }) {
   return (
@@ -27,7 +29,7 @@ export default function EvvEnrollmentReview() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(evvEnrollmentToForm(null));
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, runLocked] = useSubmitLock();
 
   useEffect(() => {
     dispatch(fetchEvvEnrollment(id))
@@ -50,8 +52,7 @@ export default function EvvEnrollmentReview() {
     }));
   };
 
-  const handleVerify = async (action) => {
-    setSubmitting(true);
+  const handleVerify = (action) => runLocked(async () => {
     try {
       await dispatch(verifyEvvEnrollment({
         id,
@@ -60,8 +61,7 @@ export default function EvvEnrollmentReview() {
       })).unwrap();
       navigate(ROUTES.AGENCY_EVV_ENROLLMENTS);
     } catch { /* toast */ }
-    setSubmitting(false);
-  };
+  });
 
   if (loading) return <div className="flex min-h-[40vh] items-center justify-center text-sm text-gray-500">Loading enrollment...</div>;
 
@@ -117,12 +117,24 @@ export default function EvvEnrollmentReview() {
             </button>
           ) : canVerify ? (
             <div className="flex flex-wrap gap-3">
-              <button type="button" disabled={submitting} onClick={() => handleVerify('reject')} className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-5 py-3 text-sm font-semibold text-red-600 hover:bg-red-50">
-                <XCircle size={18} /> Reject
-              </button>
-              <button type="button" disabled={submitting} onClick={() => handleVerify('verify')} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-700">
-                <CheckCircle size={18} /> {submitting ? 'Verifying...' : 'Verify Enrollment'}
-              </button>
+              <SubmitButton
+                loading={submitting}
+                onClick={() => handleVerify('reject')}
+                icon={XCircle}
+                loadingLabel="Rejecting..."
+                className="rounded-xl border border-red-200 bg-white px-5 py-3 text-sm font-semibold text-red-600 hover:bg-red-50"
+              >
+                Reject
+              </SubmitButton>
+              <SubmitButton
+                loading={submitting}
+                onClick={() => handleVerify('verify')}
+                icon={CheckCircle}
+                loadingLabel="Verifying..."
+                className="rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-700"
+              >
+                Verify Enrollment
+              </SubmitButton>
             </div>
           ) : null}
         </div>

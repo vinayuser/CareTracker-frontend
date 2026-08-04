@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Pencil, X } from 'lucide-react';
+import { Pencil, X, Save } from 'lucide-react';
 import { formatTimezoneAbbr, toDateTimeLocalValue } from '../../../utils/visitTimezone';
+import SubmitButton from '../../ui/SubmitButton';
 
 const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15';
 const labelClass = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500';
@@ -40,7 +41,7 @@ export default function EditVisitLogModal({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!checkInAt || !checkOutAt) return;
+    if (saving || !checkInAt || !checkOutAt) return;
     onSave?.({
       check_in_at: checkInAt,
       check_out_at: checkOutAt,
@@ -66,7 +67,8 @@ export default function EditVisitLogModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            disabled={saving}
+            className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
             aria-label="Close"
           >
             <X size={18} />
@@ -80,6 +82,7 @@ export default function EditVisitLogModal({
               <input
                 type="datetime-local"
                 required
+                disabled={saving}
                 className={inputClass}
                 value={checkInAt}
                 onChange={(e) => setCheckInAt(e.target.value)}
@@ -90,6 +93,7 @@ export default function EditVisitLogModal({
               <input
                 type="datetime-local"
                 required
+                disabled={saving}
                 className={inputClass}
                 value={checkOutAt}
                 onChange={(e) => setCheckOutAt(e.target.value)}
@@ -101,6 +105,7 @@ export default function EditVisitLogModal({
             <label className={labelClass}>Notes</label>
             <textarea
               rows={2}
+              disabled={saving}
               className={inputClass}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -113,6 +118,7 @@ export default function EditVisitLogModal({
               type="checkbox"
               className="mt-1 rounded border-gray-300 text-primary"
               checked={approve}
+              disabled={saving}
               onChange={(e) => setApprove(e.target.checked)}
             />
             <span>
@@ -129,6 +135,7 @@ export default function EditVisitLogModal({
                 type="checkbox"
                 className="mt-1 rounded border-gray-300 text-primary"
                 checked={clearLate}
+                disabled={saving}
                 onChange={(e) => setClearLate(e.target.checked)}
               />
               <span>
@@ -144,18 +151,21 @@ export default function EditVisitLogModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              disabled={saving}
+              className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
             >
               Cancel
             </button>
-            <button
+            <SubmitButton
               type="submit"
-              disabled={saving || !checkInAt || !checkOutAt}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
+              loading={saving}
+              disabled={!checkInAt || !checkOutAt}
+              icon={approve ? Pencil : Save}
+              loadingLabel="Saving..."
+              className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover"
             >
-              <Pencil size={14} />
-              {saving ? 'Saving…' : approve ? 'Save & Approve' : 'Save Log'}
-            </button>
+              {approve ? 'Save & Approve' : 'Save Log'}
+            </SubmitButton>
           </div>
         </form>
       </div>

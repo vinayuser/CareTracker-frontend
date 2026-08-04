@@ -5,12 +5,14 @@ import { toast } from 'react-toastify';
 import { ArrowLeft, ArrowRight, ClipboardList, Printer, Save } from 'lucide-react';
 import CarePlanStepper from '../../../components/agency/care-plans/CarePlanStepper';
 import { CarePlanStepOne, CarePlanStepTwo } from '../../../components/agency/care-plans/CarePlanSteps';
+import SubmitButton from '../../../components/ui/SubmitButton';
 import { fetchClients } from '../../../redux/slices/clientsSlice';
 import { fetchCaregivers } from '../../../redux/slices/caregiversSlice';
 import { createCarePlan, fetchCarePlan, updateCarePlan } from '../../../redux/slices/carePlansSlice';
 import { carePlanToForm, clientToFormPatch } from '../../../utils/carePlanForm';
 import { saveCarePlanPrintDraft } from './CarePlanPrintPage';
 import { ROUTES } from '../../../routes/routes';
+import useSubmitLock from '../../../hooks/useSubmitLock';
 
 export default function GenerateCarePlan() {
   const { id } = useParams();
@@ -28,7 +30,7 @@ export default function GenerateCarePlan() {
   const [form, setForm] = useState(carePlanToForm(null));
   const [clientId, setClientId] = useState(searchParams.get('clientId') || '');
   const [loading, setLoading] = useState(isEdit);
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, runLocked] = useSubmitLock();
 
   useEffect(() => {
     dispatch(fetchClients());
@@ -97,24 +99,24 @@ export default function GenerateCarePlan() {
     window.open(ROUTES.AGENCY_CARE_PLANS_PRINT_DRAFT, '_blank');
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!clientId) return;
-    setSubmitting(true);
-    const payload = {
-      clientId,
-      status: form.status,
-      effectiveDate: form.effectiveDate,
-      reviewDate: form.reviewDate,
-      version: form.version,
-      formData: form.formData,
-    };
-    try {
-      if (isEdit) await dispatch(updateCarePlan({ id, payload })).unwrap();
-      else await dispatch(createCarePlan(payload)).unwrap();
-      toast.success('Care plan saved. EVV enrollments created for assigned caregivers.');
-      navigate(ROUTES.AGENCY_CARE_PLANS);
-    } catch { /* toast */ }
-    setSubmitting(false);
+    return runLocked(async () => {
+      const payload = {
+        clientId,
+        status: form.status,
+        effectiveDate: form.effectiveDate,
+        reviewDate: form.reviewDate,
+        version: form.version,
+        formData: form.formData,
+      };
+      try {
+        if (isEdit) await dispatch(updateCarePlan({ id, payload })).unwrap();
+        else await dispatch(createCarePlan(payload)).unwrap();
+        toast.success('Care plan saved. EVV enrollments created for assigned caregivers.');
+        navigate(ROUTES.AGENCY_CARE_PLANS);
+      } catch { /* toast */ }
+    });
   };
 
   if (loading) return <div className="flex min-h-[40vh] items-center justify-center text-sm text-gray-500">Loading care plan...</div>;
@@ -168,9 +170,15 @@ export default function GenerateCarePlan() {
               Next: Care Needs & Signatures <ArrowRight size={18} />
             </button>
           ) : (
-            <button type="button" disabled={submitting || !clientId} onClick={handleSubmit} className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-violet-700 disabled:opacity-50">
-              <Save size={18} /> {submitting ? 'Saving...' : isEdit ? 'Update Care Plan' : 'Save Care Plan'}
-            </button>
+            <SubmitButton
+              loading={submitting}
+              disabled={!clientId}
+              onClick={handleSubmit}
+              icon={Save}
+              className="rounded-xl bg-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-violet-700"
+            >
+              {isEdit ? 'Update Care Plan' : 'Save Care Plan'}
+            </SubmitButton>
           )}
         </div>
       </div>

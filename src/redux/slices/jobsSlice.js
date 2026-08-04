@@ -70,7 +70,7 @@ export const completeJobHiring = createAsyncThunk(
       const response = await axiosInstance.post(
         `${API_ROUTES.AGENCY.JOBS.COMPLETE_HIRING}/${id}/complete-hiring`,
       );
-      toast.success(response.data.message || 'Hiring cycle complete — caregiver added to roster');
+      toast.success(response.data.message || 'Hiring cycle complete — caregivers added to roster');
       return response.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);

@@ -9,7 +9,9 @@ import {
   GripVertical,
   FileText,
   Layers,
+  Save,
 } from 'lucide-react';
+import SubmitButton from '../../ui/SubmitButton';
 
 const STAGE_TYPES = [
   { label: 'Hiring Process', value: 'hiring' },
@@ -428,18 +430,21 @@ export default function StageConfigurationModal({
           <button
             type="button"
             onClick={handleCancel}
-            className="rounded-lg border border-gray-200 bg-white px-5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            disabled={saving}
+            className="rounded-lg border border-gray-200 bg-white px-5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
             Cancel
           </button>
-          <button
+          <SubmitButton
             type="button"
             onClick={handleSave}
-            disabled={stages.length === 0 || saving}
+            loading={saving}
+            disabled={stages.length === 0}
+            icon={Save}
             className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-gray-300"
           >
-            {saving ? 'Saving...' : 'Save Pipeline'}
-          </button>
+            Save Pipeline
+          </SubmitButton>
         </div>
       </div>
     </div>

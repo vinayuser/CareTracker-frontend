@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { X, User, BriefcaseMedical, Check } from 'lucide-react';
+import { X, User, BriefcaseMedical, Check, Save } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { fetchCarePlans } from '../../../redux/slices/carePlansSlice';
 import {
@@ -10,6 +10,8 @@ import {
   updateVisitSchedule,
 } from '../../../redux/slices/visitSchedulesSlice';
 import { detectBrowserTimezone, DEFAULT_TIMEZONE, FALLBACK_TIMEZONES } from '../../../utils/visitTimezone';
+import SubmitButton from '../../ui/SubmitButton';
+import useSubmitLock from '../../../hooks/useSubmitLock';
 
 const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15';
 const labelClass = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500';
@@ -254,7 +256,7 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
   const [cards, setCards] = useState([]);
   const [editForm, setEditForm] = useState(null);
   const [loadingSources, setLoadingSources] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [saving, runLocked] = useSubmitLock();
   const isEdit = Boolean(schedule?.id);
 
   const activePlans = useMemo(
@@ -390,7 +392,7 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
 
   const enabledCards = cards.filter((card) => card.enabled && card.caregiver_account_id);
 
-  const saveCreate = async () => {
+  const saveCreate = () => {
     if (!carePlanId) {
       toast.error('Select a client / care plan');
       return;
@@ -400,75 +402,72 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
       return;
     }
 
-    setSaving(true);
-    try {
-      let created = 0;
-      for (const card of enabledCards) {
-        if (card.recurrence_type === 'Weekly' && (!card.days_of_week || card.days_of_week.length === 0)) {
-          toast.error(`Select days for ${card.caregiver_name || 'caregiver'}`);
-          setSaving(false);
-          return;
+    return runLocked(async () => {
+      try {
+        let created = 0;
+        for (const card of enabledCards) {
+          if (card.recurrence_type === 'Weekly' && (!card.days_of_week || card.days_of_week.length === 0)) {
+            toast.error(`Select days for ${card.caregiver_name || 'caregiver'}`);
+            return;
+          }
+          const result = await dispatch(createVisitSchedule({
+            care_plan_id: carePlanId,
+            caregiver_account_id: card.caregiver_account_id,
+            service_area: card.service_area,
+            care_need_area_key: card.care_need_area_key,
+            recurrence_type: card.recurrence_type,
+            days_of_week: card.recurrence_type === 'Weekly' ? card.days_of_week : [],
+            day_of_month: card.recurrence_type === 'Monthly' ? Number(card.day_of_month) || 1 : null,
+            start_time: card.start_time,
+            end_time: card.end_time,
+            grace_minutes: card.grace_minutes,
+            timezone: card.timezone || detectBrowserTimezone(),
+            effective_from: card.effective_from,
+            effective_to: card.effective_to || '',
+            notes: card.notes,
+            address: card.address,
+            status: 'Active',
+          })).unwrap();
+          created += Number(result?.created_count || result?.schedules?.length || 1);
         }
-        const result = await dispatch(createVisitSchedule({
-          care_plan_id: carePlanId,
-          caregiver_account_id: card.caregiver_account_id,
-          service_area: card.service_area,
-          care_need_area_key: card.care_need_area_key,
-          recurrence_type: card.recurrence_type,
-          days_of_week: card.recurrence_type === 'Weekly' ? card.days_of_week : [],
-          day_of_month: card.recurrence_type === 'Monthly' ? Number(card.day_of_month) || 1 : null,
-          start_time: card.start_time,
-          end_time: card.end_time,
-          grace_minutes: card.grace_minutes,
-          timezone: card.timezone || detectBrowserTimezone(),
-          effective_from: card.effective_from,
-          effective_to: card.effective_to || '',
-          notes: card.notes,
-          address: card.address,
-          status: 'Active',
-        })).unwrap();
-        created += Number(result?.created_count || result?.schedules?.length || 1);
+        toast.success(`Created ${created} day schedule${created === 1 ? '' : 's'}`);
+        onSaved?.();
+        onClose();
+      } catch {
+        // toast in slice
       }
-      toast.success(`Created ${created} day schedule${created === 1 ? '' : 's'}`);
-      onSaved?.();
-      onClose();
-    } catch {
-      // toast in slice
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
-  const saveEdit = async () => {
+  const saveEdit = () => {
     if (!editForm) return;
-    setSaving(true);
-    try {
-      await dispatch(updateVisitSchedule({
-        id: schedule.id,
-        payload: {
-          caregiver_account_id: editForm.caregiver_account_id,
-          service_area: editForm.service_area,
-          recurrence_type: editForm.recurrence_type,
-          days_of_week: editForm.recurrence_type === 'Weekly' ? editForm.days_of_week : [],
-          day_of_month: editForm.recurrence_type === 'Monthly' ? Number(editForm.day_of_month) || 1 : null,
-          start_time: editForm.start_time,
-          end_time: editForm.end_time,
-          grace_minutes: editForm.grace_minutes,
-          timezone: editForm.timezone,
-          effective_from: editForm.effective_from,
-          effective_to: editForm.effective_to || '',
-          notes: editForm.notes,
-          address: editForm.address,
-          status: editForm.status,
-        },
-      })).unwrap();
-      onSaved?.();
-      onClose();
-    } catch {
-      // toast in slice
-    } finally {
-      setSaving(false);
-    }
+    return runLocked(async () => {
+      try {
+        await dispatch(updateVisitSchedule({
+          id: schedule.id,
+          payload: {
+            caregiver_account_id: editForm.caregiver_account_id,
+            service_area: editForm.service_area,
+            recurrence_type: editForm.recurrence_type,
+            days_of_week: editForm.recurrence_type === 'Weekly' ? editForm.days_of_week : [],
+            day_of_month: editForm.recurrence_type === 'Monthly' ? Number(editForm.day_of_month) || 1 : null,
+            start_time: editForm.start_time,
+            end_time: editForm.end_time,
+            grace_minutes: editForm.grace_minutes,
+            timezone: editForm.timezone,
+            effective_from: editForm.effective_from,
+            effective_to: editForm.effective_to || '',
+            notes: editForm.notes,
+            address: editForm.address,
+            status: editForm.status,
+          },
+        })).unwrap();
+        onSaved?.();
+        onClose();
+      } catch {
+        // toast in slice
+      }
+    });
   };
 
   if (!open) return null;
@@ -638,22 +637,24 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            disabled={saving}
+            className="rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
             Cancel
           </button>
-          <button
+          <SubmitButton
             type="button"
-            disabled={saving || (isEdit ? !editForm : enabledCards.length === 0)}
+            loading={saving}
+            disabled={isEdit ? !editForm : enabledCards.length === 0}
+            icon={Save}
             onClick={isEdit ? saveEdit : saveCreate}
-            className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
+            loadingLabel="Saving..."
+            className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover"
           >
-            {saving
-              ? 'Saving…'
-              : isEdit
-                ? 'Save Changes'
-                : `Create ${enabledCards.length || ''} Schedule${enabledCards.length === 1 ? '' : 's'}`.replace(/\s+/g, ' ').trim()}
-          </button>
+            {isEdit
+              ? 'Save Changes'
+              : `Create ${enabledCards.length || ''} Schedule${enabledCards.length === 1 ? '' : 's'}`.replace(/\s+/g, ' ').trim()}
+          </SubmitButton>
         </div>
       </div>
     </div>

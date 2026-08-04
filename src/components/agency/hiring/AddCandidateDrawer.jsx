@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Upload } from 'lucide-react';
+import { Upload, UserPlus } from 'lucide-react';
 import Drawer from '../../ui/Drawer';
+import SubmitButton from '../../ui/SubmitButton';
 import { addCandidateToJob } from '../../../redux/slices/candidatesSlice';
 import { fetchHiringPipeline } from '../../../redux/slices/hiringPipelineSlice';
 import countryList from '../../../utils/countryList';
@@ -10,6 +11,7 @@ import {
   parseExperienceValue,
   EXPERIENCE_OPTIONS,
 } from '../../../utils/candidateFormValidator';
+import useSubmitLock from '../../../hooks/useSubmitLock';
 import SelectFormsToSendModal from './SelectFormsToSendModal';
 
 const EMPTY = {
@@ -61,7 +63,7 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
   const pipelineStages = useSelector((state) => state.hiringPipeline.stages);
   const [form, setForm] = useState(EMPTY);
   const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [loading, runLocked] = useSubmitLock();
   const [showFormPicker, setShowFormPicker] = useState(false);
 
   useEffect(() => {
@@ -103,8 +105,7 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
     [jobs, form.jobId, selectedJob],
   );
 
-  const submitCandidate = async (documentCodes) => {
-    setLoading(true);
+  const submitCandidate = (documentCodes) => runLocked(async () => {
     try {
       const data = new FormData();
       data.append('first_name', form.firstName.trim());
@@ -133,8 +134,7 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
     } catch {
       // toast in slice
     }
-    setLoading(false);
-  };
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -160,18 +160,21 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            disabled={loading}
+            className="flex-1 rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
             Cancel
           </button>
-          <button
+          <SubmitButton
             type="submit"
             form="add-candidate-form"
-            disabled={loading}
-            className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-60"
+            loading={loading}
+            icon={UserPlus}
+            loadingLabel="Adding..."
+            className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-hover"
           >
-            {loading ? 'Adding...' : 'Add Candidate'}
-          </button>
+            Add Candidate
+          </SubmitButton>
         </div>
       }
     >

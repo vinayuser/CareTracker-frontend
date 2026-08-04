@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sparkles } from 'lucide-react';
+import { Save, Sparkles } from 'lucide-react';
 import { toast } from 'react-toastify';
 import TagInput from '../../../components/agency/hiring/TagInput';
+import SubmitButton from '../../../components/ui/SubmitButton';
 import {
   JOB_TITLES,
   DEPARTMENTS,
@@ -21,6 +22,7 @@ import {
   clearSelectedJob,
 } from '../../../redux/slices/jobsSlice';
 import { ROUTES } from '../../../routes/routes';
+import useSubmitLock from '../../../hooks/useSubmitLock';
 
 const inputClass =
   'w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
@@ -67,7 +69,7 @@ export default function CreateJob({ editId = null }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
   const [showAiCard, setShowAiCard] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [saving, runLocked] = useSubmitLock();
 
   const keywordSuggestions = useMemo(
     () => KEYWORDS_BY_TITLE[form.job_title] || [],
@@ -149,26 +151,26 @@ export default function CreateJob({ editId = null }) {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!validate()) return;
-    setSaving(true);
     const payload = {
       ...form,
       annual_salary_from: Number(form.annual_salary_from),
       annual_salary_to: Number(form.annual_salary_to),
     };
-    try {
-      if (editId) {
-        await dispatch(updateJob({ id: editId, payload })).unwrap();
-      } else {
-        await dispatch(createJob(payload)).unwrap();
+    return runLocked(async () => {
+      try {
+        if (editId) {
+          await dispatch(updateJob({ id: editId, payload })).unwrap();
+        } else {
+          await dispatch(createJob(payload)).unwrap();
+        }
+        navigate(ROUTES.AGENCY_JOBS);
+      } catch {
+        // toast in slice
       }
-      navigate(ROUTES.AGENCY_JOBS);
-    } catch {
-      // toast in slice
-    }
-    setSaving(false);
+    });
   };
 
   return (
@@ -333,9 +335,14 @@ export default function CreateJob({ editId = null }) {
           <Link to={ROUTES.AGENCY_JOBS} className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
             Cancel
           </Link>
-          <button type="submit" disabled={saving} className="rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-60">
-            {saving ? 'Saving...' : editId ? 'Update Job' : 'Create Job'}
-          </button>
+          <SubmitButton
+            type="submit"
+            loading={saving}
+            icon={Save}
+            className="rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-hover"
+          >
+            {editId ? 'Update Job' : 'Create Job'}
+          </SubmitButton>
         </div>
       </form>
     </div>

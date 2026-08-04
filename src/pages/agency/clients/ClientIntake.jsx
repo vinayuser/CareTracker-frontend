@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { ArrowLeft, ArrowRight, ClipboardList } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ClipboardList, Save } from 'lucide-react';
 import ClientIntakeStepper from '../../../components/agency/clients/ClientIntakeStepper';
 import { ClientIntakeStepOne, ClientIntakeStepTwo } from '../../../components/agency/clients/ClientIntakeSteps';
+import SubmitButton from '../../../components/ui/SubmitButton';
 import { addClient, fetchClient, updateClient } from '../../../redux/slices/clientsSlice';
 import { EMPTY_CLIENT_FORM, clientToForm } from '../../../utils/clientForm';
 import { ROUTES } from '../../../routes/routes';
+import useSubmitLock from '../../../hooks/useSubmitLock';
 
 function validateStepOne(form) {
   const errors = {};
@@ -25,7 +27,7 @@ export default function ClientIntake() {
   const [form, setForm] = useState(EMPTY_CLIENT_FORM);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(isEdit);
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, runLocked] = useSubmitLock();
 
   useEffect(() => {
     if (!isEdit) {
@@ -67,8 +69,7 @@ export default function ClientIntake() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleSubmit = async () => {
-    setSubmitting(true);
+  const handleSubmit = () => runLocked(async () => {
     try {
       if (isEdit) {
         await dispatch(updateClient({ id, payload: form })).unwrap();
@@ -79,8 +80,7 @@ export default function ClientIntake() {
     } catch {
       // toast in slice
     }
-    setSubmitting(false);
-  };
+  });
 
   if (loading) {
     return (
@@ -156,14 +156,15 @@ export default function ClientIntake() {
                 <ArrowRight size={16} />
               </button>
             ) : (
-              <button
-                type="button"
-                disabled={submitting}
+              <SubmitButton
+                loading={submitting}
                 onClick={handleSubmit}
-                className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover disabled:opacity-50"
+                icon={Save}
+                loadingLabel="Saving..."
+                className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover"
               >
-                {submitting ? 'Saving...' : isEdit ? 'Save Changes' : 'Submit Intake'}
-              </button>
+                {isEdit ? 'Save Changes' : 'Submit Intake'}
+              </SubmitButton>
             )}
           </div>
         </div>

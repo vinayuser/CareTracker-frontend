@@ -65,7 +65,7 @@ export default function Jobs() {
   const handleCompleteJobHiring = async (job) => {
     const confirmed = await confirmAlert({
       title: 'Mark hiring complete?',
-      text: 'The hired candidate will be added to your caregiver roster and can sign in to the caregiver portal.',
+      text: 'All hired candidates for this job will be added to your caregiver roster and can sign in to the caregiver portal.',
       confirmText: 'Mark complete',
       icon: 'question',
     });
@@ -178,9 +178,16 @@ export default function Jobs() {
           <div className="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Caregiver added to roster</h2>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {transferResult.caregivers.length > 1
+                    ? 'Caregivers added to roster'
+                    : 'Caregiver added to roster'}
+                </h2>
                 <p className="mt-1 text-sm text-gray-500">
-                  {transferResult.job_title} — hiring cycle is complete.
+                  {transferResult.job_title} — hiring cycle is complete
+                  {transferResult.hired_count
+                    ? ` (${transferResult.hired_count} hired)`
+                    : ''}.
                 </p>
               </div>
               <button

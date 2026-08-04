@@ -26,7 +26,7 @@
 /* ── Header ── */
 .ap-header {
   display: grid;
-  grid-template-columns: 1.05in 1fr 1.2in;
+  grid-template-columns: 1.45in 1fr 1.2in;
   gap: 0.06in;
   align-items: start;
   margin-bottom: 0.04in;
@@ -34,36 +34,77 @@
   border-bottom: 1.5px solid #1a3a6c;
 }
 
-.ap-agency {
+.ap-client-agency {
   display: flex;
-  align-items: center;
-  gap: 0.04in;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.03in;
+  min-width: 0;
 }
 
-.ap-logo {
+.ap-client-head {
   display: flex;
-  height: 0.28in;
-  width: 0.28in;
+  align-items: center;
+  gap: 0.05in;
+  min-width: 0;
+}
+
+.ap-client-photo {
+  width: 0.42in;
+  height: 0.42in;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid #1a3a6c;
+  flex-shrink: 0;
+  display: block;
+  background: #fff;
+}
+
+.ap-client-photo-empty {
+  background: #e8eef5;
+  display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #6b4fd4, #8b6cf0);
-  color: #fff;
-  font-size: 10pt;
-  flex-shrink: 0;
+  overflow: hidden;
+  border-style: dashed;
 }
 
-.ap-agency-block .ap-agency-label {
-  font-size: 5.5pt;
-  font-weight: 700;
+.ap-client-placeholder-icon {
+  width: 70%;
+  height: 70%;
+  opacity: 0.75;
+}
+
+.ap-client-name {
+  font-size: 7.5pt;
+  font-weight: 800;
   color: #1a3a6c;
+  line-height: 1.15;
+  word-break: break-word;
+}
+
+.ap-agency-under {
+  margin-left: 0.02in;
+  padding-left: 0.06in;
+  border-left: 2px solid #9eb4d4;
+}
+
+.ap-agency-label {
+  font-size: 4.8pt;
+  font-weight: 700;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1;
 }
 
 .ap-agency-name {
-  font-size: 9pt;
+  font-size: 7pt;
   font-weight: 800;
   color: #1a3a6c;
-  line-height: 1.1;
+  line-height: 1.2;
+  margin-top: 0.01in;
+  word-break: break-word;
 }
 
 .ap-title-block {

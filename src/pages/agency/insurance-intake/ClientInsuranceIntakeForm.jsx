@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { ArrowLeft, ArrowRight, Printer, Save, Shield } from 'lucide-react';
 import InsuranceIntakeStepper from '../../../components/agency/insurance-intake/InsuranceIntakeStepper';
 import { InsuranceIntakeStepOne, InsuranceIntakeStepTwo } from '../../../components/agency/insurance-intake/InsuranceIntakeSteps';
+import SubmitButton from '../../../components/ui/SubmitButton';
 import { fetchClient, fetchClients } from '../../../redux/slices/clientsSlice';
 import { fetchAssessments } from '../../../redux/slices/assessmentsSlice';
 import {
@@ -22,6 +23,7 @@ import {
 import { saveInsuranceIntakePrintDraft } from './InsuranceIntakePrintPage';
 import { ROUTES } from '../../../routes/routes';
 import { toast } from 'react-toastify';
+import useSubmitLock from '../../../hooks/useSubmitLock';
 
 async function loadInsurancePrefill(dispatch, selectedClientId, clientsList = []) {
   if (!selectedClientId) return null;
@@ -61,7 +63,7 @@ export default function ClientInsuranceIntakeForm() {
   const [form, setForm] = useState(insuranceIntakeToForm(null));
   const [clientId, setClientId] = useState(searchParams.get('clientId') || '');
   const [loading, setLoading] = useState(isEdit || Boolean(searchParams.get('clientId')));
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, runLocked] = useSubmitLock();
   const [errors, setErrors] = useState({});
   const [intakeRecordId, setIntakeRecordId] = useState(id || null);
   const [uploadingKey, setUploadingKey] = useState(null);
@@ -270,7 +272,7 @@ export default function ClientInsuranceIntakeForm() {
     scrollFormTop();
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     const step1 = validateInsuranceIntakeStepOne(form, { clientInfoLocked });
     const step2 = validateInsuranceIntakeStepTwo(form);
     const allErrors = { ...step1, ...step2 };
@@ -285,14 +287,14 @@ export default function ClientInsuranceIntakeForm() {
       return;
     }
 
-    setSubmitting(true);
-    const payload = buildPayload();
-    try {
-      if (intakeRecordId) await dispatch(updateInsuranceIntake({ id: intakeRecordId, payload })).unwrap();
-      else await dispatch(createInsuranceIntake(payload)).unwrap();
-      navigate(ROUTES.AGENCY_INSURANCE_INTAKE);
-    } catch { /* toast */ }
-    setSubmitting(false);
+    return runLocked(async () => {
+      const payload = buildPayload();
+      try {
+        if (intakeRecordId) await dispatch(updateInsuranceIntake({ id: intakeRecordId, payload })).unwrap();
+        else await dispatch(createInsuranceIntake(payload)).unwrap();
+        navigate(ROUTES.AGENCY_INSURANCE_INTAKE);
+      } catch { /* toast */ }
+    });
   };
 
   if (loading) return <div className="flex min-h-[40vh] items-center justify-center text-sm text-gray-500">Loading insurance intake...</div>;
@@ -355,9 +357,14 @@ export default function ClientInsuranceIntakeForm() {
               Next: Coverage & Authorization <ArrowRight size={18} />
             </button>
           ) : (
-            <button type="button" disabled={submitting} onClick={handleSubmit} className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover disabled:opacity-50">
-              <Save size={18} /> {submitting ? 'Saving...' : intakeRecordId ? 'Update Intake' : 'Save Intake'}
-            </button>
+            <SubmitButton
+              loading={submitting}
+              onClick={handleSubmit}
+              icon={Save}
+              className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary-hover"
+            >
+              {intakeRecordId ? 'Update Intake' : 'Save Intake'}
+            </SubmitButton>
           )}
         </div>
       </div>

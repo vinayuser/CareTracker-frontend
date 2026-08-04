@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { CheckSquare, Square, X } from 'lucide-react';
+import { CheckSquare, Square, X, Send } from 'lucide-react';
+import SubmitButton from '../../ui/SubmitButton';
 
 /**
  * Let HR / agency owner pick which stage forms to email the candidate.
@@ -109,23 +110,27 @@ export default function SelectFormsToSendModal({
             Cancel
           </button>
           {allowSkip && documents.length > 0 && (
-            <button
+            <SubmitButton
               type="button"
-              disabled={submitting}
+              loading={submitting}
               onClick={() => onConfirm([])}
-              className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+              loadingLabel="Working..."
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50"
             >
               Continue without forms
-            </button>
+            </SubmitButton>
           )}
-          <button
+          <SubmitButton
             type="button"
-            disabled={submitting || (documents.length > 0 && selected.length === 0)}
+            loading={submitting}
+            disabled={documents.length > 0 && selected.length === 0}
+            icon={Send}
             onClick={() => onConfirm(selected)}
-            className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
+            loadingLabel="Working..."
+            className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary/90"
           >
-            {submitting ? 'Working...' : confirmLabel}
-          </button>
+            {confirmLabel}
+          </SubmitButton>
         </div>
       </div>
     </div>

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, ClipboardList, FileText, UserCheck, DollarSign, Printer } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ClipboardList, FileText, UserCheck, DollarSign, Printer, Save } from 'lucide-react';
 import AgencyKpiCard from '../../../components/agency/dashboard/AgencyKpiCard';
+import SubmitButton from '../../../components/ui/SubmitButton';
 import {
   acceptAssessmentQuote,
   deleteAssessment,
@@ -14,6 +15,7 @@ import {
 import { ROUTES } from '../../../routes/routes';
 import { confirmAlert } from '../../../utils/swal';
 import { AssessorDetailCell } from '../../../components/ui/AssessorPhotoUpload';
+import useSubmitLock from '../../../hooks/useSubmitLock';
 
 const STATUS_STYLES = {
   Enquiry: 'bg-blue-100 text-blue-700',
@@ -63,10 +65,17 @@ function QuoteModal({ open, onClose, onSubmit, loading, defaults, isEdit }) {
           </div>
         </div>
         <div className="mt-6 flex gap-3">
-          <button type="button" onClick={onClose} className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium">Cancel</button>
-          <button type="button" disabled={loading} onClick={() => onSubmit({ hourlyRate: Number(hourlyRate), weeklyHours: Number(weeklyHours), quotedMonthlyPrice: monthly })} className="flex-1 rounded-xl bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-50">
-            {loading ? 'Saving...' : isEdit ? 'Update & Email' : 'Generate Quote'}
-          </button>
+          <button type="button" onClick={onClose} disabled={loading} className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium disabled:opacity-50">Cancel</button>
+          <SubmitButton
+            type="button"
+            loading={loading}
+            icon={Save}
+            loadingLabel="Saving..."
+            onClick={() => onSubmit({ hourlyRate: Number(hourlyRate), weeklyHours: Number(weeklyHours), quotedMonthlyPrice: monthly })}
+            className="flex-1 rounded-xl bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-hover"
+          >
+            {isEdit ? 'Update & Email' : 'Generate Quote'}
+          </SubmitButton>
         </div>
       </div>
     </div>
@@ -79,7 +88,7 @@ export default function Assessments() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [quoteTarget, setQuoteTarget] = useState(null);
-  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteLoading, runLocked] = useSubmitLock();
   const isEditQuote = Boolean(quoteTarget?.carePlanId);
 
   const load = () => {
@@ -101,16 +110,14 @@ export default function Assessments() {
     dispatch(fetchAssessmentStats());
   };
 
-  const handleQuote = async (pricing) => {
-    setQuoteLoading(true);
+  const handleQuote = (pricing) => runLocked(async () => {
     try {
       const action = isEditQuote ? updateAssessmentQuote : generateAssessmentQuote;
       await dispatch(action({ id: quoteTarget.id, pricing })).unwrap();
       setQuoteTarget(null);
       load();
     } catch { /* toast */ }
-    setQuoteLoading(false);
-  };
+  });
 
   const handleAccept = async (item) => {
     if (!await confirmAlert({
@@ -196,8 +203,12 @@ export default function Assessments() {
                 {filtered.map((a) => (
                   <tr key={a.id} className="hover:bg-gray-50">
                     <td className="px-5 py-4">
-                      <p className="font-medium text-gray-900">{a.clientName || '—'}</p>
-                      <p className="text-xs text-gray-500">{a.clientPhone || a.clientEmail || ''}</p>
+                      <AssessorDetailCell
+                        name={a.clientName || '—'}
+                        title={a.clientPhone || a.clientEmail || ''}
+                        photo={a.clientPhoto || a.client?.profilePic}
+                        fallbackTitle=""
+                      />
                     </td>
                     <td className="px-5 py-4">{a.assessmentCode}</td>
                     <td className="px-5 py-4">

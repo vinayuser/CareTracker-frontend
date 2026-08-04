@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { KeyRound } from 'lucide-react';
 import Drawer from '../../ui/Drawer';
+import SubmitButton from '../../ui/SubmitButton';
 import { setCaregiverPassword } from '../../../redux/slices/caregiversSlice';
+import useSubmitLock from '../../../hooks/useSubmitLock';
 
 const inputClass = 'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
 
@@ -10,7 +13,7 @@ export default function SetCaregiverPasswordDrawer({ open, onClose, caregiver, o
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [loading, runLocked] = useSubmitLock();
 
   useEffect(() => {
     if (!open) return;
@@ -28,19 +31,19 @@ export default function SetCaregiverPasswordDrawer({ open, onClose, caregiver, o
     return Object.keys(next).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!caregiver?.id || !validate()) return;
 
-    setLoading(true);
-    try {
-      await dispatch(setCaregiverPassword({ id: caregiver.id, password })).unwrap();
-      onSuccess?.();
-      onClose();
-    } catch {
-      // toast in slice
-    }
-    setLoading(false);
+    return runLocked(async () => {
+      try {
+        await dispatch(setCaregiverPassword({ id: caregiver.id, password })).unwrap();
+        onSuccess?.();
+        onClose();
+      } catch {
+        // toast in slice
+      }
+    });
   };
 
   return (
@@ -54,18 +57,20 @@ export default function SetCaregiverPasswordDrawer({ open, onClose, caregiver, o
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            disabled={loading}
+            className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
             Cancel
           </button>
-          <button
+          <SubmitButton
             type="submit"
             form="set-caregiver-password-form"
-            disabled={loading}
-            className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-50"
+            loading={loading}
+            icon={KeyRound}
+            className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-hover"
           >
-            {loading ? 'Saving...' : 'Save Password'}
-          </button>
+            Save Password
+          </SubmitButton>
         </div>
       )}
     >

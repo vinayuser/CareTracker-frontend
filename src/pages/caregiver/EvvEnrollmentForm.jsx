@@ -3,9 +3,11 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { ArrowLeft, ArrowRight, Printer, Save } from 'lucide-react';
 import { EvvEnrollmentStepOne, EvvEnrollmentStepTwo } from '../../components/agency/evv-enrollment/EvvEnrollmentSteps';
+import SubmitButton from '../../components/ui/SubmitButton';
 import { fetchCaregiverEvvEnrollment, submitCaregiverEvvEnrollment } from '../../redux/slices/evvEnrollmentsSlice';
 import { evvEnrollmentToForm, WIZARD_STEPS } from '../../utils/evvEnrollmentForm';
 import { ROUTES } from '../../routes/routes';
+import useSubmitLock from '../../hooks/useSubmitLock';
 
 function Stepper({ currentStep }) {
   return (
@@ -27,7 +29,7 @@ export default function CaregiverEvvEnrollmentForm() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(evvEnrollmentToForm(null));
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, runLocked] = useSubmitLock();
 
   useEffect(() => {
     dispatch(fetchCaregiverEvvEnrollment(id))
@@ -53,14 +55,12 @@ export default function CaregiverEvvEnrollmentForm() {
   const editable = ['Pending', 'Rejected'].includes(form.status);
   const readOnly = !editable;
 
-  const handleSubmit = async () => {
-    setSubmitting(true);
+  const handleSubmit = () => runLocked(async () => {
     try {
       await dispatch(submitCaregiverEvvEnrollment({ id, formData: form.formData })).unwrap();
       navigate(ROUTES.CAREGIVER_EVV_ENROLLMENTS);
     } catch { /* toast */ }
-    setSubmitting(false);
-  };
+  });
 
   if (loading) return <div className="flex min-h-[40vh] items-center justify-center text-sm text-gray-500">Loading enrollment form...</div>;
 
@@ -105,9 +105,15 @@ export default function CaregiverEvvEnrollmentForm() {
               Next <ArrowRight size={18} />
             </button>
           ) : editable ? (
-            <button type="button" disabled={submitting} onClick={handleSubmit} className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50">
-              <Save size={18} /> {submitting ? 'Submitting...' : 'Submit to Agency'}
-            </button>
+            <SubmitButton
+              loading={submitting}
+              onClick={handleSubmit}
+              icon={Save}
+              loadingLabel="Submitting..."
+              className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white hover:bg-primary-hover"
+            >
+              Submit to Agency
+            </SubmitButton>
           ) : (
             <p className="text-sm text-gray-500">This enrollment has been submitted and is awaiting agency review.</p>
           )}

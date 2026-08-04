@@ -128,6 +128,7 @@ export const EMPTY_ASSESSMENT = {
   assessorPhoto: '',
   assessmentDate: todayIso(),
   assessmentTypes: [],
+  clientPhoto: '',
   formData: buildEmptyFormData(),
 };
 
@@ -168,6 +169,7 @@ export function assessmentToForm(assessment) {
     assessorPhoto: assessment.assessorPhoto || '',
     assessmentDate: assessment.assessmentDate || todayIso(),
     assessmentTypes: assessment.assessmentTypes || [],
+    clientPhoto: assessment.clientPhoto || assessment.client?.profilePic || assessment.client?.photo || '',
     formData,
   };
 }

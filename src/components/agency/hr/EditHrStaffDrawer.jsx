@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { Save } from 'lucide-react';
 import Drawer from '../../ui/Drawer';
+import SubmitButton from '../../ui/SubmitButton';
 import { editHrStaff } from '../../../redux/slices/hrStaffSlice';
+import useSubmitLock from '../../../hooks/useSubmitLock';
 import {
   EMPTY_HR_FORM,
   HrFormFields,
@@ -14,7 +17,7 @@ export default function EditHrStaffDrawer({ open, onClose, member, onSuccess }) 
   const dispatch = useDispatch();
   const [form, setForm] = useState(EMPTY_HR_FORM);
   const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [loading, runLocked] = useSubmitLock();
 
   useEffect(() => {
     if (!open || !member) return;
@@ -29,7 +32,7 @@ export default function EditHrStaffDrawer({ open, onClose, member, onSuccess }) 
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!member?.id) return;
 
@@ -39,20 +42,20 @@ export default function EditHrStaffDrawer({ open, onClose, member, onSuccess }) 
       return;
     }
 
-    setLoading(true);
-    try {
-      await dispatch(
-        editHrStaff({
-          id: member.id,
-          updates: hrFormToPayload(form, { includePassword: false }),
-        }),
-      ).unwrap();
-      onSuccess?.();
-      onClose();
-    } catch {
-      // toast in slice
-    }
-    setLoading(false);
+    return runLocked(async () => {
+      try {
+        await dispatch(
+          editHrStaff({
+            id: member.id,
+            updates: hrFormToPayload(form, { includePassword: false }),
+          }),
+        ).unwrap();
+        onSuccess?.();
+        onClose();
+      } catch {
+        // toast in slice
+      }
+    });
   };
 
   return (
@@ -66,18 +69,20 @@ export default function EditHrStaffDrawer({ open, onClose, member, onSuccess }) 
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            disabled={loading}
+            className="flex-1 rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
             Cancel
           </button>
-          <button
+          <SubmitButton
             type="submit"
             form="edit-hr-form"
-            disabled={loading}
-            className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-60"
+            loading={loading}
+            icon={Save}
+            className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-hover"
           >
-            {loading ? 'Saving...' : 'Save Changes'}
-          </button>
+            Save Changes
+          </SubmitButton>
         </div>
       )}
     >

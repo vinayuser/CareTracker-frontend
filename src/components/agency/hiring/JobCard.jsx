@@ -87,7 +87,7 @@ export default function JobCard({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {hiringComplete ? (
+          {hiringComplete && (
             <button
               type="button"
               onClick={() => onReopenJobHiring?.(job)}
@@ -96,35 +96,32 @@ export default function JobCard({
               <RotateCcw size={14} />
               Reopen Hiring Cycle
             </button>
-          ) : (
-            <>
-              {hired > 0 && (
-                <button
-                  type="button"
-                  onClick={() => onCompleteJobHiring?.(job)}
-                  className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
-                >
-                  <CheckCircle2 size={14} />
-                  Mark Hiring Complete
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => onAddCandidate?.(job)}
-                className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary-hover"
-              >
-                <UserPlus size={14} />
-                Add Candidate
-              </button>
-              <button
-                type="button"
-                onClick={() => onEdit?.(job)}
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-              >
-                Edit
-              </button>
-            </>
           )}
+          {!hiringComplete && hired > 0 && (
+            <button
+              type="button"
+              onClick={() => onCompleteJobHiring?.(job)}
+              className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
+            >
+              <CheckCircle2 size={14} />
+              Mark Hiring Complete
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => onAddCandidate?.(job)}
+            className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary-hover"
+          >
+            <UserPlus size={14} />
+            Add Candidate
+          </button>
+          <button
+            type="button"
+            onClick={() => onEdit?.(job)}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          >
+            Edit
+          </button>
           {isOwner && (
             <button
               type="button"
@@ -169,7 +166,7 @@ export default function JobCard({
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-5 py-3">
         <p className="text-xs text-gray-500">
           {inPipeline} in pipeline · {rejected} rejected · {hired} hired
-          {hiringComplete && ' · Reopen hiring to add candidates or edit this job'}
+          {hiringComplete && ' · Hiring complete — you can still hire more candidates'}
         </p>
         {!hiringComplete && hired > 0 && (
           <button

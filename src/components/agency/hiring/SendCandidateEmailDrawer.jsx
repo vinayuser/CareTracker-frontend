@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
+import { Send } from 'lucide-react';
 import Drawer from '../../ui/Drawer';
+import SubmitButton from '../../ui/SubmitButton';
 import axiosInstance from '../../../api/axiosInstance';
 import API_ROUTES from '../../../api/apiRoutes';
+import useSubmitLock from '../../../hooks/useSubmitLock';
 
 const inputClass =
   'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
@@ -11,7 +14,7 @@ export default function SendCandidateEmailDrawer({ open, onClose, application, o
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [loading, runLocked] = useSubmitLock();
 
   const candidate = application?.candidate || {};
 
@@ -30,23 +33,23 @@ export default function SendCandidateEmailDrawer({ open, onClose, application, o
     return Object.keys(next).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!application?.id || !validate()) return;
 
-    setLoading(true);
-    try {
-      await axiosInstance.post(
-        `${API_ROUTES.AGENCY.JOB_APPLICATIONS.EMAIL}/${application.id}/email`,
-        { subject: subject.trim(), message: message.trim() },
-      );
-      toast.success('Email sent to candidate');
-      onSuccess?.();
-      onClose();
-    } catch {
-      // toast from axios interceptor
-    }
-    setLoading(false);
+    return runLocked(async () => {
+      try {
+        await axiosInstance.post(
+          `${API_ROUTES.AGENCY.JOB_APPLICATIONS.EMAIL}/${application.id}/email`,
+          { subject: subject.trim(), message: message.trim() },
+        );
+        toast.success('Email sent to candidate');
+        onSuccess?.();
+        onClose();
+      } catch {
+        // toast from axios interceptor
+      }
+    });
   };
 
   return (
@@ -60,18 +63,21 @@ export default function SendCandidateEmailDrawer({ open, onClose, application, o
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            disabled={loading}
+            className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
             Cancel
           </button>
-          <button
+          <SubmitButton
             type="submit"
             form="send-candidate-email-form"
-            disabled={loading}
-            className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-50"
+            loading={loading}
+            icon={Send}
+            loadingLabel="Sending..."
+            className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-hover"
           >
-            {loading ? 'Sending...' : 'Send Email'}
-          </button>
+            Send Email
+          </SubmitButton>
         </div>
       )}
     >

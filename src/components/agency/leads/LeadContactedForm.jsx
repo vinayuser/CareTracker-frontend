@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Check, Phone } from 'lucide-react';
+import { Check, Phone, Save } from 'lucide-react';
 import { RELATIONSHIPS, joinLeadName } from '../../../utils/leadForm';
 import { formatDateUS, nowInputDateTimeLocal, todayInputDate, toInputDate } from '../../../utils/dateFormat';
+import SubmitButton from '../../ui/SubmitButton';
 
 const CONTACT_METHODS = [
   'Mobile Call',
@@ -355,28 +356,29 @@ export default function LeadContactedForm({
 
         {!readOnly ? (
           <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
-            <button
+            <SubmitButton
               type="button"
+              loading={submitting}
               onClick={() => handleSubmit(true)}
-              disabled={submitting}
-              className="rounded-lg border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+              loadingLabel="Saving..."
+              className="rounded-lg border border-red-300 bg-white px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
             >
               Cancel Lead
-            </button>
-            <button
+            </SubmitButton>
+            <SubmitButton
               type="button"
+              loading={submitting}
+              icon={Save}
               onClick={() => handleSubmit(false)}
-              disabled={submitting}
-              className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
+              loadingLabel="Saving..."
+              className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover"
             >
-              {submitting
-                ? 'Saving…'
-                : form.callStatus === 'move_next'
-                  ? 'Save & Move to Next Level'
-                  : form.callStatus === 'cancel'
-                    ? 'Save & Disqualify'
-                    : 'Save Contact'}
-            </button>
+              {form.callStatus === 'move_next'
+                ? 'Save & Move to Next Level'
+                : form.callStatus === 'cancel'
+                  ? 'Save & Disqualify'
+                  : 'Save Contact'}
+            </SubmitButton>
           </div>
         ) : null}
       </div>

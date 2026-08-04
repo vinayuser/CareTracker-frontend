@@ -10,6 +10,7 @@ import LeadStageStepper from '../../../components/agency/leads/LeadStageStepper'
 import LeadStatusPanel from '../../../components/agency/leads/LeadStatusPanel';
 import LeadContactedForm from '../../../components/agency/leads/LeadContactedForm';
 import ScheduleHomeAssessmentForm from '../../../components/agency/leads/ScheduleHomeAssessmentForm';
+import SubmitButton from '../../../components/ui/SubmitButton';
 import {
   addLead,
   clearCurrentLead,
@@ -22,6 +23,7 @@ import {
 import { ROUTES } from '../../../routes/routes';
 import { formToPayload, joinLeadName, leadToForm } from '../../../utils/leadForm';
 import { formatDateTimeUS } from '../../../utils/dateFormat';
+import useSubmitLock from '../../../hooks/useSubmitLock';
 
 function assignedInitials(name = '') {
   return name
@@ -47,7 +49,7 @@ export default function LeadFormPage() {
 
   const [form, setForm] = useState(() => leadToForm(null));
   const [loading, setLoading] = useState(!isCreate);
-  const [saving, setSaving] = useState(false);
+  const [saving, runLocked] = useSubmitLock();
   const [moreOpen, setMoreOpen] = useState(false);
   const [activeView, setActiveView] = useState('New Lead');
 
@@ -130,77 +132,73 @@ export default function LeadFormPage() {
     return true;
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!validate()) return;
-    setSaving(true);
-    const payload = formToPayload(form);
-    try {
-      if (isCreate) {
-        const created = await dispatch(addLead(payload)).unwrap();
-        navigate(ROUTES.AGENCY_LEADS_DETAIL.replace(':id', created.id), {
-          state: { activeView: 'Contacted' },
-        });
-      } else {
-        await dispatch(updateLead({ id, payload })).unwrap();
-        if (isEdit) {
-          navigate(ROUTES.AGENCY_LEADS_DETAIL.replace(':id', id), {
-            state: { activeView },
+    return runLocked(async () => {
+      const payload = formToPayload(form);
+      try {
+        if (isCreate) {
+          const created = await dispatch(addLead(payload)).unwrap();
+          navigate(ROUTES.AGENCY_LEADS_DETAIL.replace(':id', created.id), {
+            state: { activeView: 'Contacted' },
           });
+        } else {
+          await dispatch(updateLead({ id, payload })).unwrap();
+          if (isEdit) {
+            navigate(ROUTES.AGENCY_LEADS_DETAIL.replace(':id', id), {
+              state: { activeView },
+            });
+          }
         }
+      } catch {
+        // toast in slice
       }
-    } catch {
-      // toast in slice
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
-  const handleContactSubmit = async (payload) => {
+  const handleContactSubmit = (payload) => {
     if (isCreate || !id) {
       window.alert('Save the lead first, then log contact.');
       setActiveView('New Lead');
       return;
     }
-    setSaving(true);
-    try {
-      const lead = await dispatch(logLeadContact({ id, payload })).unwrap();
-      const mapped = leadToForm(lead);
-      setForm(mapped);
-      if (payload.callStatus === 'move_next' && payload.nextLevel === 'Schedule Home Assessment') {
-        setActiveView('Assessment Scheduled');
-      } else {
-        setActiveView(mapped.stage || 'Contacted');
+    return runLocked(async () => {
+      try {
+        const lead = await dispatch(logLeadContact({ id, payload })).unwrap();
+        const mapped = leadToForm(lead);
+        setForm(mapped);
+        if (payload.callStatus === 'move_next' && payload.nextLevel === 'Schedule Home Assessment') {
+          setActiveView('Assessment Scheduled');
+        } else {
+          setActiveView(mapped.stage || 'Contacted');
+        }
+      } catch {
+        // toast
       }
-    } catch {
-      // toast
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
-  const handleScheduleSubmit = async (payload) => {
+  const handleScheduleSubmit = (payload) => {
     if (isCreate || !id) {
       window.alert('Save the lead first, then schedule the assessment.');
       return;
     }
-    setSaving(true);
-    try {
-      const result = await dispatch(scheduleLeadAssessment({ id, payload })).unwrap();
-      const lead = result?.lead || result;
-      setForm(leadToForm(lead));
-      setActiveView('Assessment Scheduled');
-      if (result?.assessment?.id) {
-        navigate(ROUTES.AGENCY_ASSESSMENTS_EDIT.replace(':id', result.assessment.id));
+    return runLocked(async () => {
+      try {
+        const result = await dispatch(scheduleLeadAssessment({ id, payload })).unwrap();
+        const lead = result?.lead || result;
+        setForm(leadToForm(lead));
+        setActiveView('Assessment Scheduled');
+        if (result?.assessment?.id) {
+          navigate(ROUTES.AGENCY_ASSESSMENTS_EDIT.replace(':id', result.assessment.id));
+        }
+      } catch {
+        // toast
       }
-    } catch {
-      // toast
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
-  const handleCreateAssessment = async () => {
-    setSaving(true);
+  const handleCreateAssessment = () => runLocked(async () => {
     try {
       const result = await dispatch(createAssessmentFromLead({
         id,
@@ -215,10 +213,8 @@ export default function LeadFormPage() {
       }
     } catch {
       // toast
-    } finally {
-      setSaving(false);
     }
-  };
+  });
 
   const handleSelectStep = (step) => {
     setActiveView(step);
@@ -314,22 +310,34 @@ export default function LeadFormPage() {
           onHeaderChange={onHeaderChange}
           readOnly={readOnly}
           onSaveNote={handleSave}
+          saving={saving}
         />
         {!readOnly ? (
           <div className="flex justify-end gap-2">
             <Link to={ROUTES.AGENCY_LEADS} className={btnGhost}>
               Cancel
             </Link>
-            <button type="button" disabled={saving} onClick={handleSave} className={btnPrimary}>
-              <Save size={15} /> {saving ? 'Saving…' : 'Save Lead'}
-            </button>
+            <SubmitButton
+              loading={saving}
+              onClick={handleSave}
+              icon={Save}
+              className={btnPrimary}
+            >
+              Save Lead
+            </SubmitButton>
           </div>
         ) : null}
         {activeView === 'Proposal Sent' && !hasAssessment && id && !isCreate ? (
           <div className="flex justify-end">
-            <button type="button" disabled={saving} onClick={handleCreateAssessment} className={btnPrimary}>
-              <ClipboardPlus size={15} /> Create Assessment
-            </button>
+            <SubmitButton
+              loading={saving}
+              onClick={handleCreateAssessment}
+              icon={ClipboardPlus}
+              loadingLabel="Creating..."
+              className={btnPrimary}
+            >
+              Create Assessment
+            </SubmitButton>
           </div>
         ) : null}
       </>
@@ -413,9 +421,14 @@ export default function LeadFormPage() {
             </>
           ) : (
             <>
-              <button type="button" disabled={saving} onClick={handleSave} className={btnPrimary}>
-                <Save size={15} /> {saving ? 'Saving…' : 'Save Lead'}
-              </button>
+              <SubmitButton
+                loading={saving}
+                onClick={handleSave}
+                icon={Save}
+                className={btnPrimary}
+              >
+                Save Lead
+              </SubmitButton>
             </>
           )}
         </div>

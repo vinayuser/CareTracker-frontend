@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Calendar, Clock, MapPin } from 'lucide-react';
+import { Calendar, Clock, MapPin, Save } from 'lucide-react';
 import { formatDateUS, todayInputDate } from '../../../utils/dateFormat';
+import SubmitButton from '../../ui/SubmitButton';
 
 const inputClass =
   'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:bg-slate-50';
@@ -160,18 +161,18 @@ export default function ScheduleHomeAssessmentForm({
 
         {!readOnly ? (
           <div className="flex justify-end border-t border-slate-100 pt-4">
-            <button
+            <SubmitButton
               type="button"
+              loading={submitting}
+              icon={Save}
               onClick={handleSubmit}
-              disabled={submitting}
-              className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
+              loadingLabel="Saving..."
+              className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover"
             >
-              {submitting
-                ? 'Saving…'
-                : form.createAssessmentAfter && !lead?.assessmentId
-                  ? 'Save & Create Assessment'
-                  : 'Save Schedule'}
-            </button>
+              {form.createAssessmentAfter && !lead?.assessmentId
+                ? 'Save & Create Assessment'
+                : 'Save Schedule'}
+            </SubmitButton>
           </div>
         ) : null}
       </div>

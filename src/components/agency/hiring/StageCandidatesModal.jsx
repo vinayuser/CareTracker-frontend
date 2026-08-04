@@ -22,7 +22,7 @@ function CandidateRow({ application, onAction, loadingId, viewType, onOpenForms,
   const feedback = application.interview_feedback;
   const feedbackSummary = application.interview_feedback_summary;
   const isLoading = loadingId === application.id;
-  const canHire = info.can_hire ?? (info.job_hired_count === 0 && info.is_final_stage);
+  const canHire = info.can_hire ?? (info.is_final_stage && application.status === 'Active');
   const finalStageName = info.final_stage?.name || 'Final Stage';
   const hasForms = progress && (progress.total > 0 || progress.documents?.length > 0);
   const pipelineStageCount = info.stages?.length || 0;
@@ -87,7 +87,7 @@ function CandidateRow({ application, onAction, loadingId, viewType, onOpenForms,
               Forms
             </button>
           )}
-          {application.status === 'Active' && !info.hiring_completed && !info.is_first_stage && (
+          {application.status === 'Active' && !info.is_first_stage && (
             <button
               type="button"
               disabled={isLoading}
@@ -98,7 +98,7 @@ function CandidateRow({ application, onAction, loadingId, viewType, onOpenForms,
               Move to {info.previous_stage?.name || 'Previous Stage'}
             </button>
           )}
-          {application.status === 'Active' && !info.hiring_completed && !info.is_final_stage && (
+          {application.status === 'Active' && !info.is_final_stage && (
             <button
               type="button"
               disabled={isLoading}
@@ -109,7 +109,7 @@ function CandidateRow({ application, onAction, loadingId, viewType, onOpenForms,
               Move to {info.next_stage?.name || 'Next Stage'}
             </button>
           )}
-          {info.is_final_stage && !info.hiring_completed && application.status === 'Active' && canHire && (
+          {info.is_final_stage && application.status === 'Active' && canHire && (
             <button
               type="button"
               disabled={isLoading}
@@ -117,13 +117,8 @@ function CandidateRow({ application, onAction, loadingId, viewType, onOpenForms,
               className="flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
             >
               <UserCheck size={14} />
-              Complete Hiring
+              Mark as Hired
             </button>
-          )}
-          {info.is_final_stage && !info.hiring_completed && application.status === 'Active' && !canHire && (
-            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">
-              Hire slot filled for this job
-            </span>
           )}
           {application.status === 'Active' && (
             <button
@@ -136,7 +131,7 @@ function CandidateRow({ application, onAction, loadingId, viewType, onOpenForms,
               Reject
             </button>
           )}
-          {application.status === 'Hired' && !info.hiring_completed && (
+          {application.status === 'Hired' && (
             <>
               <button
                 type="button"
@@ -156,29 +151,27 @@ function CandidateRow({ application, onAction, loadingId, viewType, onOpenForms,
                 <Ban size={14} />
                 Reject
               </button>
+              {info.hiring_completed && info.caregiver_transferred && (
+                <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800">
+                  On caregiver roster
+                </span>
+              )}
             </>
-          )}
-          {application.status === 'Hired' && info.hiring_completed && (
-            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800">
-              Caregiver roster
-            </span>
           )}
           {application.status === 'Rejected' && (
             <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700">
               Rejected
             </span>
           )}
-          {!(application.status === 'Hired' && info.hiring_completed) && (
-            <button
-              type="button"
-              disabled={isLoading}
-              onClick={() => onAction('delete', application)}
-              className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
-            >
-              <Trash2 size={14} />
-              Delete
-            </button>
-          )}
+          <button
+            type="button"
+            disabled={isLoading}
+            onClick={() => onAction('delete', application)}
+            className="flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+          >
+            <Trash2 size={14} />
+            Delete
+          </button>
         </div>
       </div>
     </div>
@@ -343,10 +336,12 @@ export default function StageCandidatesModal({
         </div>
 
         <div className="flex-1 overflow-y-auto p-5">
-          {viewType === 'hired' && hiredCount > 1 && (
-            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-              Only one candidate can be hired for this job. Use <strong>Move back to final stage</strong> or{' '}
-              <strong>Reject</strong> on the extra candidate(s) to free the hire slot.
+          {viewType === 'hired' && hiredCount > 0 && (
+            <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+              {hiredCount === 1
+                ? '1 candidate is hired for this job.'
+                : `${hiredCount} candidates are hired for this job.`}
+              {' '}Mark the hiring cycle complete on the job card to add them to the caregiver roster.
             </div>
           )}
 
