@@ -1,0 +1,129 @@
+import { useEffect, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { KeyRound } from 'lucide-react';
+import Drawer from '../../ui/Drawer';
+import SubmitButton from '../../ui/SubmitButton';
+import { setClientPassword } from '../../../redux/slices/clientsSlice';
+import useSubmitLock from '../../../hooks/useSubmitLock';
+
+const inputClass = 'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
+
+export default function SetClientPasswordDrawer({ open, onClose, client, onSuccess }) {
+  const dispatch = useDispatch();
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [errors, setErrors] = useState({});
+  const [loading, runLocked] = useSubmitLock();
+
+  useEffect(() => {
+    if (!open) return;
+    setPassword('');
+    setConfirmPassword('');
+    setErrors({});
+  }, [open, client?.id]);
+
+  const validate = () => {
+    const next = {};
+    if (!client?.email) next.email = 'Client must have an email address before portal access can be created';
+    if (!password) next.password = 'Password is required';
+    else if (password.length < 8) next.password = 'Password must be at least 8 characters';
+    if (password !== confirmPassword) next.confirmPassword = 'Passwords do not match';
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!client?.id || !validate()) return;
+
+    return runLocked(async () => {
+      try {
+        await dispatch(setClientPassword({ id: client.id, password })).unwrap();
+        onSuccess?.();
+        onClose();
+      } catch {
+        // toast in slice
+      }
+    });
+  };
+
+  return (
+    <Drawer
+      open={open}
+      onClose={onClose}
+      title={client?.hasPortalAccess ? 'Reset Client Password' : 'Set Client Password'}
+      width="md"
+      footer={(
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <SubmitButton
+            type="submit"
+            form="set-client-password-form"
+            loading={loading}
+            icon={KeyRound}
+            loadingLabel="Saving..."
+            className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-hover"
+          >
+            Save & Email Login
+          </SubmitButton>
+        </div>
+      )}
+    >
+      <form id="set-client-password-form" onSubmit={handleSubmit} className="space-y-4">
+        {client && (
+          <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+            <p className="font-medium text-gray-900">{client.fullName}</p>
+            <p className="text-sm text-gray-500">{client.email || 'No email on file'}</p>
+            {client.hasPortalAccess && (
+              <p className="mt-1 text-xs font-medium text-emerald-700">Portal access already enabled</p>
+            )}
+          </div>
+        )}
+
+        {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">
+            Password <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={inputClass}
+            placeholder="Min. 8 characters"
+            autoComplete="new-password"
+          />
+          {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password}</p>}
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">
+            Confirm Password <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className={inputClass}
+            placeholder="Re-enter password"
+            autoComplete="new-password"
+          />
+          {errors.confirmPassword && <p className="mt-1 text-xs text-red-500">{errors.confirmPassword}</p>}
+        </div>
+
+        <p className="text-xs text-gray-500">
+          The client will receive an email with the login URL, their email address, and this password
+          so they can access the client portal.
+        </p>
+      </form>
+    </Drawer>
+  );
+}

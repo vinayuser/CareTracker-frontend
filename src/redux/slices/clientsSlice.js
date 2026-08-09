@@ -71,6 +71,19 @@ export const fetchClientRelatedForms = createAsyncThunk('clients/relatedForms', 
   }
 });
 
+export const setClientPassword = createAsyncThunk(
+  'clients/setPassword',
+  async ({ id, password }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.patch(`${API_ROUTES.AGENCY.CLIENTS.LIST}/${id}/password`, { password });
+      toast.success(response.data?.message || 'Password set and login email sent to client');
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  },
+);
+
 const clientsSlice = createSlice({
   name: 'clients',
   initialState: { list: [], selected: null, stats: { total: 0, active: 0, inactive: 0, pending: 0 }, loading: false },
@@ -93,6 +106,14 @@ const clientsSlice = createSlice({
       })
       .addCase(deleteClient.fulfilled, (state, action) => {
         state.list = state.list.filter((c) => c.id !== action.payload);
+      })
+      .addCase(setClientPassword.fulfilled, (state, action) => {
+        if (!action.payload?.id) return;
+        const idx = state.list.findIndex((c) => c.id === action.payload.id);
+        if (idx !== -1) state.list[idx] = { ...state.list[idx], ...action.payload };
+        if (state.selected?.id === action.payload.id) {
+          state.selected = { ...state.selected, ...action.payload };
+        }
       });
   },
 });

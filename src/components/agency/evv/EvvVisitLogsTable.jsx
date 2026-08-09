@@ -9,6 +9,7 @@ import {
   resolveVisitException,
   updateVisitLog,
 } from '../../../redux/slices/visitSchedulesSlice';
+import { fetchClientVisits } from '../../../redux/slices/clientPortalSlice';
 import EditVisitLogModal from './EditVisitLogModal';
 
 import {
@@ -48,9 +49,10 @@ export default function EvvVisitLogsTable({
   showFilters = true,
   showSummary = true,
   alertOnly = false,
-  /** agency = approve/reject; caregiver = read-only own logs */
+  /** agency = approve/reject; caregiver/client = read-only logs */
   audience = 'agency',
   hideCaregiverColumn = false,
+  hideClientColumn = false,
   /** When set, table uses parent date range (e.g. EVV dashboard). */
   controlledFrom = null,
   controlledTo = null,
@@ -58,7 +60,8 @@ export default function EvvVisitLogsTable({
   skipFetch = false,
 }) {
   const dispatch = useDispatch();
-  const { visits, caregiverVisits, loading } = useSelector((state) => state.visitSchedules);
+  const { visits, caregiverVisits, loading: agencyLoading } = useSelector((state) => state.visitSchedules);
+  const { visits: clientVisits, visitsLoading: clientLoading } = useSelector((state) => state.clientPortal);
   const [status, setStatus] = useState(defaultStatus);
   const [search, setSearch] = useState('');
   const [date, setDate] = useState(initialDate);
@@ -72,17 +75,21 @@ export default function EvvVisitLogsTable({
   const [editingRow, setEditingRow] = useState(null);
 
   const isCaregiver = audience === 'caregiver';
-  const sourceVisits = isCaregiver ? caregiverVisits : visits;
+  const isClient = audience === 'client';
+  const isReadOnly = isCaregiver || isClient;
+  const sourceVisits = isClient ? clientVisits : (isCaregiver ? caregiverVisits : visits);
+  const loading = isClient ? clientLoading : agencyLoading;
   const effectiveFrom = controlledFrom ?? fromDate;
   const effectiveTo = controlledTo ?? toDate;
 
   useEffect(() => {
     if (skipFetch) return undefined;
     const params = mode === 'day' ? { date } : { from: effectiveFrom, to: effectiveTo };
-    if (isCaregiver) dispatch(fetchCaregiverVisits(params));
+    if (isClient) dispatch(fetchClientVisits(params));
+    else if (isCaregiver) dispatch(fetchCaregiverVisits(params));
     else dispatch(fetchAgencyVisits(params));
     return undefined;
-  }, [dispatch, mode, date, effectiveFrom, effectiveTo, isCaregiver, skipFetch]);
+  }, [dispatch, mode, date, effectiveFrom, effectiveTo, isCaregiver, isClient, skipFetch]);
 
   const logs = useMemo(() => (sourceVisits || []).map(mapVisitToEvvLog), [sourceVisits]);
 
@@ -221,7 +228,12 @@ export default function EvvVisitLogsTable({
       : `$${Number(value).toFixed(2)}`
   );
 
-  const colSpan = 11 + (hideCaregiverColumn ? 0 : 1) + (isCaregiver ? 0 : 1);
+  const colSpan = (
+    10 // Visit ID, Date, Service, Check In, Check Out, Hours, Rate, Amount, Status, Approval
+    + (hideClientColumn ? 0 : 1)
+    + (hideCaregiverColumn ? 0 : 1)
+    + (isReadOnly ? 0 : 1)
+  );
 
   return (
     <div className="space-y-4">
@@ -290,7 +302,13 @@ export default function EvvVisitLogsTable({
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={isCaregiver ? 'Search client, visit…' : 'Search client, caregiver, visit…'}
+                placeholder={
+                  isClient
+                    ? 'Search caregiver, visit…'
+                    : isCaregiver
+                      ? 'Search client, visit…'
+                      : 'Search client, caregiver, visit…'
+                }
                 className="w-full rounded-lg border border-gray-200 py-1.5 pl-8 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15"
               />
             </div>
@@ -344,7 +362,7 @@ export default function EvvVisitLogsTable({
               <tr className="border-b border-gray-100 bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
                 <th className="px-5 py-3">Visit ID</th>
                 <th className="px-5 py-3">Date</th>
-                <th className="px-5 py-3">Client</th>
+                {!hideClientColumn && <th className="px-5 py-3">Client</th>}
                 {!hideCaregiverColumn && <th className="px-5 py-3">Caregiver</th>}
                 <th className="px-5 py-3">Service</th>
                 <th className="px-5 py-3">Check In</th>
@@ -354,7 +372,7 @@ export default function EvvVisitLogsTable({
                 <th className="px-5 py-3">Amount</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3">Approval</th>
-                {!isCaregiver && <th className="px-5 py-3">Actions</th>}
+                {!isReadOnly && <th className="px-5 py-3">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -385,7 +403,9 @@ export default function EvvVisitLogsTable({
                       <div className={`font-medium ${row.alert ? 'text-red-900' : 'text-gray-900'}`}>{row.date}</div>
                       <div className={`text-xs ${row.alert ? 'text-red-600' : 'text-gray-500'}`}>{row.timeRange}</div>
                     </td>
-                    <td className={`px-5 py-4 ${row.alert ? 'text-red-900' : 'text-gray-900'}`}>{row.client}</td>
+                    {!hideClientColumn && (
+                      <td className={`px-5 py-4 ${row.alert ? 'text-red-900' : 'text-gray-900'}`}>{row.client}</td>
+                    )}
                     {!hideCaregiverColumn && (
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2">
@@ -442,7 +462,7 @@ export default function EvvVisitLogsTable({
                         ) : null}
                       </div>
                     </td>
-                    {!isCaregiver && (
+                    {!isReadOnly && (
                       <td className="px-5 py-4">
                         <div className="flex flex-wrap gap-1.5">
                           {row.canEditLog ? (
@@ -506,14 +526,16 @@ export default function EvvVisitLogsTable({
             {mode === 'day' ? ` for ${date}` : ` from ${effectiveFrom} to ${effectiveTo}`}
           </span>
           <p className="text-xs text-gray-500">
-            {isCaregiver
-              ? 'Ended visits wait for agency approval. Late check-ins stay highlighted in red.'
-              : 'Use Edit to correct Missed or completed times, then Approve. Late check-ins stay highlighted in red.'}
+            {isClient
+              ? 'Your visit verification history. Late check-ins and missed visits stay highlighted in red.'
+              : isCaregiver
+                ? 'Ended visits wait for agency approval. Late check-ins stay highlighted in red.'
+                : 'Use Edit to correct Missed or completed times, then Approve. Late check-ins stay highlighted in red.'}
           </p>
         </div>
       </div>
 
-      {!isCaregiver && (
+      {!isReadOnly && (
         <EditVisitLogModal
           open={Boolean(editingRow)}
           row={editingRow}

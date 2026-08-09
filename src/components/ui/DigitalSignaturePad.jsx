@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef } from 'react';
 const labelClass = 'mb-1.5 block text-sm font-medium text-gray-700';
 const CANVAS_HEIGHT = 140;
 
-export default function DigitalSignaturePad({ label, value = '', onChange }) {
+export default function DigitalSignaturePad({ label, value = '', onChange, readOnly = false }) {
   const canvasRef = useRef(null);
   const drawingRef = useRef(false);
   const lastPointRef = useRef(null);
@@ -73,13 +73,14 @@ export default function DigitalSignaturePad({ label, value = '', onChange }) {
   };
 
   const startDraw = (e) => {
+    if (readOnly) return;
     e.preventDefault();
     drawingRef.current = true;
     lastPointRef.current = getPoint(e);
   };
 
   const moveDraw = (e) => {
-    if (!drawingRef.current) return;
+    if (readOnly || !drawingRef.current) return;
     e.preventDefault();
     const point = getPoint(e);
     drawLine(lastPointRef.current, point);
@@ -87,7 +88,7 @@ export default function DigitalSignaturePad({ label, value = '', onChange }) {
   };
 
   const endDraw = (e) => {
-    if (!drawingRef.current) return;
+    if (readOnly || !drawingRef.current) return;
     e?.preventDefault?.();
     drawingRef.current = false;
     lastPointRef.current = null;
@@ -95,6 +96,7 @@ export default function DigitalSignaturePad({ label, value = '', onChange }) {
   };
 
   const clear = () => {
+    if (readOnly) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -105,10 +107,10 @@ export default function DigitalSignaturePad({ label, value = '', onChange }) {
   return (
     <div>
       {label && <p className={labelClass}>{label}</p>}
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+      <div className={`overflow-hidden rounded-xl border border-gray-200 ${readOnly ? 'bg-gray-50' : 'bg-white'}`}>
         <canvas
           ref={canvasRef}
-          className="h-[140px] w-full cursor-crosshair touch-none bg-white"
+          className={`h-[140px] w-full touch-none ${readOnly ? 'cursor-default bg-gray-50' : 'cursor-crosshair bg-white'}`}
           onMouseDown={startDraw}
           onMouseMove={moveDraw}
           onMouseUp={endDraw}
@@ -118,10 +120,14 @@ export default function DigitalSignaturePad({ label, value = '', onChange }) {
           onTouchEnd={endDraw}
         />
         <div className="flex items-center justify-between border-t border-gray-100 px-3 py-2">
-          <span className="text-xs text-gray-400">Draw your signature above</span>
-          <button type="button" onClick={clear} className="text-xs font-medium text-primary hover:underline">
-            Clear
-          </button>
+          <span className="text-xs text-gray-400">
+            {readOnly ? (value ? 'Signature on file' : 'No signature') : 'Draw your signature above'}
+          </span>
+          {!readOnly && (
+            <button type="button" onClick={clear} className="text-xs font-medium text-primary hover:underline">
+              Clear
+            </button>
+          )}
         </div>
       </div>
     </div>

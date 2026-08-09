@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { Search, Pencil, Trash2, HeartHandshake, Users, UserX, Download } from 'lucide-react';
+import { Search, Pencil, Trash2, HeartHandshake, Users, UserX, Download, KeyRound } from 'lucide-react';
 import AgencyKpiCard from '../../../components/agency/dashboard/AgencyKpiCard';
 import ClientFormsExportModal from '../../../components/agency/clients/ClientFormsExportModal';
+import SetClientPasswordDrawer from '../../../components/agency/clients/SetClientPasswordDrawer';
 import { AssessorDetailCell } from '../../../components/ui/AssessorPhotoUpload';
 import { fetchClients, fetchClientStats, deleteClient } from '../../../redux/slices/clientsSlice';
 import { ROUTES } from '../../../routes/routes';
@@ -46,6 +47,7 @@ export default function Clients() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [exportClient, setExportClient] = useState(null);
+  const [passwordClient, setPasswordClient] = useState(null);
 
   const load = () => {
     dispatch(fetchClients());
@@ -158,6 +160,16 @@ export default function Clients() {
                       <div className="flex flex-wrap items-center gap-2">
                         <button
                           type="button"
+                          title={client.hasPortalAccess ? 'Reset portal password' : 'Set portal password'}
+                          onClick={() => setPasswordClient(client)}
+                          disabled={!client.email}
+                          className={`${actionBtnNeutral} disabled:cursor-not-allowed disabled:opacity-40`}
+                        >
+                          <KeyRound size={16} />
+                          {client.hasPortalAccess ? 'Reset Password' : 'Set Password'}
+                        </button>
+                        <button
+                          type="button"
                           title="Download assessment, care plan, insurance, and documents as ZIP"
                           onClick={() => setExportClient(client)}
                           className={actionBtnNeutral}
@@ -187,6 +199,13 @@ export default function Clients() {
         open={Boolean(exportClient)}
         client={exportClient}
         onClose={() => setExportClient(null)}
+      />
+
+      <SetClientPasswordDrawer
+        open={Boolean(passwordClient)}
+        client={passwordClient}
+        onClose={() => setPasswordClient(null)}
+        onSuccess={load}
       />
     </div>
   );

@@ -10,6 +10,7 @@ import { fetchCurrentUser } from './redux/slices/authSlice';
 import AdminLayout from './components/layout/AdminLayout';
 import AgencyLayout from './components/layout/agency/AgencyLayout';
 import CaregiverLayout from './components/layout/caregiver/CaregiverLayout';
+import ClientLayout from './components/layout/client/ClientLayout';
 import RegistrationLayout from './components/layout/RegistrationLayout';
 import Login from './pages/auth/Login';
 import ForgotPassword from './pages/auth/ForgotPassword';
@@ -68,6 +69,16 @@ import CaregiverPayments from './pages/caregiver/Payments';
 import CaregiverEvvEnrollments from './pages/caregiver/EvvEnrollments';
 import CaregiverEvvEnrollmentForm from './pages/caregiver/EvvEnrollmentForm';
 import CaregiverModulePage from './pages/caregiver/CaregiverModulePage';
+import ClientDashboard from './pages/client/Dashboard';
+import ClientCarePlans from './pages/client/CarePlans';
+import ClientCarePlanDetail from './pages/client/CarePlanDetail';
+import ClientSchedule from './pages/client/Schedule';
+import ClientCaregivers from './pages/client/Caregivers';
+import ClientEvvVisits from './pages/client/EvvVisits';
+import ClientEvvEnrollments from './pages/client/EvvEnrollments';
+import ClientEvvEnrollmentDetail from './pages/client/EvvEnrollmentDetail';
+import ClientProfile from './pages/client/Profile';
+import ClientModulePage from './pages/client/ModulePage';
 import RegisterEntry from './pages/registration/RegisterEntry';
 import CandidateFormPortal from './pages/candidate/CandidateFormPortal';
 import CandidateDocumentForm from './pages/candidate/CandidateDocumentForm';
@@ -251,6 +262,28 @@ export default function App() {
               <Route path={ROUTES.CAREGIVER_TRAINING} element={<CaregiverModulePage />} />
               <Route path={ROUTES.CAREGIVER_SETTINGS} element={<Profile />} />
               <Route path={ROUTES.CAREGIVER_PROFILE} element={<Profile />} />
+            </Route>
+          </Route>
+
+          {/* Client portal — /client/* */}
+          <Route element={<RoleRoute allowedRoles={[ROLES.CLIENT]} />}>
+            <Route path={ROUTES.CLIENT_CARE_PLANS_PRINT_DRAFT} element={<CarePlanPrintPage />} />
+            <Route path={ROUTES.CLIENT_PREFIX} element={<Navigate to={ROUTES.CLIENT_DASHBOARD} replace />} />
+            <Route element={<ClientLayout />}>
+              <Route path={ROUTES.CLIENT_DASHBOARD} element={<ClientDashboard />} />
+              <Route path={ROUTES.CLIENT_CARE_PLANS} element={<ClientCarePlans />} />
+              <Route path={ROUTES.CLIENT_CARE_PLAN_DETAIL} element={<ClientCarePlanDetail />} />
+              <Route path={ROUTES.CLIENT_SCHEDULE} element={<ClientSchedule />} />
+              <Route path={ROUTES.CLIENT_CAREGIVERS} element={<ClientCaregivers />} />
+              <Route path={ROUTES.CLIENT_EVV_ENROLLMENTS} element={<ClientEvvEnrollments />} />
+              <Route path={ROUTES.CLIENT_EVV_ENROLLMENT_DETAIL} element={<ClientEvvEnrollmentDetail />} />
+              <Route path={ROUTES.CLIENT_EVV_VISITS} element={<ClientEvvVisits />} />
+              <Route path={ROUTES.CLIENT_MESSAGES} element={<ClientModulePage />} />
+              <Route path={ROUTES.CLIENT_DOCUMENTS} element={<ClientModulePage />} />
+              <Route path={ROUTES.CLIENT_MEDICATIONS} element={<ClientModulePage />} />
+              <Route path={ROUTES.CLIENT_INVOICES} element={<ClientModulePage />} />
+              <Route path={ROUTES.CLIENT_PROFILE} element={<ClientProfile />} />
+              <Route path={ROUTES.CLIENT_HELP} element={<ClientModulePage />} />
             </Route>
           </Route>
         </Route>

@@ -55,6 +55,7 @@ export default function VisitMonthCalendar({
   selectedVisitId,
   onSelectDate,
   onSelectVisit,
+  primaryNameKey = 'clientName',
 }) {
   const todayKey = toDateKey(new Date());
   const cells = useMemo(() => buildMonthGrid(year, month), [year, month]);
@@ -127,9 +128,10 @@ export default function VisitMonthCalendar({
                     className={`truncate rounded border px-1.5 py-0.5 text-[10px] font-medium leading-tight ${
                       statusColors[visit.status] || statusColors.Scheduled
                     } ${selectedVisitId === visit.id ? 'ring-1 ring-primary' : ''}`}
-                    title={`${visit.clientName} · ${visit.caregiverName}`}
+                    title={`${visit.clientName || ''} · ${visit.caregiverName || ''}`}
                   >
-                    {formatTime(visit.scheduledStartAt, visit.timezone)} {visit.clientName}
+                    {formatTime(visit.scheduledStartAt, visit.timezone)}{' '}
+                    {visit[primaryNameKey] || visit.clientName || visit.caregiverName || 'Visit'}
                   </button>
                 ))}
                 {dayVisits.length > 3 && (

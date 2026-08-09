@@ -30,6 +30,8 @@ export function getRoutePrefixForRole(role) {
       return ROUTES.AGENCY_PREFIX;
     case ROLES.CAREGIVER:
       return ROUTES.CAREGIVER_PREFIX;
+    case ROLES.CLIENT:
+      return ROUTES.CLIENT_PREFIX;
     default:
       return null;
   }
@@ -46,6 +48,8 @@ export function getHomeRouteForRole(role) {
       return getHomeRouteForHr();
     case ROLES.CAREGIVER:
       return ROUTES.CAREGIVER_DASHBOARD;
+    case ROLES.CLIENT:
+      return ROUTES.CLIENT_DASHBOARD;
     default:
       return ROUTES.LOGIN;
   }
@@ -65,6 +69,9 @@ export function canAccessPath(pathname, role) {
   }
   if (pathname.startsWith(ROUTES.CAREGIVER_PREFIX)) {
     return normalized === ROLES.CAREGIVER;
+  }
+  if (pathname.startsWith(ROUTES.CLIENT_PREFIX)) {
+    return normalized === ROLES.CLIENT;
   }
 
   return true;

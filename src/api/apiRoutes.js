@@ -151,6 +151,13 @@ const API_ROUTES = {
       CHECK_OUT: '/caregiver/visits',
     },
   },
+  CLIENT: {
+    DASHBOARD: '/client/dashboard',
+    CARE_PLANS: '/client/care-plans',
+    VISITS: '/client/visits',
+    CAREGIVERS: '/client/caregivers',
+    EVV_ENROLLMENTS: '/client/evv-enrollments',
+  },
   REGISTRATION: {
     CHECK_USER_ID: '/registration/check-user-id',
     ACCOUNT: '/registration/account',

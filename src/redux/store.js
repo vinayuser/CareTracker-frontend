@@ -18,6 +18,7 @@ import evvEnrollmentsReducer from './slices/evvEnrollmentsSlice';
 import visitSchedulesReducer from './slices/visitSchedulesSlice';
 import invoicesReducer from './slices/invoicesSlice';
 import dashboardsReducer from './slices/dashboardsSlice';
+import clientPortalReducer from './slices/clientPortalSlice';
 
 const store = configureStore({
   reducer: {
@@ -40,6 +41,7 @@ const store = configureStore({
     visitSchedules: visitSchedulesReducer,
     invoices: invoicesReducer,
     dashboards: dashboardsReducer,
+    clientPortal: clientPortalReducer,
   },
 });
 

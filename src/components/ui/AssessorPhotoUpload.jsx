@@ -7,6 +7,7 @@ export default function AssessorPhotoUpload({
   onChange,
   className = '',
   shape = 'circle',
+  readOnly = false,
 }) {
   const isSquare = shape === 'square';
   const photoClass = isSquare
@@ -41,17 +42,19 @@ export default function AssessorPhotoUpload({
             {isSquare ? 'Photo' : 'No photo'}
           </div>
         )}
-        <div className={`flex flex-col gap-2 ${isSquare ? 'w-full' : ''}`}>
-          <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-            Upload photo
-            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleFile} />
-          </label>
-          {value && (
-            <button type="button" onClick={() => onChange('')} className="text-left text-xs font-medium text-red-600 hover:underline">
-              Remove photo
-            </button>
-          )}
-        </div>
+        {!readOnly && (
+          <div className={`flex flex-col gap-2 ${isSquare ? 'w-full' : ''}`}>
+            <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+              Upload photo
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleFile} />
+            </label>
+            {value && (
+              <button type="button" onClick={() => onChange('')} className="text-left text-xs font-medium text-red-600 hover:underline">
+                Remove photo
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

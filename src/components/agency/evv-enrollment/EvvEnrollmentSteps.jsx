@@ -7,6 +7,25 @@ const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-3 py-2.
 const labelClass = 'mb-1.5 block text-sm font-medium text-gray-700';
 const readOnlyClass = 'w-full rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 text-sm text-gray-700';
 
+function SignatureRead({ label, value }) {
+  return (
+    <div>
+      <p className={labelClass}>{label}</p>
+      {value && String(value).startsWith('data:image') ? (
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+          <img
+            src={value}
+            alt={label}
+            className="h-[120px] w-full bg-white object-contain object-left"
+          />
+        </div>
+      ) : (
+        <div className={readOnlyClass}>—</div>
+      )}
+    </div>
+  );
+}
+
 function Field({ label, required, children, className = '' }) {
   return (
     <div className={className}>
@@ -138,9 +157,16 @@ export function EvvEnrollmentStepOne({ form, onFormDataChange, readOnly = false,
   );
 }
 
-export function EvvEnrollmentStepTwo({ form, onFormDataChange, readOnly = false, showOfficeUse = false }) {
+export function EvvEnrollmentStepTwo({
+  form, onFormDataChange, readOnly = false, showOfficeUse = false,
+  clientSignatureEditable = false,
+  lockClientSignature = false,
+}) {
   const d = form.formData;
   const patch = (section, field, value) => onFormDataChange(section, { [field]: value });
+  const canEditClientSig = clientSignatureEditable || (!readOnly && !lockClientSignature);
+  const canEditCaregiverSig = !readOnly && !clientSignatureEditable;
+  const fieldsReadOnly = readOnly || clientSignatureEditable;
 
   return (
     <div className="space-y-5">
@@ -150,24 +176,24 @@ export function EvvEnrollmentStepTwo({ form, onFormDataChange, readOnly = false,
           options={EVV_METHODS}
           values={d.evvMethods.methods}
           onToggle={(v) => patch('evvMethods', 'methods', toggleArrayValue(d.evvMethods.methods, v))}
-          readOnly={readOnly}
+          readOnly={fieldsReadOnly}
         />
-        <InputOrRead label="Other Method" value={d.evvMethods.other} onChange={(v) => patch('evvMethods', 'other', v)} readOnly={readOnly} />
+        <InputOrRead label="Other Method" value={d.evvMethods.other} onChange={(v) => patch('evvMethods', 'other', v)} readOnly={fieldsReadOnly} />
       </Section>
 
       <Section n="5" title="Mobile App Enrollment" subtitle="Complete if using Mobile App.">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Chips label="Smartphone Type" options={SMARTPHONE_TYPES} values={d.mobileEnrollment.smartphoneType} single onToggle={(v) => patch('mobileEnrollment', 'smartphoneType', v)} readOnly={readOnly} />
-          <InputOrRead label="Mobile Number" value={d.mobileEnrollment.mobileNumber} onChange={(v) => patch('mobileEnrollment', 'mobileNumber', v)} readOnly={readOnly} />
-          <InputOrRead label="Email for App Registration" value={d.mobileEnrollment.email} onChange={(v) => patch('mobileEnrollment', 'email', v)} readOnly={readOnly} className="sm:col-span-2" />
+          <Chips label="Smartphone Type" options={SMARTPHONE_TYPES} values={d.mobileEnrollment.smartphoneType} single onToggle={(v) => patch('mobileEnrollment', 'smartphoneType', v)} readOnly={fieldsReadOnly} />
+          <InputOrRead label="Mobile Number" value={d.mobileEnrollment.mobileNumber} onChange={(v) => patch('mobileEnrollment', 'mobileNumber', v)} readOnly={fieldsReadOnly} />
+          <InputOrRead label="Email for App Registration" value={d.mobileEnrollment.email} onChange={(v) => patch('mobileEnrollment', 'email', v)} readOnly={fieldsReadOnly} className="sm:col-span-2" />
         </div>
       </Section>
 
       <Section n="6" title="Landline / IVR Enrollment" subtitle="Complete if using Landline or IVR.">
         <div className="grid gap-4 sm:grid-cols-2">
-          <InputOrRead label="Primary Phone for EVV" value={d.landlineEnrollment.primaryPhone} onChange={(v) => patch('landlineEnrollment', 'primaryPhone', v)} readOnly={readOnly} />
-          <Chips label="Phone Type" options={PHONE_TYPES} values={d.landlineEnrollment.phoneType} single onToggle={(v) => patch('landlineEnrollment', 'phoneType', v)} readOnly={readOnly} />
-          <InputOrRead label="Alternate Phone (optional)" value={d.landlineEnrollment.alternatePhone} onChange={(v) => patch('landlineEnrollment', 'alternatePhone', v)} readOnly={readOnly} className="sm:col-span-2" />
+          <InputOrRead label="Primary Phone for EVV" value={d.landlineEnrollment.primaryPhone} onChange={(v) => patch('landlineEnrollment', 'primaryPhone', v)} readOnly={fieldsReadOnly} />
+          <Chips label="Phone Type" options={PHONE_TYPES} values={d.landlineEnrollment.phoneType} single onToggle={(v) => patch('landlineEnrollment', 'phoneType', v)} readOnly={fieldsReadOnly} />
+          <InputOrRead label="Alternate Phone (optional)" value={d.landlineEnrollment.alternatePhone} onChange={(v) => patch('landlineEnrollment', 'alternatePhone', v)} readOnly={fieldsReadOnly} className="sm:col-span-2" />
         </div>
       </Section>
 
@@ -176,23 +202,51 @@ export function EvvEnrollmentStepTwo({ form, onFormDataChange, readOnly = false,
           I consent to the use of Electronic Visit Verification (EVV) to record visits, support billing and claims,
           and comply with program requirements. I authorize the release of information as necessary.
         </p>
+        {clientSignatureEditable && (
+          <p className="rounded-lg bg-violet-50 px-3 py-2 text-xs font-medium text-violet-700">
+            Please review the form and sign as Client / Legal Representative below. Other fields are view-only.
+          </p>
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
-          {!readOnly ? (
+          {canEditClientSig ? (
             <>
               <Field label="Client / Representative Signature">
-                <DigitalSignaturePad value={d.authorization.clientSignature} onChange={(v) => patch('authorization', 'clientSignature', v)} />
+                <DigitalSignaturePad
+                  value={d.authorization.clientSignature}
+                  onChange={(v) => patch('authorization', 'clientSignature', v)}
+                />
               </Field>
-              <InputOrRead label="Date" type="date" value={d.authorization.clientDate} onChange={(v) => patch('authorization', 'clientDate', v)} />
-              <Field label="Caregiver / Employee Signature">
-                <DigitalSignaturePad value={d.authorization.caregiverSignature} onChange={(v) => patch('authorization', 'caregiverSignature', v)} />
-              </Field>
-              <InputOrRead label="Date" type="date" value={d.authorization.caregiverDate} onChange={(v) => patch('authorization', 'caregiverDate', v)} />
+              <InputOrRead
+                label="Date"
+                type="date"
+                value={d.authorization.clientDate}
+                onChange={(v) => patch('authorization', 'clientDate', v)}
+              />
             </>
           ) : (
             <>
-              <ReadField label="Client Signature" value={d.authorization.clientSignature ? 'Signed' : '—'} />
+              <SignatureRead label="Client Signature" value={d.authorization.clientSignature} />
               <ReadField label="Client Date" value={d.authorization.clientDate} />
-              <ReadField label="Caregiver Signature" value={d.authorization.caregiverSignature ? 'Signed' : '—'} />
+            </>
+          )}
+          {canEditCaregiverSig ? (
+            <>
+              <Field label="Caregiver / Employee Signature">
+                <DigitalSignaturePad
+                  value={d.authorization.caregiverSignature}
+                  onChange={(v) => patch('authorization', 'caregiverSignature', v)}
+                />
+              </Field>
+              <InputOrRead
+                label="Date"
+                type="date"
+                value={d.authorization.caregiverDate}
+                onChange={(v) => patch('authorization', 'caregiverDate', v)}
+              />
+            </>
+          ) : (
+            <>
+              <SignatureRead label="Caregiver Signature" value={d.authorization.caregiverSignature} />
               <ReadField label="Caregiver Date" value={d.authorization.caregiverDate} />
             </>
           )}
@@ -204,16 +258,24 @@ export function EvvEnrollmentStepTwo({ form, onFormDataChange, readOnly = false,
           I acknowledge that I have received training on how to use the EVV system and understand my responsibilities.
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
-          {!readOnly ? (
+          {canEditCaregiverSig ? (
             <>
               <Field label="Caregiver / Employee Signature">
-                <DigitalSignaturePad value={d.trainingAck.caregiverSignature} onChange={(v) => patch('trainingAck', 'caregiverSignature', v)} />
+                <DigitalSignaturePad
+                  value={d.trainingAck.caregiverSignature}
+                  onChange={(v) => patch('trainingAck', 'caregiverSignature', v)}
+                />
               </Field>
-              <InputOrRead label="Date" type="date" value={d.trainingAck.date} onChange={(v) => patch('trainingAck', 'date', v)} />
+              <InputOrRead
+                label="Date"
+                type="date"
+                value={d.trainingAck.date}
+                onChange={(v) => patch('trainingAck', 'date', v)}
+              />
             </>
           ) : (
             <>
-              <ReadField label="Caregiver Signature" value={d.trainingAck.caregiverSignature ? 'Signed' : '—'} />
+              <SignatureRead label="Caregiver Signature" value={d.trainingAck.caregiverSignature} />
               <ReadField label="Date" value={d.trainingAck.date} />
             </>
           )}

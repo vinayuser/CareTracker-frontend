@@ -11,6 +11,7 @@ function getProfileRoute(role) {
   const normalized = normalizeRole(role);
   if (normalized === ROLES.SUPER_ADMIN) return ROUTES.ADMIN_PROFILE;
   if (normalized === ROLES.CAREGIVER) return ROUTES.CAREGIVER_PROFILE;
+  if (normalized === ROLES.CLIENT) return ROUTES.CLIENT_PROFILE;
   return ROUTES.AGENCY_PROFILE;
 }
 

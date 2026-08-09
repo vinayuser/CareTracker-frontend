@@ -54,6 +54,10 @@ export default function CaregiverEvvEnrollmentForm() {
 
   const editable = ['Pending', 'Rejected'].includes(form.status);
   const readOnly = !editable;
+  const clientAlreadySigned = Boolean(
+    form.formData?.authorization?.clientSignature
+    && String(form.formData.authorization.clientSignature).startsWith('data:image'),
+  );
 
   const handleSubmit = () => runLocked(async () => {
     try {
@@ -86,12 +90,28 @@ export default function CaregiverEvvEnrollmentForm() {
         </button>
       </div>
 
+      {editable && clientAlreadySigned && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          Client signature is already on file and locked. Complete your caregiver sections and submit.
+        </div>
+      )}
+      {editable && !clientAlreadySigned && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          The client was also emailed this form to sign Authorization & Consent. You can still collect the client signature here if needed.
+        </div>
+      )}
+
       <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8">
         <Stepper currentStep={step} />
         {step === 1 ? (
           <EvvEnrollmentStepOne form={form} onFormDataChange={onFormDataChange} readOnly={readOnly} lockClientFields={editable} />
         ) : (
-          <EvvEnrollmentStepTwo form={form} onFormDataChange={onFormDataChange} readOnly={readOnly} />
+          <EvvEnrollmentStepTwo
+            form={form}
+            onFormDataChange={onFormDataChange}
+            readOnly={readOnly}
+            lockClientSignature={clientAlreadySigned}
+          />
         )}
 
         <div className="mt-8 flex flex-wrap justify-between gap-3 border-t border-gray-100 pt-6">

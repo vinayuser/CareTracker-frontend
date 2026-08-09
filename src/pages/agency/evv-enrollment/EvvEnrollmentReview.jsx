@@ -65,7 +65,12 @@ export default function EvvEnrollmentReview() {
 
   if (loading) return <div className="flex min-h-[40vh] items-center justify-center text-sm text-gray-500">Loading enrollment...</div>;
 
+  const hasInk = (value) => Boolean(value && String(value).startsWith('data:image'));
+  const clientSigned = hasInk(form.formData?.authorization?.clientSignature);
+  const caregiverSigned = hasInk(form.formData?.authorization?.caregiverSignature);
+  const bothSigned = clientSigned && caregiverSigned;
   const canVerify = form.status === 'Submitted';
+  const canApprove = canVerify && bothSigned;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 pb-10">
@@ -96,6 +101,17 @@ export default function EvvEnrollmentReview() {
           }`}>{form.status}</span>
         </div>
       </div>
+
+      {canVerify && !bothSigned && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Waiting for signatures before verification:
+          {' '}
+          {!clientSigned ? 'client signature missing' : null}
+          {!clientSigned && !caregiverSigned ? ' · ' : null}
+          {!caregiverSigned ? 'caregiver signature missing' : null}.
+          You can still reject the enrollment.
+        </div>
+      )}
 
       <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8">
         <Stepper currentStep={step} />
@@ -128,6 +144,7 @@ export default function EvvEnrollmentReview() {
               </SubmitButton>
               <SubmitButton
                 loading={submitting}
+                disabled={!canApprove}
                 onClick={() => handleVerify('verify')}
                 icon={CheckCircle}
                 loadingLabel="Verifying..."

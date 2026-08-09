@@ -7,6 +7,7 @@ export const ROUTES = {
   ADMIN_PREFIX: '/admin',
   AGENCY_PREFIX: '/agency',
   CAREGIVER_PREFIX: '/caregiver',
+  CLIENT_PREFIX: '/client',
 
   // Super admin routes
   ADMIN_DASHBOARD: '/admin/dashboard',
@@ -104,6 +105,23 @@ export const ROUTES = {
   CAREGIVER_TRAINING: '/caregiver/training',
   CAREGIVER_SETTINGS: '/caregiver/settings',
   CAREGIVER_PROFILE: '/caregiver/profile',
+
+  // Client portal
+  CLIENT_DASHBOARD: '/client/dashboard',
+  CLIENT_CARE_PLANS: '/client/care-plans',
+  CLIENT_CARE_PLAN_DETAIL: '/client/care-plans/:id',
+  CLIENT_CARE_PLANS_PRINT_DRAFT: '/client/care-plans/draft/print',
+  CLIENT_SCHEDULE: '/client/schedule',
+  CLIENT_CAREGIVERS: '/client/caregivers',
+  CLIENT_EVV_VISITS: '/client/evv-visits',
+  CLIENT_EVV_ENROLLMENTS: '/client/evv-enrollments',
+  CLIENT_EVV_ENROLLMENT_DETAIL: '/client/evv-enrollments/:id',
+  CLIENT_MESSAGES: '/client/messages',
+  CLIENT_DOCUMENTS: '/client/documents',
+  CLIENT_MEDICATIONS: '/client/medications',
+  CLIENT_INVOICES: '/client/invoices',
+  CLIENT_PROFILE: '/client/profile',
+  CLIENT_HELP: '/client/help',
 
   // Agency registration
   REGISTRATION_ENTRY: '/register',
