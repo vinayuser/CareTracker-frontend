@@ -5,6 +5,7 @@ import {
   Plus, Search, Pencil, Trash2, Eye, Flame, UserPlus, ClipboardList,
 } from 'lucide-react';
 import AgencyKpiCard from '../../../components/agency/dashboard/AgencyKpiCard';
+import ActionIconButton from '../../../components/ui/ActionIconButton';
 import {
   deleteLead,
   fetchLeads,
@@ -28,10 +29,6 @@ const PRIORITY_STYLES = {
   Medium: 'bg-amber-100 text-amber-700',
   Low: 'bg-gray-100 text-gray-600',
 };
-
-const actionBtn = 'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold shadow-sm transition-colors';
-const actionBtnNeutral = `${actionBtn} border-gray-200 bg-white text-gray-700 hover:border-primary/30 hover:bg-gray-50 hover:text-primary`;
-const actionBtnDanger = `${actionBtn} border-red-200 bg-white text-red-600 hover:bg-red-50`;
 
 export default function Leads() {
   const dispatch = useDispatch();
@@ -169,17 +166,31 @@ export default function Leads() {
                     </td>
                     <td className="px-5 py-4 text-gray-700">{item.assignedToName || '—'}</td>
                     <td className="px-5 py-4">
-                      <div className="flex flex-wrap gap-1.5">
-                        <Link to={ROUTES.AGENCY_LEADS_DETAIL.replace(':id', item.id)} className={actionBtnNeutral}>
-                          <Eye size={13} /> View
-                        </Link>
-                        <Link to={ROUTES.AGENCY_LEADS_EDIT.replace(':id', item.id)} className={actionBtnNeutral}>
-                          <Pencil size={13} /> Edit
-                        </Link>
+                      <div className="flex items-center gap-0.5">
+                        <ActionIconButton
+                          label="View"
+                          to={ROUTES.AGENCY_LEADS_DETAIL.replace(':id', item.id)}
+                          as={Link}
+                          className="text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                        >
+                          <Eye size={16} />
+                        </ActionIconButton>
+                        <ActionIconButton
+                          label="Edit"
+                          to={ROUTES.AGENCY_LEADS_EDIT.replace(':id', item.id)}
+                          as={Link}
+                          className="text-gray-500 hover:bg-blue-50 hover:text-blue-700"
+                        >
+                          <Pencil size={16} />
+                        </ActionIconButton>
                         {item.stage !== 'Converted' ? (
-                          <button type="button" onClick={() => handleDelete(item)} className={actionBtnDanger}>
-                            <Trash2 size={13} /> Delete
-                          </button>
+                          <ActionIconButton
+                            label="Delete"
+                            onClick={() => handleDelete(item)}
+                            className="text-gray-500 hover:bg-red-50 hover:text-red-600"
+                          >
+                            <Trash2 size={16} />
+                          </ActionIconButton>
                         ) : null}
                       </div>
                     </td>

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   CalendarCheck, Clock, Wallet, ShieldCheck, CheckCircle2, MapPin, Coffee, LogOut,
-  AlertTriangle, Info, ChevronRight,
+  AlertTriangle, Info, ChevronRight, FileCheck, ClipboardList,
 } from 'lucide-react';
 import { getAuthUser } from '../../utils/auth';
 import { ROUTES } from '../../routes/routes';
@@ -11,6 +11,11 @@ import { fetchCaregiverDashboard } from '../../redux/slices/dashboardsSlice';
 
 const STATUS_STYLES = {
   Completed: 'bg-emerald-100 text-emerald-700',
+  Verified: 'bg-emerald-100 text-emerald-700',
+  'Approved (Late)': 'bg-amber-100 text-amber-800',
+  'Pending Approval': 'bg-sky-100 text-sky-700',
+  'Pending (Late)': 'bg-amber-100 text-amber-800',
+  Rejected: 'bg-red-100 text-red-700',
   'Late Completed': 'bg-red-100 text-red-800',
   'In Progress': 'bg-blue-100 text-blue-700',
   InProgress: 'bg-blue-100 text-blue-700',
@@ -52,8 +57,15 @@ function WeeklyBarChart({ weeklyHours = [], weeklySummary = {} }) {
         ))}
       </div>
       <div className="mt-4 flex flex-wrap gap-4 border-t border-gray-100 pt-3 text-sm">
-        <span className="text-gray-600">Total Hours: <strong className="text-gray-900">{weeklySummary.total_hours || '00h 00m'}</strong></span>
-        <span className="text-gray-600">Total Visits: <strong className="text-gray-900">{weeklySummary.total_visits ?? 0}</strong></span>
+        <span className="text-gray-600">
+          Total Hours: <strong className="text-gray-900">{weeklySummary.total_hours || '00h 00m'}</strong>
+        </span>
+        <span className="text-gray-600">
+          Total Visits: <strong className="text-gray-900">{weeklySummary.total_visits ?? 0}</strong>
+        </span>
+        <span className="text-gray-600">
+          Completed: <strong className="text-gray-900">{weeklySummary.completed_visits ?? 0}</strong>
+        </span>
       </div>
     </div>
   );
@@ -64,6 +76,19 @@ function greetingForNow() {
   if (hour < 12) return 'Good morning';
   if (hour < 17) return 'Good afternoon';
   return 'Good evening';
+}
+
+function formatVisitDate(dateKey) {
+  if (!dateKey) return '—';
+  try {
+    return new Date(`${dateKey}T12:00:00`).toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  } catch {
+    return dateKey;
+  }
 }
 
 export default function CaregiverDashboard() {
@@ -79,10 +104,12 @@ export default function CaregiverDashboard() {
   const kpis = data?.kpis;
   const name = data?.caregiver_name || authUser?.name || 'Caregiver';
   const todaySchedule = data?.today_schedule || [];
+  const recentVisits = data?.recent_visits || [];
   const clock = data?.active_clock || { clocked_in: false };
   const alerts = data?.alerts || [];
   const weeklyHours = data?.weekly_hours || [];
   const weeklySummary = data?.weekly_summary || {};
+  const enrollment = data?.enrollment || kpis?.enrollment || {};
 
   const greeting = useMemo(() => greetingForNow(), []);
 
@@ -105,12 +132,15 @@ export default function CaregiverDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <KpiCard label="Today's Visits" icon={CalendarCheck} iconBg="bg-blue-100 text-blue-600">
           <p className="text-3xl font-bold text-gray-900">{kpis?.today_visits?.total ?? 0}</p>
           <div className="mt-2 flex flex-wrap gap-2 text-xs font-medium">
             <span className="text-emerald-600">{kpis?.today_visits?.completed ?? 0} Completed</span>
-            <span className="text-blue-600">{kpis?.today_visits?.upcoming ?? 0} Upcoming</span>
+            {(kpis?.today_visits?.in_progress ?? 0) > 0 ? (
+              <span className="text-blue-600">{kpis.today_visits.in_progress} In Progress</span>
+            ) : null}
+            <span className="text-orange-600">{kpis?.today_visits?.upcoming ?? 0} Upcoming</span>
           </div>
         </KpiCard>
 
@@ -119,7 +149,9 @@ export default function CaregiverDashboard() {
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100">
             <div className="h-full rounded-full bg-primary" style={{ width: `${kpis?.hours_this_week?.percent ?? 0}%` }} />
           </div>
-          <p className="mt-1 text-xs text-gray-500">Goal: {kpis?.hours_this_week?.goal || '40h'}</p>
+          <p className="mt-1 text-xs text-gray-500">
+            {kpis?.hours_this_week?.percent ?? 0}% · Goal: {kpis?.hours_this_week?.goal || '40h'}
+          </p>
         </KpiCard>
 
         <KpiCard label="Upcoming Pay (est.)" icon={Wallet} iconBg="bg-emerald-100 text-emerald-600">
@@ -130,6 +162,18 @@ export default function CaregiverDashboard() {
         <KpiCard label="EVV Compliance" icon={ShieldCheck} iconBg="bg-teal-100 text-teal-600">
           <p className="text-3xl font-bold text-gray-900">{kpis?.evv_compliance?.percent ?? 100}%</p>
           <p className="mt-1 text-xs text-gray-500">{kpis?.evv_compliance?.period || 'This Week'}</p>
+        </KpiCard>
+
+        <KpiCard label="EVV Enrollment" icon={FileCheck} iconBg="bg-amber-100 text-amber-700">
+          <p className="text-3xl font-bold text-gray-900">{enrollment.verified ?? 0}</p>
+          <div className="mt-2 flex flex-wrap gap-2 text-xs font-medium">
+            <span className="text-emerald-600">{enrollment.verified ?? 0} Verified</span>
+            {(enrollment.action_needed ?? 0) > 0 ? (
+              <span className="text-amber-600">{enrollment.action_needed} Need action</span>
+            ) : (
+              <span className="text-gray-500">{enrollment.total ?? 0} Total</span>
+            )}
+          </div>
         </KpiCard>
       </div>
 
@@ -148,7 +192,10 @@ export default function CaregiverDashboard() {
               </div>
             ) : (
               todaySchedule.map((visit) => (
-                <div key={visit.id} className={`flex items-start gap-4 px-5 py-4 ${visit.late_check_in || visit.status === 'Missed' || visit.status === 'Exception' ? 'bg-red-50/60' : ''}`}>
+                <div
+                  key={visit.id}
+                  className={`flex items-start gap-4 px-5 py-4 ${visit.late_check_in || visit.status === 'Missed' || visit.status === 'Exception' ? 'bg-red-50/60' : ''}`}
+                >
                   <div className="min-w-[120px] text-sm font-medium text-gray-700">{visit.time}</div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -163,7 +210,11 @@ export default function CaregiverDashboard() {
                     </p>
                   </div>
                   <div className="shrink-0 text-gray-400">
-                    {visit.status === 'Completed' ? <CheckCircle2 size={18} className="text-emerald-500" /> : <MapPin size={18} className="text-primary" />}
+                    {visit.status === 'Completed' || visit.status === 'Verified' ? (
+                      <CheckCircle2 size={18} className="text-emerald-500" />
+                    ) : (
+                      <MapPin size={18} className="text-primary" />
+                    )}
                   </div>
                 </div>
               ))
@@ -210,33 +261,70 @@ export default function CaregiverDashboard() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-          <h2 className="flex items-center gap-2 font-semibold text-gray-900">
-            <AlertTriangle size={18} className="text-orange-500" /> Alerts
-          </h2>
-          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">{alerts.length}</span>
-        </div>
-        <div className="divide-y divide-gray-50">
-          {alerts.length === 0 ? (
-            <div className="px-5 py-8 text-center text-sm text-gray-500">No alerts right now.</div>
-          ) : (
-            alerts.map((alert) => (
-              <div key={alert.id} className="flex items-start gap-3 px-5 py-3">
-                <div className={`mt-0.5 shrink-0 ${alert.tone === 'warning' ? 'text-amber-500' : 'text-blue-500'}`}>
-                  {alert.tone === 'warning' ? <AlertTriangle size={16} /> : <Info size={16} />}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-gray-900">{alert.type}</p>
-                    <span className="text-xs text-gray-400">{alert.time}</span>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+            <h2 className="flex items-center gap-2 font-semibold text-gray-900">
+              <AlertTriangle size={18} className="text-orange-500" /> Alerts
+            </h2>
+            <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">{alerts.length}</span>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {alerts.length === 0 ? (
+              <div className="px-5 py-8 text-center text-sm text-gray-500">No alerts right now.</div>
+            ) : (
+              alerts.map((alert) => (
+                <div key={alert.id} className="flex items-start gap-3 px-5 py-3">
+                  <div className={`mt-0.5 shrink-0 ${alert.tone === 'warning' ? 'text-amber-500' : 'text-blue-500'}`}>
+                    {alert.tone === 'warning' ? <AlertTriangle size={16} /> : <Info size={16} />}
                   </div>
-                  <p className="mt-0.5 text-sm text-gray-500">{alert.text}</p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-gray-900">{alert.type}</p>
+                      <span className="text-xs text-gray-400">{alert.time}</span>
+                    </div>
+                    <p className="mt-0.5 text-sm text-gray-500">{alert.text}</p>
+                  </div>
+                  <ChevronRight size={16} className="shrink-0 text-gray-300" />
                 </div>
-                <ChevronRight size={16} className="shrink-0 text-gray-300" />
-              </div>
-            ))
-          )}
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+            <h2 className="flex items-center gap-2 font-semibold text-gray-900">
+              <ClipboardList size={18} className="text-primary" /> Recent Visits
+            </h2>
+            <Link to={ROUTES.CAREGIVER_VISITS} className="text-sm font-medium text-primary hover:underline">
+              View All
+            </Link>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {recentVisits.length === 0 ? (
+              <div className="px-5 py-8 text-center text-sm text-gray-500">No completed visits yet.</div>
+            ) : (
+              recentVisits.map((visit) => (
+                <div key={visit.id} className="flex items-start justify-between gap-3 px-5 py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-900">{visit.client || 'Client'}</p>
+                    <p className="text-xs text-gray-500">{visit.service || 'Visit'}</p>
+                    <p className="mt-1 text-xs text-gray-400">
+                      {formatVisitDate(visit.date)}
+                      {visit.time ? ` · ${visit.time}` : ''}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${STATUS_STYLES[visit.status] || STATUS_STYLES.Completed}`}>
+                      {visit.status}
+                    </span>
+                    <p className="mt-1 text-xs text-gray-500">{visit.duration}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
 

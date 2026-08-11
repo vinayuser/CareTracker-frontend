@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Pencil, Trash2, ClipboardList, FileText, UserCheck, DollarSign, Printer, Save } from 'lucide-react';
 import AgencyKpiCard from '../../../components/agency/dashboard/AgencyKpiCard';
+import ActionIconButton from '../../../components/ui/ActionIconButton';
 import SubmitButton from '../../../components/ui/SubmitButton';
 import {
   acceptAssessmentQuote,
@@ -23,14 +24,6 @@ const STATUS_STYLES = {
   Accepted: 'bg-emerald-100 text-emerald-700',
   Declined: 'bg-gray-100 text-gray-600',
 };
-
-const actionBtn =
-  'inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold shadow-sm transition-colors';
-const actionBtnNeutral = `${actionBtn} border-gray-200 bg-white text-gray-700 hover:border-primary/30 hover:bg-gray-50 hover:text-primary`;
-const actionBtnAmber = `${actionBtn} border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100`;
-const actionBtnEmerald = `${actionBtn} border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100`;
-const actionBtnPrimary = `${actionBtn} border-primary/20 bg-primary/5 text-primary hover:bg-primary/10`;
-const actionBtnDanger = `${actionBtn} border-red-200 bg-white text-red-600 hover:bg-red-50`;
 
 function QuoteModal({ open, onClose, onSubmit, loading, defaults, isEdit }) {
   const [hourlyRate, setHourlyRate] = useState('35');
@@ -223,41 +216,67 @@ export default function Assessments() {
                       <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[a.status] || STATUS_STYLES.Enquiry}`}>{a.status}</span>
                     </td>
                     <td className="px-5 py-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Link to={ROUTES.AGENCY_ASSESSMENTS_EDIT.replace(':id', a.id)} className={actionBtnNeutral}>
-                          <Pencil size={16} /> Edit
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => window.open(ROUTES.AGENCY_ASSESSMENTS_PRINT.replace(':id', a.id), '_blank')}
-                          className={actionBtnNeutral}
+                      <div className="flex items-center gap-0.5">
+                        <ActionIconButton
+                          label="Edit"
+                          to={ROUTES.AGENCY_ASSESSMENTS_EDIT.replace(':id', a.id)}
+                          as={Link}
+                          className="text-gray-500 hover:bg-blue-50 hover:text-blue-700"
                         >
-                          <Printer size={16} /> Print
-                        </button>
+                          <Pencil size={16} />
+                        </ActionIconButton>
+                        <ActionIconButton
+                          label="Print"
+                          onClick={() => window.open(ROUTES.AGENCY_ASSESSMENTS_PRINT.replace(':id', a.id), '_blank')}
+                          className="text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                        >
+                          <Printer size={16} />
+                        </ActionIconButton>
                         {a.status === 'Enquiry' && (
-                          <button type="button" onClick={() => setQuoteTarget(a)} className={actionBtnAmber}>
-                            <DollarSign size={16} /> Quote
-                          </button>
+                          <ActionIconButton
+                            label="Quote"
+                            onClick={() => setQuoteTarget(a)}
+                            className="text-gray-500 hover:bg-amber-50 hover:text-amber-700"
+                          >
+                            <DollarSign size={16} />
+                          </ActionIconButton>
                         )}
                         {a.carePlanId && (a.status === 'Quoted' || a.status === 'Accepted') && (
-                          <button type="button" onClick={() => setQuoteTarget(a)} className={actionBtnAmber}>
-                            <DollarSign size={16} /> Edit Quote
-                          </button>
+                          <ActionIconButton
+                            label="Edit Quote"
+                            onClick={() => setQuoteTarget(a)}
+                            className="text-gray-500 hover:bg-amber-50 hover:text-amber-700"
+                          >
+                            <DollarSign size={16} />
+                          </ActionIconButton>
                         )}
                         {a.status === 'Quoted' && (
-                          <button type="button" onClick={() => handleAccept(a)} className={actionBtnEmerald}>
-                            <UserCheck size={16} /> Onboard
-                          </button>
+                          <ActionIconButton
+                            label="Onboard"
+                            onClick={() => handleAccept(a)}
+                            className="text-gray-500 hover:bg-emerald-50 hover:text-emerald-700"
+                          >
+                            <UserCheck size={16} />
+                          </ActionIconButton>
                         )}
                         {a.carePlanId && (
-                          <Link to={`${ROUTES.AGENCY_CARE_PLANS_EDIT.replace(':id', a.carePlanId)}`} className={actionBtnPrimary}>
-                            <FileText size={16} /> View Plan
-                          </Link>
+                          <ActionIconButton
+                            label="View Plan"
+                            to={ROUTES.AGENCY_CARE_PLANS_EDIT.replace(':id', a.carePlanId)}
+                            as={Link}
+                            className="text-gray-500 hover:bg-primary/10 hover:text-primary"
+                          >
+                            <FileText size={16} />
+                          </ActionIconButton>
                         )}
                         {a.status !== 'Accepted' && (
-                          <button type="button" onClick={() => handleDelete(a)} className={actionBtnDanger}>
-                            <Trash2 size={16} /> Delete
-                          </button>
+                          <ActionIconButton
+                            label="Delete"
+                            onClick={() => handleDelete(a)}
+                            className="text-gray-500 hover:bg-red-50 hover:text-red-600"
+                          >
+                            <Trash2 size={16} />
+                          </ActionIconButton>
                         )}
                       </div>
                     </td>

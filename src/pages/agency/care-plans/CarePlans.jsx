@@ -1,16 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Plus, Search, Pencil, Trash2, FileText, CheckCircle2, Archive, Printer, History } from 'lucide-react';
 import AgencyKpiCard from '../../../components/agency/dashboard/AgencyKpiCard';
+import ActionIconButton from '../../../components/ui/ActionIconButton';
+import { AssessorDetailCell } from '../../../components/ui/AssessorPhotoUpload';
 import { fetchCarePlans, fetchCarePlanStats, deleteCarePlan } from '../../../redux/slices/carePlansSlice';
 import { ROUTES } from '../../../routes/routes';
 import { confirmAlert } from '../../../utils/swal';
-import { AssessorDetailCell } from '../../../components/ui/AssessorPhotoUpload';
-
-const actionBtn = 'inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold shadow-sm transition-colors';
-const actionBtnNeutral = `${actionBtn} border-gray-200 bg-white text-gray-700 hover:border-primary/30 hover:bg-gray-50 hover:text-primary`;
-const actionBtnDanger = `${actionBtn} border-red-200 bg-white text-red-600 hover:bg-red-50`;
 
 function StatusBadge({ status }) {
   const styles = {
@@ -126,30 +123,39 @@ export default function CarePlans() {
                       />
                     </td>
                     <td className="px-5 py-4 text-gray-700">{plan.effectiveDate || '—'}</td>
-                    <td className="px-5 py-4">
-                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-700">
-                        {plan.version || 'v1'}
-                      </span>
-                    </td>
                     <td className="px-5 py-4"><StatusBadge status={plan.status} /></td>
                     <td className="px-5 py-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Link to={ROUTES.AGENCY_CARE_PLANS_EDIT.replace(':id', plan.id)} className={actionBtnNeutral}>
-                          <Pencil size={16} /> Edit
-                        </Link>
-                        <Link to={ROUTES.AGENCY_CARE_PLANS_VERSIONS.replace(':id', plan.id)} className={actionBtnNeutral}>
-                          <History size={16} /> Versions
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => window.open(ROUTES.AGENCY_CARE_PLANS_PRINT.replace(':id', plan.id), '_blank')}
-                          className={actionBtnNeutral}
+                      <div className="flex items-center gap-0.5">
+                        <ActionIconButton
+                          label="Edit"
+                          to={ROUTES.AGENCY_CARE_PLANS_EDIT.replace(':id', plan.id)}
+                          as={Link}
+                          className="text-gray-500 hover:bg-blue-50 hover:text-blue-700"
                         >
-                          <Printer size={16} /> Print
-                        </button>
-                        <button type="button" onClick={() => handleDelete(plan)} className={actionBtnDanger}>
-                          <Trash2 size={16} /> Delete
-                        </button>
+                          <Pencil size={16} />
+                        </ActionIconButton>
+                        <ActionIconButton
+                          label="Versions"
+                          to={ROUTES.AGENCY_CARE_PLANS_VERSIONS.replace(':id', plan.id)}
+                          as={Link}
+                          className="text-gray-500 hover:bg-violet-50 hover:text-violet-700"
+                        >
+                          <History size={16} />
+                        </ActionIconButton>
+                        <ActionIconButton
+                          label="Print"
+                          onClick={() => window.open(ROUTES.AGENCY_CARE_PLANS_PRINT.replace(':id', plan.id), '_blank')}
+                          className="text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                        >
+                          <Printer size={16} />
+                        </ActionIconButton>
+                        <ActionIconButton
+                          label="Delete"
+                          onClick={() => handleDelete(plan)}
+                          className="text-gray-500 hover:bg-red-50 hover:text-red-600"
+                        >
+                          <Trash2 size={16} />
+                        </ActionIconButton>
                       </div>
                     </td>
                   </tr>

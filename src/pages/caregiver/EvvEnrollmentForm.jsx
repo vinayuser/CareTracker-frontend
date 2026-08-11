@@ -43,11 +43,18 @@ export default function CaregiverEvvEnrollmentForm() {
   }, [selected]);
 
   const onFormDataChange = (section, patch) => {
+    // Caregivers may only update their own signature fields — never client ink.
+    let nextPatch = patch;
+    if (section === 'authorization') {
+      const { clientSignature: _cs, clientDate: _cd, ...allowed } = patch;
+      if (!Object.keys(allowed).length) return;
+      nextPatch = allowed;
+    }
     setForm((prev) => ({
       ...prev,
       formData: {
         ...prev.formData,
-        [section]: { ...prev.formData[section], ...patch },
+        [section]: { ...prev.formData[section], ...nextPatch },
       },
     }));
   };
@@ -92,12 +99,12 @@ export default function CaregiverEvvEnrollmentForm() {
 
       {editable && clientAlreadySigned && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          Client signature is already on file and locked. Complete your caregiver sections and submit.
+          Client signature is already on file. Complete your caregiver sections and submit.
         </div>
       )}
       {editable && !clientAlreadySigned && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          The client was also emailed this form to sign Authorization & Consent. You can still collect the client signature here if needed.
+          You can only sign the caregiver sections. The client signs Authorization & Consent in their portal.
         </div>
       )}
 
@@ -110,7 +117,7 @@ export default function CaregiverEvvEnrollmentForm() {
             form={form}
             onFormDataChange={onFormDataChange}
             readOnly={readOnly}
-            lockClientSignature={clientAlreadySigned}
+            lockClientSignature
           />
         )}
 

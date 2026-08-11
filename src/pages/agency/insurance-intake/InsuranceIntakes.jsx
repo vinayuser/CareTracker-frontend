@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Plus, Search, Pencil, Trash2, Shield, FileCheck, Clock, Printer, Download } from 'lucide-react';
 import { toast } from 'react-toastify';
 import AgencyKpiCard from '../../../components/agency/dashboard/AgencyKpiCard';
+import ActionIconButton from '../../../components/ui/ActionIconButton';
 import { AssessorDetailCell } from '../../../components/ui/AssessorPhotoUpload';
 import {
   fetchInsuranceIntakes,
@@ -13,10 +14,6 @@ import {
 } from '../../../redux/slices/insuranceIntakesSlice';
 import { ROUTES } from '../../../routes/routes';
 import { confirmAlert } from '../../../utils/swal';
-
-const actionBtn = 'inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold shadow-sm transition-colors';
-const actionBtnNeutral = `${actionBtn} border-gray-200 bg-white text-gray-700 hover:border-primary/30 hover:bg-gray-50 hover:text-primary`;
-const actionBtnDanger = `${actionBtn} border-red-200 bg-white text-red-600 hover:bg-red-50`;
 
 function StatusBadge({ status }) {
   const styles = {
@@ -191,24 +188,36 @@ export default function InsuranceIntakes() {
                     <td className="px-5 py-4 text-gray-700">{formatDate(item.updatedAt || item.createdAt)}</td>
                     <td className="px-5 py-4"><StatusBadge status={item.status} /></td>
                     <td className="px-5 py-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
+                      <div className="flex items-center gap-0.5">
+                        <ActionIconButton
+                          label={item.documentCount ? 'Download all uploaded documents' : 'No documents uploaded'}
                           onClick={() => handleDownloadDocs(item)}
-                          className={actionBtnNeutral}
-                          title={item.documentCount ? 'Download all uploaded documents' : 'No documents uploaded'}
+                          className="text-gray-500 hover:bg-gray-100 hover:text-gray-800"
                         >
-                          <Download size={15} /> Docs
-                        </button>
-                        <button type="button" onClick={() => window.open(ROUTES.AGENCY_INSURANCE_INTAKE_PRINT.replace(':id', item.id), '_blank')} className={actionBtnNeutral}>
-                          <Printer size={15} /> Print
-                        </button>
-                        <Link to={ROUTES.AGENCY_INSURANCE_INTAKE_EDIT.replace(':id', item.id)} className={actionBtnNeutral}>
-                          <Pencil size={15} /> Edit
-                        </Link>
-                        <button type="button" onClick={() => handleDelete(item)} className={actionBtnDanger}>
-                          <Trash2 size={15} /> Delete
-                        </button>
+                          <Download size={16} />
+                        </ActionIconButton>
+                        <ActionIconButton
+                          label="Print"
+                          onClick={() => window.open(ROUTES.AGENCY_INSURANCE_INTAKE_PRINT.replace(':id', item.id), '_blank')}
+                          className="text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                        >
+                          <Printer size={16} />
+                        </ActionIconButton>
+                        <ActionIconButton
+                          label="Edit"
+                          to={ROUTES.AGENCY_INSURANCE_INTAKE_EDIT.replace(':id', item.id)}
+                          as={Link}
+                          className="text-gray-500 hover:bg-blue-50 hover:text-blue-700"
+                        >
+                          <Pencil size={16} />
+                        </ActionIconButton>
+                        <ActionIconButton
+                          label="Delete"
+                          onClick={() => handleDelete(item)}
+                          className="text-gray-500 hover:bg-red-50 hover:text-red-600"
+                        >
+                          <Trash2 size={16} />
+                        </ActionIconButton>
                       </div>
                     </td>
                   </tr>

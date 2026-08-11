@@ -164,7 +164,7 @@ export function EvvEnrollmentStepTwo({
 }) {
   const d = form.formData;
   const patch = (section, field, value) => onFormDataChange(section, { [field]: value });
-  const canEditClientSig = clientSignatureEditable || (!readOnly && !lockClientSignature);
+  const canEditClientSig = clientSignatureEditable;
   const canEditCaregiverSig = !readOnly && !clientSignatureEditable;
   const fieldsReadOnly = readOnly || clientSignatureEditable;
 

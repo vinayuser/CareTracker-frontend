@@ -5,14 +5,11 @@ import { Search, Pencil, Trash2, HeartHandshake, Users, UserX, Download, KeyRoun
 import AgencyKpiCard from '../../../components/agency/dashboard/AgencyKpiCard';
 import ClientFormsExportModal from '../../../components/agency/clients/ClientFormsExportModal';
 import SetClientPasswordDrawer from '../../../components/agency/clients/SetClientPasswordDrawer';
+import ActionIconButton from '../../../components/ui/ActionIconButton';
 import { AssessorDetailCell } from '../../../components/ui/AssessorPhotoUpload';
 import { fetchClients, fetchClientStats, deleteClient } from '../../../redux/slices/clientsSlice';
 import { ROUTES } from '../../../routes/routes';
 import { confirmAlert } from '../../../utils/swal';
-
-const actionBtn = 'inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold shadow-sm transition-colors';
-const actionBtnNeutral = `${actionBtn} border-gray-200 bg-white text-gray-700 hover:border-primary/30 hover:bg-gray-50 hover:text-primary`;
-const actionBtnDanger = `${actionBtn} border-red-200 bg-white text-red-600 hover:bg-red-50`;
 
 function StatusBadge({ status }) {
   const styles = {
@@ -157,34 +154,37 @@ export default function Clients() {
                     <td className="px-5 py-4 text-gray-700">{formatDate(client.updatedAt)}</td>
                     <td className="px-5 py-4"><StatusBadge status={client.status} /></td>
                     <td className="px-5 py-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          title={client.hasPortalAccess ? 'Reset portal password' : 'Set portal password'}
+                      <div className="flex items-center gap-0.5">
+                        <ActionIconButton
+                          label={client.hasPortalAccess ? 'Reset portal password' : 'Set portal password'}
                           onClick={() => setPasswordClient(client)}
                           disabled={!client.email}
-                          className={`${actionBtnNeutral} disabled:cursor-not-allowed disabled:opacity-40`}
+                          className="text-gray-500 hover:bg-amber-50 hover:text-amber-700"
                         >
                           <KeyRound size={16} />
-                          {client.hasPortalAccess ? 'Reset Password' : 'Set Password'}
-                        </button>
-                        <button
-                          type="button"
-                          title="Download assessment, care plan, insurance, and documents as ZIP"
+                        </ActionIconButton>
+                        <ActionIconButton
+                          label="Download forms"
                           onClick={() => setExportClient(client)}
-                          className={actionBtnNeutral}
+                          className="text-gray-500 hover:bg-gray-100 hover:text-gray-800"
                         >
-                          <Download size={16} /> Forms
-                        </button>
-                        <Link
+                          <Download size={16} />
+                        </ActionIconButton>
+                        <ActionIconButton
+                          label="Edit"
                           to={ROUTES.AGENCY_CLIENTS_EDIT.replace(':id', client.id)}
-                          className={actionBtnNeutral}
+                          as={Link}
+                          className="text-gray-500 hover:bg-blue-50 hover:text-blue-700"
                         >
-                          <Pencil size={16} /> Edit
-                        </Link>
-                        <button type="button" onClick={() => handleDelete(client)} className={actionBtnDanger}>
-                          <Trash2 size={16} /> Delete
-                        </button>
+                          <Pencil size={16} />
+                        </ActionIconButton>
+                        <ActionIconButton
+                          label="Delete"
+                          onClick={() => handleDelete(client)}
+                          className="text-gray-500 hover:bg-red-50 hover:text-red-600"
+                        >
+                          <Trash2 size={16} />
+                        </ActionIconButton>
                       </div>
                     </td>
                   </tr>
