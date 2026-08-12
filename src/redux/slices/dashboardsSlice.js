@@ -17,6 +17,18 @@ export const fetchEvvDashboard = createAsyncThunk('dashboards/evv', async (param
   }
 });
 
+export const fetchAgencyDashboard = createAsyncThunk('dashboards/agency', async (_, { rejectWithValue }) => {
+  try {
+    const data = await dedupeRequest(`GET:${API_ROUTES.AGENCY.DASHBOARD}`, async () => {
+      const response = await axiosInstance.get(API_ROUTES.AGENCY.DASHBOARD);
+      return response.data.data;
+    });
+    return data;
+  } catch (error) {
+    return rejectWithValue(error.response?.data || error.message);
+  }
+});
+
 export const fetchCaregiverDashboard = createAsyncThunk('dashboards/caregiver', async (_, { rejectWithValue }) => {
   try {
     const data = await dedupeRequest(`GET:${API_ROUTES.CAREGIVER.DASHBOARD}`, async () => {
@@ -48,9 +60,29 @@ const emptyEvv = {
   recent_visits: [],
 };
 
+const emptyAgency = {
+  kpis: {},
+  clients_by_status: [],
+  clients_total: 0,
+  visit_overview: [],
+  week: { from: '', to: '' },
+  recent_visits: [],
+  caregiver_activity: [],
+  tasks: [],
+  alerts: [],
+  widgets: {
+    upcoming_birthdays: 0,
+    pending_evv_approvals: 0,
+    pending_enrollments: 0,
+    submitted_enrollments: 0,
+  },
+};
+
 const dashboardsSlice = createSlice({
   name: 'dashboards',
   initialState: {
+    agency: emptyAgency,
+    agencyLoading: false,
     evv: emptyEvv,
     caregiver: null,
     evvLoading: false,
@@ -60,6 +92,15 @@ const dashboardsSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
+      .addCase(fetchAgencyDashboard.pending, (state) => { state.agencyLoading = true; state.error = null; })
+      .addCase(fetchAgencyDashboard.fulfilled, (state, action) => {
+        state.agencyLoading = false;
+        state.agency = { ...emptyAgency, ...(action.payload || {}) };
+      })
+      .addCase(fetchAgencyDashboard.rejected, (state, action) => {
+        state.agencyLoading = false;
+        state.error = action.payload;
+      })
       .addCase(fetchEvvDashboard.pending, (state) => { state.evvLoading = true; state.error = null; })
       .addCase(fetchEvvDashboard.fulfilled, (state, action) => {
         state.evvLoading = false;

@@ -128,6 +128,7 @@ const API_ROUTES = {
       UPDATE_LOG: '/agency/visits',
     },
     EVV_DASHBOARD: '/agency/evv/dashboard',
+    DASHBOARD: '/agency/dashboard',
     EVV_SETTINGS: '/agency/evv/settings',
     INVOICES: {
       LIST: '/agency/invoices',

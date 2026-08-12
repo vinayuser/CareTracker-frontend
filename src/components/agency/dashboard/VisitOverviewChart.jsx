@@ -1,16 +1,11 @@
-const days = ['12', '13', '14', '15', '16', '17', '18'];
-const completed = [28, 35, 32, 40, 38, 34, 42];
-const scheduled = [14, 16, 18, 15, 17, 20, 19];
-const missed = [3, 2, 4, 2, 3, 2, 1];
-
 const chartW = 520;
 const chartH = 180;
 const padX = 24;
 const padY = 16;
-const maxY = 50;
 
-function toPoints(data) {
-  const step = (chartW - padX * 2) / (data.length - 1);
+function toPoints(data, maxY) {
+  if (!data.length) return '';
+  const step = data.length > 1 ? (chartW - padX * 2) / (data.length - 1) : 0;
   return data
     .map((v, i) => {
       const x = padX + i * step;
@@ -20,11 +15,27 @@ function toPoints(data) {
     .join(' ');
 }
 
-export default function VisitOverviewChart() {
+export default function VisitOverviewChart({ series = [] }) {
+  const days = series.map((d) => d.label || d.day || '');
+  const completed = series.map((d) => Number(d.completed) || 0);
+  const scheduled = series.map((d) => Number(d.scheduled) || 0);
+  const missed = series.map((d) => Number(d.missed) || 0);
+  const maxVal = Math.max(5, ...completed, ...scheduled, ...missed);
+  const maxY = Math.ceil(maxVal / 5) * 5 || 5;
+  const ticks = Array.from({ length: 6 }, (_, i) => Math.round((maxY / 5) * i));
+
+  if (!series.length) {
+    return (
+      <div className="flex h-44 items-center justify-center text-sm text-gray-400">
+        No visit activity this week.
+      </div>
+    );
+  }
+
   return (
     <div className="w-full">
       <svg viewBox={`0 0 ${chartW} ${chartH + 28}`} className="h-auto w-full">
-        {[0, 10, 20, 30, 40, 50].map((tick) => {
+        {ticks.map((tick) => {
           const y = chartH - padY - (tick / maxY) * (chartH - padY * 2);
           return (
             <g key={tick}>
@@ -35,15 +46,15 @@ export default function VisitOverviewChart() {
             </g>
           );
         })}
-        <polyline fill="none" stroke="#22c55e" strokeWidth="2.5" points={toPoints(completed)} />
-        <polyline fill="none" stroke="#3b82f6" strokeWidth="2.5" points={toPoints(scheduled)} />
-        <polyline fill="none" stroke="#ef4444" strokeWidth="2.5" points={toPoints(missed)} />
+        <polyline fill="none" stroke="#22c55e" strokeWidth="2.5" points={toPoints(completed, maxY)} />
+        <polyline fill="none" stroke="#3b82f6" strokeWidth="2.5" points={toPoints(scheduled, maxY)} />
+        <polyline fill="none" stroke="#ef4444" strokeWidth="2.5" points={toPoints(missed, maxY)} />
         {days.map((day, i) => {
-          const step = (chartW - padX * 2) / (days.length - 1);
+          const step = days.length > 1 ? (chartW - padX * 2) / (days.length - 1) : 0;
           const x = padX + i * step;
           return (
-            <text key={day} x={x} y={chartH + 20} textAnchor="middle" className="fill-gray-400 text-[10px]">
-              May {day}
+            <text key={`${day}-${i}`} x={x} y={chartH + 20} textAnchor="middle" className="fill-gray-400 text-[10px]">
+              {day}
             </text>
           );
         })}
