@@ -16,8 +16,24 @@ export const ROUTES = {
   ADMIN_CREATE_INVITATION: '/admin/invitations/create',
   ADMIN_SUBSCRIPTION_PLANS: '/admin/subscription-plans',
   ADMIN_USERS: '/admin/users',
+  ADMIN_ROLES: '/admin/roles',
+  ADMIN_CLIENTS: '/admin/clients',
+  ADMIN_CAREGIVERS: '/admin/caregivers',
+  ADMIN_SCHEDULES: '/admin/schedules',
+  ADMIN_EVV_COMPLIANCE: '/admin/evv-compliance',
+  ADMIN_MEDICAID: '/admin/medicaid',
+  ADMIN_BILLING_CLAIMS: '/admin/billing-claims',
+  ADMIN_FINANCE: '/admin/finance',
+  ADMIN_PAYMENTS: '/admin/payments',
+  ADMIN_SOCIAL: '/admin/social',
+  ADMIN_MARKETING: '/admin/marketing',
+  ADMIN_REFERRALS: '/admin/referrals',
+  ADMIN_CRM: '/admin/crm',
   ADMIN_REPORTS: '/admin/reports',
   ADMIN_AUDIT_LOGS: '/admin/audit-logs',
+  ADMIN_INTEGRATIONS: '/admin/integrations',
+  ADMIN_SUPPORT: '/admin/support',
+  ADMIN_CONTENT: '/admin/content',
   ADMIN_SETTINGS: '/admin/settings',
   ADMIN_PROFILE: '/admin/profile',
 
@@ -130,16 +146,7 @@ export const ROUTES = {
   REGISTRATION_CONFIRMATION: '/register/confirmation',
 };
 
-export const ADMIN_NAV_ITEMS = [
-  { key: 'ADMIN_DASHBOARD', label: 'Dashboard', icon: 'LayoutDashboard' },
-  { key: 'ADMIN_INVITATIONS', label: 'Invitations', icon: 'Mail' },
-  { key: 'ADMIN_AGENCIES', label: 'Agencies', icon: 'Building2' },
-  { key: 'ADMIN_SUBSCRIPTION_PLANS', label: 'Subscription Plans', icon: 'CreditCard' },
-  { key: 'ADMIN_USERS', label: 'Users', icon: 'Users' },
-  { key: 'ADMIN_REPORTS', label: 'Reports', icon: 'BarChart3' },
-  { key: 'ADMIN_AUDIT_LOGS', label: 'Audit Logs', icon: 'FileText' },
-  { key: 'ADMIN_SETTINGS', label: 'Settings', icon: 'Settings' },
-];
+export { ADMIN_NAV_ITEMS, ADMIN_NAV_GROUPS } from './adminNav';
 
 export const REGISTRATION_STEPS = [
   { key: 'REGISTRATION_AGENCY_INFO', label: 'Agency Information', step: 1 },

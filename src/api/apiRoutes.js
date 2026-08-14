@@ -9,6 +9,9 @@ const API_ROUTES = {
   ADMIN: {
     AGENCY: {
       LIST: '/admin/agencies',
+      OPTIONS: '/admin/agencies/options',
+      DETAIL: '/admin/agencies',
+      CAREGIVERS: '/admin/agencies',
       CREATE: '/admin/agencies',
       UPDATE: '/admin/agencies',
       DELETE: '/admin/agencies',

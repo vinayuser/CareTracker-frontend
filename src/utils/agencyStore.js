@@ -226,7 +226,10 @@ export function getAgencyStats(agencies) {
 }
 
 export function enrichAgencyWithPlan(agency, plans) {
-  const plan = plans.find((p) => p.id === agency.subscriptionPlanId) ?? null;
+  const plan =
+    plans.find((p) => p.id === agency.subscriptionPlanId)
+    ?? agency.plan
+    ?? null;
   return { ...agency, plan };
 }
 

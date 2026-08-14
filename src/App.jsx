@@ -23,6 +23,7 @@ import Users from './pages/admin/Users';
 import Reports from './pages/admin/Reports';
 import AuditLogs from './pages/admin/AuditLogs';
 import Settings from './pages/admin/Settings';
+import AdminModulePage from './pages/admin/AdminModulePage';
 import Profile from './pages/Profile';
 import AgencyDashboard from './pages/agency/Dashboard';
 import AgencyModulePage from './pages/agency/AgencyModulePage';
@@ -164,8 +165,24 @@ export default function App() {
               />
               <Route path={ROUTES.ADMIN_SUBSCRIPTION_PLANS} element={<SubscriptionPlans />} />
               <Route path={ROUTES.ADMIN_USERS} element={<Users />} />
+              <Route path={ROUTES.ADMIN_ROLES} element={<AdminModulePage />} />
+              <Route path={ROUTES.ADMIN_CLIENTS} element={<AdminModulePage />} />
+              <Route path={ROUTES.ADMIN_CAREGIVERS} element={<AdminModulePage />} />
+              <Route path={ROUTES.ADMIN_SCHEDULES} element={<AdminModulePage />} />
+              <Route path={ROUTES.ADMIN_EVV_COMPLIANCE} element={<AdminModulePage />} />
+              <Route path={ROUTES.ADMIN_MEDICAID} element={<AdminModulePage />} />
+              <Route path={ROUTES.ADMIN_BILLING_CLAIMS} element={<AdminModulePage />} />
+              <Route path={ROUTES.ADMIN_FINANCE} element={<AdminModulePage />} />
+              <Route path={ROUTES.ADMIN_PAYMENTS} element={<AdminModulePage />} />
+              <Route path={ROUTES.ADMIN_SOCIAL} element={<AdminModulePage />} />
+              <Route path={ROUTES.ADMIN_MARKETING} element={<AdminModulePage />} />
+              <Route path={ROUTES.ADMIN_REFERRALS} element={<AdminModulePage />} />
+              <Route path={ROUTES.ADMIN_CRM} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_REPORTS} element={<Reports />} />
               <Route path={ROUTES.ADMIN_AUDIT_LOGS} element={<AuditLogs />} />
+              <Route path={ROUTES.ADMIN_INTEGRATIONS} element={<AdminModulePage />} />
+              <Route path={ROUTES.ADMIN_SUPPORT} element={<AdminModulePage />} />
+              <Route path={ROUTES.ADMIN_CONTENT} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_SETTINGS} element={<Settings />} />
               <Route path={ROUTES.ADMIN_PROFILE} element={<Profile />} />
             </Route>

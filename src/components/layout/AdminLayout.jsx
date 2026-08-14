@@ -24,7 +24,7 @@ export default function AdminLayout() {
       <AdminSidebar collapsed={collapsed} onToggle={() => setCollapsed((prev) => !prev)} />
       <div className="flex min-w-0 flex-1 flex-col">
         <AdminHeader collapsed={collapsed} onToggleSidebar={() => setCollapsed((prev) => !prev)} />
-        <main className="flex-1 overflow-y-auto p-8">
+        <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>
         <Footer variant="admin" />
