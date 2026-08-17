@@ -1,0 +1,37 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: SSH deploy CareTracker frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script_stop: true
+          command_timeout: 40m
+          script: |
+            set -e
+            cd /var/www/CareTracker-frontend/
+            git pull
+            docker stop caretracker-frontend || true
+            docker rm caretracker-frontend || true
+            docker rmi caretracker-frontend || true
+            docker system prune -af
+            docker build --no-cache -t caretracker-frontend .
+            docker run -d \
+              --name caretracker-frontend \
+              -p 5173:5173 \
+              caretracker-frontend

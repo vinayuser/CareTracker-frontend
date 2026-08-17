@@ -30,6 +30,12 @@ const API_ROUTES = {
       RESEND: '/admin/invitations',
       VALIDATE: '/invitations/validate',
     },
+    USERS: {
+      STATS: '/admin/users/stats',
+      LIST: '/admin/users',
+      SCHEDULES: '/admin/users/schedules',
+      EVV_FORMS: '/admin/users/evv-forms',
+    },
   },
   AGENCY: {
     HR_STAFF: {
