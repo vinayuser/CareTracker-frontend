@@ -10,6 +10,7 @@ jobs:
   deploy:
     name: SSH deploy CareTracker frontend
     runs-on: ubuntu-latest
+    environment: Production
     timeout-minutes: 45
 
     steps:
