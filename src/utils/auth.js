@@ -1,6 +1,11 @@
 import { normalizeRole, ROLES } from '../constants/roles';
 import { ROUTES } from '../routes/routes';
 import { canAccessAgencyModule, getHomeRouteForHr } from './moduleAccess';
+import {
+  canAccessAdminModule,
+  getHomeRouteForAdmin,
+  isPlatformSuperAdmin,
+} from './adminModuleAccess';
 
 export function isAuthenticated() {
   // Prefer live session from /auth/me; token alone is not enough
@@ -24,6 +29,7 @@ export function getRoutePrefixForRole(role) {
   const normalized = normalizeRole(role);
   switch (normalized) {
     case ROLES.SUPER_ADMIN:
+    case ROLES.ADMIN:
       return ROUTES.ADMIN_PREFIX;
     case ROLES.AGENCY_OWNER:
     case ROLES.HR:
@@ -41,7 +47,8 @@ export function getHomeRouteForRole(role) {
   const normalized = normalizeRole(role);
   switch (normalized) {
     case ROLES.SUPER_ADMIN:
-      return ROUTES.ADMIN_DASHBOARD;
+    case ROLES.ADMIN:
+      return getHomeRouteForAdmin();
     case ROLES.AGENCY_OWNER:
       return ROUTES.AGENCY_DASHBOARD;
     case ROLES.HR:
@@ -60,7 +67,9 @@ export function canAccessPath(pathname, role) {
   if (!normalized) return pathname === ROUTES.LOGIN;
 
   if (pathname.startsWith(ROUTES.ADMIN_PREFIX)) {
-    return normalized === ROLES.SUPER_ADMIN;
+    if (isPlatformSuperAdmin(normalized)) return true;
+    if (normalized === ROLES.ADMIN) return canAccessAdminModule(pathname);
+    return false;
   }
   if (pathname.startsWith(ROUTES.AGENCY_PREFIX)) {
     if (normalized === ROLES.AGENCY_OWNER) return true;

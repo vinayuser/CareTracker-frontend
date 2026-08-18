@@ -3,6 +3,7 @@ import {
   Building2,
   Mail,
   Users,
+  UserCog,
   Shield,
   HeartHandshake,
   UserCheck,
@@ -33,13 +34,15 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { ADMIN_NAV_GROUPS, ROUTES } from '../../routes/routes';
 import { logout as reduxLogout } from '../../redux/slices/authSlice';
-import { logout } from '../../utils/auth';
+import { logout, getUserRole } from '../../utils/auth';
+import { filterAdminNavGroups } from '../../utils/adminModuleAccess';
 
 const iconMap = {
   LayoutDashboard,
   Building2,
   Mail,
   Users,
+  UserCog,
   Shield,
   HeartHandshake,
   UserCheck,
@@ -88,6 +91,7 @@ function NavItem({ item, collapsed }) {
 export default function AdminSidebar({ collapsed, onToggle }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const navGroups = filterAdminNavGroups(getUserRole());
 
   const handleLogout = () => {
     dispatch(reduxLogout());
@@ -114,7 +118,7 @@ export default function AdminSidebar({ collapsed, onToggle }) {
       </div>
 
       <nav className={`flex-1 overflow-y-auto py-3 ${collapsed ? 'px-2' : 'px-3'}`}>
-        {ADMIN_NAV_GROUPS.map((group, idx) => (
+        {navGroups.map((group, idx) => (
           <div key={group.title || `g-${idx}`} className={idx === 0 ? '' : 'mt-3'}>
             {!collapsed && group.title ? (
               <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-gray-400">

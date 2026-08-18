@@ -16,6 +16,7 @@ export const ROUTES = {
   ADMIN_CREATE_INVITATION: '/admin/invitations/create',
   ADMIN_SUBSCRIPTION_PLANS: '/admin/subscription-plans',
   ADMIN_USERS: '/admin/users',
+  ADMIN_TEAM: '/admin/team',
   ADMIN_ROLES: '/admin/roles',
   ADMIN_CLIENTS: '/admin/clients',
   ADMIN_CAREGIVERS: '/admin/caregivers',

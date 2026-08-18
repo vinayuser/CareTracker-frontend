@@ -20,6 +20,7 @@ import Agencies from './pages/admin/Agencies';
 import Invitations from './pages/admin/Invitations';
 import SubscriptionPlans from './pages/admin/SubscriptionPlans';
 import Users from './pages/admin/Users';
+import Team from './pages/admin/Team';
 import Reports from './pages/admin/Reports';
 import AuditLogs from './pages/admin/AuditLogs';
 import Settings from './pages/admin/Settings';
@@ -153,7 +154,7 @@ export default function App() {
 
         <Route element={<ProtectedRoute />}>
           {/* Super Admin — /admin/* */}
-          <Route element={<RoleRoute allowedRoles={[ROLES.SUPER_ADMIN]} />}>
+          <Route element={<RoleRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN]} />}>
             <Route path={ROUTES.ADMIN_PREFIX} element={<Navigate to={ROUTES.ADMIN_DASHBOARD} replace />} />
             <Route element={<AdminLayout />}>
               <Route path={ROUTES.ADMIN_DASHBOARD} element={<Dashboard />} />
@@ -165,7 +166,8 @@ export default function App() {
               />
               <Route path={ROUTES.ADMIN_SUBSCRIPTION_PLANS} element={<SubscriptionPlans />} />
               <Route path={ROUTES.ADMIN_USERS} element={<Users />} />
-              <Route path={ROUTES.ADMIN_ROLES} element={<AdminModulePage />} />
+              <Route path={ROUTES.ADMIN_TEAM} element={<Team />} />
+              <Route path={ROUTES.ADMIN_ROLES} element={<Navigate to={ROUTES.ADMIN_TEAM} replace />} />
               <Route path={ROUTES.ADMIN_CLIENTS} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_CAREGIVERS} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_SCHEDULES} element={<AdminModulePage />} />

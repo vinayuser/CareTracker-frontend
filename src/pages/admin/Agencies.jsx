@@ -34,6 +34,9 @@ import Drawer from '../../components/ui/Drawer';
 import AgencyStatusBadge from '../../components/ui/AgencyStatusBadge';
 import AgencyFormDrawer, { AgencyFormDrawerFooter } from '../../components/admin/AgencyFormDrawer';
 import AgencyCaregiversTab from '../../components/admin/AgencyCaregiversTab';
+import AgencyBillingTab from '../../components/admin/AgencyBillingTab';
+import AgencyDocumentsTab from '../../components/admin/AgencyDocumentsTab';
+import AgencyNotesTab from '../../components/admin/AgencyNotesTab';
 import {
   enrichAgencyWithPlan,
   formStateToAgencyPayload,
@@ -855,58 +858,17 @@ export default function Agencies() {
           )}
 
           {detailTab === 'billing' && (
-            <CardShell title="Subscription & Billing" icon={CreditCard}>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {[
-                  ['Plan', agency.plan?.name || '—'],
-                  ['Amount', agency.plan ? `${formatPrice(agency.plan.price)} / ${formatBillingCycle(agency.plan.billingCycle)}` : '—'],
-                  ['Status', agency.status],
-                  ['Member Since', formatLongDate(agency.registeredAt || agency.createdAt)],
-                ].map(([label, value]) => (
-                  <div key={label} className="rounded-lg bg-slate-50 px-4 py-3">
-                    <p className="text-[11px] text-slate-400">{label}</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-900">{value}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-5">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Timeline</p>
-                <ol className="relative space-y-4 border-l border-slate-200 pl-5">
-                  {timeline.map((event) => (
-                    <li key={event.id} className="relative flex justify-between gap-3">
-                      <span
-                        className={`absolute -left-[27px] top-1 h-3 w-3 rounded-full border-2 ${
-                          event.tone === 'upcoming' ? 'border-orange-400 bg-white' : 'border-emerald-500 bg-emerald-500'
-                        }`}
-                      />
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{event.title}</p>
-                        {event.detail ? <p className="text-xs text-slate-500">{event.detail}</p> : null}
-                      </div>
-                      <p className="text-xs text-slate-500">{formatLongDate(event.date)}</p>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-              <div className="mt-6 flex flex-wrap gap-2">
-                <button type="button" onClick={openEditDrawer} className="rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-white hover:bg-primary-hover">
-                  Manage Subscription
-                </button>
-                <button type="button" onClick={handleDelete} className="rounded-lg border border-rose-200 px-3.5 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50">
-                  Delete Agency
-                </button>
-              </div>
-            </CardShell>
+            <AgencyBillingTab agencyId={agency.id} onManageSubscription={openEditDrawer} />
           )}
 
           {detailTab === 'documents' && (
-            <PlaceholderPanel title="Documents" description="Agency documents and compliance files will appear here." />
+            <AgencyDocumentsTab agencyId={agency.id} />
           )}
           {detailTab === 'activity' && (
             <PlaceholderPanel title="Activity & Logs" description="Platform activity for this agency will appear here." />
           )}
           {detailTab === 'notes' && (
-            <PlaceholderPanel title="Notes" description="Internal super-admin notes for this agency will appear here." />
+            <AgencyNotesTab agencyId={agency.id} />
           )}
         </>
       )}

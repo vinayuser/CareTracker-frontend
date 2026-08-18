@@ -8,7 +8,7 @@ export const ADMIN_NAV_GROUPS = [
       { key: 'ADMIN_AGENCIES', label: 'Agencies', icon: 'Building2' },
       { key: 'ADMIN_INVITATIONS', label: 'Invitations', icon: 'Mail' },
       { key: 'ADMIN_USERS', label: 'Users', icon: 'Users' },
-      { key: 'ADMIN_ROLES', label: 'Roles & Permissions', icon: 'Shield' },
+      { key: 'ADMIN_TEAM', label: 'Team', icon: 'UserCog' },
     ],
   },
   {

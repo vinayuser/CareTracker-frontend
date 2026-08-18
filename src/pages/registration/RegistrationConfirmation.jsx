@@ -73,6 +73,7 @@ export default function RegistrationConfirmation() {
           invitationToken: inviteSession?.token,
           transactionId: payment?.transactionId,
           amount: payment?.amount ?? plan.price,
+          paymentMethod: payment?.paymentMethod || undefined,
           ...registrationData,
         }),
       ).unwrap();
