@@ -21,6 +21,8 @@ import Invitations from './pages/admin/Invitations';
 import SubscriptionPlans from './pages/admin/SubscriptionPlans';
 import Users from './pages/admin/Users';
 import Team from './pages/admin/Team';
+import AdminClients from './pages/admin/Clients';
+import AdminCaregivers from './pages/admin/Caregivers';
 import Reports from './pages/admin/Reports';
 import AuditLogs from './pages/admin/AuditLogs';
 import Settings from './pages/admin/Settings';
@@ -168,8 +170,8 @@ export default function App() {
               <Route path={ROUTES.ADMIN_USERS} element={<Users />} />
               <Route path={ROUTES.ADMIN_TEAM} element={<Team />} />
               <Route path={ROUTES.ADMIN_ROLES} element={<Navigate to={ROUTES.ADMIN_TEAM} replace />} />
-              <Route path={ROUTES.ADMIN_CLIENTS} element={<AdminModulePage />} />
-              <Route path={ROUTES.ADMIN_CAREGIVERS} element={<AdminModulePage />} />
+              <Route path={ROUTES.ADMIN_CLIENTS} element={<AdminClients />} />
+              <Route path={ROUTES.ADMIN_CAREGIVERS} element={<AdminCaregivers />} />
               <Route path={ROUTES.ADMIN_SCHEDULES} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_EVV_COMPLIANCE} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_MEDICAID} element={<AdminModulePage />} />

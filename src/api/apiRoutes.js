@@ -39,6 +39,16 @@ const API_ROUTES = {
       SCHEDULES: '/admin/users/schedules',
       EVV_FORMS: '/admin/users/evv-forms',
     },
+    CLIENTS: {
+      STATS: '/admin/clients/stats',
+      LIST: '/admin/clients',
+      OVERVIEW: '/admin/clients',
+    },
+    CAREGIVERS: {
+      STATS: '/admin/caregivers/stats',
+      LIST: '/admin/caregivers',
+      OVERVIEW: '/admin/caregivers',
+    },
     TEAM: {
       STATS: '/admin/team/stats',
       LIST: '/admin/team',
