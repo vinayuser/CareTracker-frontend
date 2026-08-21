@@ -39,6 +39,9 @@ import CreateJob from './pages/agency/hiring/CreateJob';
 import EditJob from './pages/agency/hiring/EditJob';
 import Candidates from './pages/agency/hiring/Candidates';
 import Caregivers from './pages/agency/caregivers/Caregivers';
+import HolidayMaster from './pages/agency/holidays/HolidayMaster';
+import LeavePolicy from './pages/agency/holidays/LeavePolicy';
+import LeaveRequests from './pages/agency/holidays/LeaveRequests';
 import Clients from './pages/agency/clients/Clients';
 import ClientIntake from './pages/agency/clients/ClientIntake';
 import Leads from './pages/agency/leads/Leads';
@@ -241,6 +244,9 @@ export default function App() {
               <Route path={ROUTES.AGENCY_EVV_ENROLLMENTS_REVIEW} element={<EvvEnrollmentReview />} />
               <Route path={ROUTES.AGENCY_EVV_SETTINGS} element={<EvvSettings />} />
               <Route path={ROUTES.AGENCY_CAREGIVERS} element={<Caregivers />} />
+              <Route path={ROUTES.AGENCY_HOLIDAYS} element={<HolidayMaster />} />
+              <Route path={ROUTES.AGENCY_LEAVE_POLICY} element={<LeavePolicy />} />
+              <Route path={ROUTES.AGENCY_LEAVE_REQUESTS} element={<LeaveRequests />} />
               <Route path={ROUTES.AGENCY_CAREGIVER_MATCHING} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_TASKS} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_INCIDENTS} element={<AgencyModulePage />} />

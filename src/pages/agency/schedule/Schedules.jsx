@@ -38,6 +38,7 @@ const statusStyles = {
   Late: 'bg-orange-100 text-orange-700',
   Exception: 'bg-red-100 text-red-800',
   Cancelled: 'bg-gray-100 text-gray-600',
+  Leave: 'bg-violet-100 text-violet-700',
 };
 
 function toDateKey(date) {
@@ -267,7 +268,7 @@ export default function Schedules() {
                             </p>
                           </div>
                           <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${statusStyles[visit.status] || statusStyles.Scheduled}`}>
-                            {visit.lateCheckIn ? 'Late' : visit.status}
+                            {visit.status === 'Leave' ? (visit.leaveLabel || 'Leave') : (visit.lateCheckIn ? 'Late' : visit.status)}
                           </span>
                         </div>
                         <p className="mt-2 flex items-center gap-1 text-xs text-gray-500">

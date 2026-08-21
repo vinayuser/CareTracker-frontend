@@ -11,6 +11,7 @@ const statusColors = {
   Late: 'bg-orange-100 text-orange-800 border-orange-200',
   Exception: 'bg-red-100 text-red-800 border-red-200',
   Cancelled: 'bg-gray-100 text-gray-600 border-gray-200',
+  Leave: 'bg-violet-100 text-violet-800 border-violet-200',
 };
 
 function toDateKey(date) {

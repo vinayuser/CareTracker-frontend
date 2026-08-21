@@ -50,6 +50,9 @@ export const AGENCY_NAV_GROUPS = [
     title: 'Caregivers',
     items: [
       { key: 'AGENCY_CAREGIVERS', label: 'Caregivers', icon: 'UserCheck' },
+      { key: 'AGENCY_HOLIDAYS', label: 'Holiday Master', icon: 'CalendarDays' },
+      { key: 'AGENCY_LEAVE_POLICY', label: 'Leave Policy', icon: 'ClipboardList' },
+      { key: 'AGENCY_LEAVE_REQUESTS', label: 'Leave Requests', icon: 'CalendarOff' },
     ],
   },
   {

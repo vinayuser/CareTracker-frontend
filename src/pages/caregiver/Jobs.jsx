@@ -30,6 +30,7 @@ const statusStyles = {
   Late: 'bg-orange-100 text-orange-700',
   Exception: 'bg-red-100 text-red-800',
   Cancelled: 'bg-gray-100 text-gray-600',
+  Leave: 'bg-violet-100 text-violet-700',
 };
 
 function isPastGrace(visit) {

@@ -158,6 +158,9 @@ const API_ROUTES = {
       RESOLVE_EXCEPTION: '/agency/visits',
       UPDATE_LOG: '/agency/visits',
     },
+    HOLIDAYS: '/agency/holidays',
+    LEAVE_POLICY: '/agency/leave-policy',
+    LEAVE_REQUESTS: '/agency/leave-requests',
     EVV_DASHBOARD: '/agency/evv/dashboard',
     DASHBOARD: '/agency/dashboard',
     EVV_SETTINGS: '/agency/evv/settings',
@@ -182,6 +185,7 @@ const API_ROUTES = {
       CHECK_IN: '/caregiver/visits',
       CHECK_OUT: '/caregiver/visits',
     },
+    LEAVES: '/caregiver/leaves',
   },
   CLIENT: {
     DASHBOARD: '/client/dashboard',
