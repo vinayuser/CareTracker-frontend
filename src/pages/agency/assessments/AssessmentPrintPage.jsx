@@ -2,14 +2,19 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Printer, X } from 'lucide-react';
-import AssessmentPrintLayout from '../../../components/agency/assessments/AssessmentPrintLayout';
 import { fetchAssessment } from '../../../redux/slices/assessmentsSlice';
 import { assessmentToForm } from '../../../utils/assessmentForm';
+import { mergePacketForms } from '../../../utils/assessmentPacket';
+import {
+  fillAssessmentPacketAllPdfs,
+  openPdfBytes,
+} from '../../../utils/assessmentPacketPdfFill';
 import { ROUTES } from '../../../routes/routes';
-import '../../../components/agency/assessments/assessmentPrint.css';
+import { toast } from 'react-toastify';
 
 const DRAFT_KEY = 'caretracker_assessment_print_draft';
 
+/** @deprecated Prefer fillAssessmentPacketPdf — kept for any legacy callers */
 export function saveAssessmentPrintDraft(form, agencyName) {
   sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ form, agencyName }));
 }
@@ -20,66 +25,73 @@ export default function AssessmentPrintPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const authUser = useSelector((state) => state.auth.user);
-  const [form, setForm] = useState(null);
-  const [agencyName, setAgencyName] = useState(authUser?.agencyName ?? '');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const isDraft = location.pathname.endsWith('/draft/print');
 
   useEffect(() => {
-    if (isDraft) {
+    let cancelled = false;
+
+    const run = async () => {
+      setLoading(true);
+      setError('');
       try {
-        const raw = sessionStorage.getItem(DRAFT_KEY);
-        if (raw) {
+        let forms = {};
+        let label = 'assessment-packet.pdf';
+
+        if (isDraft) {
+          const raw = sessionStorage.getItem(DRAFT_KEY);
+          if (!raw) throw new Error('No draft assessment to print');
           const parsed = JSON.parse(raw);
-          setForm(parsed.form);
-          setAgencyName(parsed.agencyName || authUser?.agencyName || '');
+          forms = mergePacketForms(parsed.form?.formData?.forms || {});
+        } else {
+          if (!id) throw new Error('Missing assessment id');
+          const data = await dispatch(fetchAssessment(id)).unwrap();
+          const form = assessmentToForm(data);
+          forms = mergePacketForms(form.formData?.forms || {});
+          label = `${data.assessmentCode || 'assessment'}-packet.pdf`;
         }
-      } catch { /* ignore */ }
-      setLoading(false);
-      return;
-    }
 
-    if (!id) {
-      setLoading(false);
-      return;
-    }
+        const bytes = await fillAssessmentPacketAllPdfs(forms);
+        if (cancelled) return;
+        openPdfBytes(bytes, label);
+        // Close helper tab shortly after opening the PDF
+        setTimeout(() => {
+          try { window.close(); } catch { /* ignore */ }
+        }, 800);
+      } catch (err) {
+        if (cancelled) return;
+        const msg = err?.message || 'Could not build assessment PDF';
+        setError(msg);
+        toast.error(msg);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
 
-    setLoading(true);
-    dispatch(fetchAssessment(id)).unwrap()
-      .then((data) => {
-        setForm(assessmentToForm(data));
-        setAgencyName(authUser?.agencyName ?? '');
-      })
-      .catch(() => navigate(ROUTES.AGENCY_ASSESSMENTS))
-      .finally(() => setLoading(false));
+    run();
+    return () => { cancelled = true; };
   }, [authUser?.agencyName, dispatch, id, isDraft, navigate]);
 
-  const handlePrint = () => window.print();
-
-  if (loading) {
-    return <div className="ap-screen-wrap flex min-h-screen items-center justify-center text-sm text-gray-500">Preparing print view...</div>;
-  }
-
-  if (!form) {
+  if (error) {
     return (
-      <div className="ap-screen-wrap flex min-h-screen flex-col items-center justify-center gap-3 text-sm text-gray-600">
-        <p>No assessment data to print.</p>
-        <button type="button" className="ap-btn-close" onClick={() => window.close()}>Close</button>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-50 p-6 text-sm text-gray-700">
+        <p>{error}</p>
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 font-semibold"
+          onClick={() => (window.opener ? window.close() : navigate(ROUTES.AGENCY_ASSESSMENTS))}
+        >
+          <X size={16} /> Close
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="ap-screen-wrap">
-      <div className="ap-toolbar no-print">
-        <button type="button" className="ap-btn-print" onClick={handlePrint}>
-          <Printer size={18} /> Print Assessment
-        </button>
-        <button type="button" className="ap-btn-close" onClick={() => window.close()}>
-          <X size={18} /> Close
-        </button>
-      </div>
-      <AssessmentPrintLayout form={form} agencyName={agencyName} />
+    <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-50 text-sm text-gray-600">
+      <Printer size={28} className="animate-pulse text-primary" />
+      <p>{loading ? 'Filling official PDF templates…' : 'PDF opened in a new tab.'}</p>
     </div>
   );
 }

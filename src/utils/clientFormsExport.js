@@ -6,11 +6,12 @@ import { domToJpeg } from 'modern-screenshot';
 import { jsPDF } from 'jspdf';
 import axiosInstance from '../api/axiosInstance';
 import API_ROUTES from '../api/apiRoutes';
-import AssessmentPrintLayout from '../components/agency/assessments/AssessmentPrintLayout';
+import { AssessmentPacketPrintView } from '../components/agency/assessments/packet/AssessmentPacketPrintViews';
 import CarePlanPrintLayout from '../components/agency/care-plans/CarePlanPrintLayout';
 import InsuranceIntakePrintLayout from '../components/agency/insurance-intake/InsuranceIntakePrintLayout';
 import EvvEnrollmentPrintLayout from '../components/agency/evv-enrollment/EvvEnrollmentPrintLayout';
 import { assessmentToForm } from './assessmentForm';
+import { mergePacketForms } from './assessmentPacket';
 import { carePlanToForm } from './carePlanForm';
 import { insuranceIntakeToForm } from './insuranceIntakeForm';
 import { evvEnrollmentToForm } from './evvEnrollmentForm';
@@ -55,6 +56,13 @@ const EXPORT_FIX_CSS = `
   box-shadow: none !important;
   -webkit-print-color-adjust: exact !important;
   print-color-adjust: exact !important;
+}
+[data-client-forms-export-root] .ap-packet-print .ap-page {
+  height: auto !important;
+  max-height: none !important;
+  min-height: 11in !important;
+  overflow: visible !important;
+  margin-bottom: 0.15in !important;
 }
 [data-client-forms-export-root] .ap-field,
 [data-client-forms-export-root] .cp-field,
@@ -131,7 +139,7 @@ const safeFilePart = (value, fallback = 'form') => {
   return raw.replace(/[^\w.\-]+/g, '_').replace(/_+/g, '_').slice(0, 80);
 };
 
-/** Render a React print layout at exact letter size → PDF blob. */
+/** Render a React print layout → PDF blob (supports multi-page packet forms). */
 export async function renderLayoutToPdfBlob(reactNode) {
   const host = document.createElement('div');
   host.setAttribute('data-client-forms-export-root', '1');
@@ -161,37 +169,68 @@ export async function renderLayoutToPdfBlob(reactNode) {
     await waitFrames(4);
     await new Promise((r) => setTimeout(r, 700));
 
-    const page = host.querySelector(PAGE_SELECTOR) || host.firstElementChild;
-    if (!page) throw new Error('Print page layout not found');
+    const pages = Array.from(host.querySelectorAll(PAGE_SELECTOR));
+    if (!pages.length) {
+      const fallback = host.firstElementChild;
+      if (!fallback) throw new Error('Print page layout not found');
+      pages.push(fallback);
+    }
 
-    page.style.width = '8.5in';
-    page.style.height = '11in';
-    page.style.maxHeight = '11in';
-    page.style.margin = '0';
-    page.style.overflow = 'hidden';
+    let pdf = null;
 
-    await waitFrames(2);
+    for (let i = 0; i < pages.length; i += 1) {
+      const page = pages[i];
+      const isPacketPage = Boolean(
+        page.classList?.contains('ap-page') && page.closest?.('.ap-packet-print'),
+      );
 
-    // Letter @ 96dpi = 816×1056; scale 2 → crisp but still under canvas limits
-    const dataUrl = await domToJpeg(page, {
-      scale: 2,
-      quality: 0.95,
-      backgroundColor: '#ffffff',
-      width: page.offsetWidth || 816,
-      height: page.offsetHeight || 1056,
-      style: {
-        margin: '0',
-        transform: 'none',
-      },
-    });
+      page.style.width = '8.5in';
+      page.style.margin = '0';
+      if (isPacketPage) {
+        page.style.height = 'auto';
+        page.style.maxHeight = 'none';
+        page.style.overflow = 'visible';
+      } else {
+        page.style.height = '11in';
+        page.style.maxHeight = '11in';
+        page.style.overflow = 'hidden';
+      }
 
-    const pdf = new jsPDF({
-      unit: 'in',
-      format: 'letter',
-      orientation: 'portrait',
-      compress: true,
-    });
-    pdf.addImage(dataUrl, 'JPEG', 0, 0, 8.5, 11, undefined, 'FAST');
+      await waitFrames(2);
+
+      const widthPx = page.offsetWidth || 816;
+      const heightPx = page.offsetHeight || 1056;
+      const heightIn = isPacketPage
+        ? Math.max(11, (heightPx / Math.max(widthPx, 1)) * 8.5)
+        : 11;
+
+      // Letter @ 96dpi = 816×1056; scale 2 → crisp but still under canvas limits
+      const dataUrl = await domToJpeg(page, {
+        scale: 2,
+        quality: 0.95,
+        backgroundColor: '#ffffff',
+        width: widthPx,
+        height: heightPx,
+        style: {
+          margin: '0',
+          transform: 'none',
+        },
+      });
+
+      const format = isPacketPage && heightIn > 11.01 ? [8.5, heightIn] : 'letter';
+      if (!pdf) {
+        pdf = new jsPDF({
+          unit: 'in',
+          format,
+          orientation: 'portrait',
+          compress: true,
+        });
+      } else {
+        pdf.addPage(format, 'portrait');
+      }
+      pdf.addImage(dataUrl, 'JPEG', 0, 0, 8.5, heightIn, undefined, 'FAST');
+    }
+
     return pdf.output('blob');
   } finally {
     root.unmount();
@@ -290,7 +329,11 @@ export async function exportClientFormsZip(meta, agencyName = '', onProgress = (
     pdfJobs.push({
       label: 'Building assessment PDF…',
       path: `assessment/${safeFilePart(meta.assessment.assessmentCode || 'assessment')}.pdf`,
-      node: createElement(AssessmentPrintLayout, { form: assessmentForm, agencyName }),
+      node: createElement(AssessmentPacketPrintView, {
+        forms: mergePacketForms(assessmentForm.formData?.forms || {}),
+        agencyName,
+        assessmentDate: assessmentForm.assessmentDate,
+      }),
     });
   }
   if (carePlanForm) {

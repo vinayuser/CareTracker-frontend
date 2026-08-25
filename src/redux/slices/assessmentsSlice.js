@@ -35,17 +35,17 @@ export const fetchAssessment = createAsyncThunk('assessments/fetchOne', async (i
 export const addAssessment = createAsyncThunk('assessments/create', async (payload, { rejectWithValue }) => {
   try {
     const res = await axiosInstance.post(API_ROUTES.AGENCY.ASSESSMENTS.LIST, payload);
-    toast.success('Assessment saved');
+    toast.success(payload?.successMessage || 'Assessment saved');
     return res.data.data;
   } catch (e) {
     return rejectWithValue(e.response?.data || e.message);
   }
 });
 
-export const updateAssessment = createAsyncThunk('assessments/update', async ({ id, payload }, { rejectWithValue }) => {
+export const updateAssessment = createAsyncThunk('assessments/update', async ({ id, payload, successMessage }, { rejectWithValue }) => {
   try {
     const res = await axiosInstance.put(`${API_ROUTES.AGENCY.ASSESSMENTS.LIST}/${id}`, payload);
-    toast.success('Assessment updated');
+    toast.success(successMessage || 'Assessment updated');
     return res.data.data;
   } catch (e) {
     return rejectWithValue(e.response?.data || e.message);

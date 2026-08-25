@@ -17,6 +17,7 @@ import { ROUTES } from '../../../routes/routes';
 import { confirmAlert } from '../../../utils/swal';
 import { AssessorDetailCell } from '../../../components/ui/AssessorPhotoUpload';
 import useSubmitLock from '../../../hooks/useSubmitLock';
+import { getPacketProgress } from '../../../utils/assessmentPacket';
 
 const STATUS_STYLES = {
   Enquiry: 'bg-blue-100 text-blue-700',
@@ -24,6 +25,31 @@ const STATUS_STYLES = {
   Accepted: 'bg-emerald-100 text-emerald-700',
   Declined: 'bg-gray-100 text-gray-600',
 };
+
+function FormsProgressCell({ formData }) {
+  const progress = getPacketProgress(formData || {});
+  const pct = Math.round((progress.saved / Math.max(progress.total, 1)) * 100);
+  const complete = progress.saved >= progress.total;
+  return (
+    <div className="min-w-[140px]">
+      <div className="flex items-center justify-between gap-2 text-xs">
+        <span className={`font-semibold ${complete ? 'text-emerald-700' : 'text-gray-800'}`}>
+          {progress.saved}/{progress.total} forms
+        </span>
+        <span className="text-gray-400">{pct}%</span>
+      </div>
+      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-gray-100">
+        <div
+          className={`h-full rounded-full transition-all ${complete ? 'bg-emerald-500' : 'bg-primary'}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      {progress.started > 0 && progress.saved < progress.total ? (
+        <p className="mt-1 text-[10px] text-amber-700">{progress.started} in progress</p>
+      ) : null}
+    </div>
+  );
+}
 
 function QuoteModal({ open, onClose, onSubmit, loading, defaults, isEdit }) {
   const [hourlyRate, setHourlyRate] = useState('35');
@@ -186,6 +212,7 @@ export default function Assessments() {
                 <tr className="border-b bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
                   <th className="px-5 py-3">Client</th>
                   <th className="px-5 py-3">Assessment ID</th>
+                  <th className="px-5 py-3">Forms</th>
                   <th className="px-5 py-3">Assessor Details</th>
                   <th className="px-5 py-3">Date</th>
                   <th className="px-5 py-3">Status</th>
@@ -204,6 +231,9 @@ export default function Assessments() {
                       />
                     </td>
                     <td className="px-5 py-4">{a.assessmentCode}</td>
+                    <td className="px-5 py-4">
+                      <FormsProgressCell formData={a.formData} />
+                    </td>
                     <td className="px-5 py-4">
                       <AssessorDetailCell
                         name={a.assessorName}
@@ -225,13 +255,13 @@ export default function Assessments() {
                         >
                           <Pencil size={16} />
                         </ActionIconButton>
-                        <ActionIconButton
+                        {/* <ActionIconButton
                           label="Print"
                           onClick={() => window.open(ROUTES.AGENCY_ASSESSMENTS_PRINT.replace(':id', a.id), '_blank')}
                           className="text-gray-500 hover:bg-gray-100 hover:text-gray-800"
                         >
                           <Printer size={16} />
-                        </ActionIconButton>
+                        </ActionIconButton> */}
                         {a.status === 'Enquiry' && (
                           <ActionIconButton
                             label="Quote"

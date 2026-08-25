@@ -17,6 +17,14 @@
   flex-direction: column;
 }
 
+.ap-packet-print .ap-page {
+  height: auto;
+  max-height: none;
+  min-height: 11in;
+  overflow: visible;
+  margin-bottom: 0.25in;
+}
+
 .ap-page *,
 .ap-page *::before,
 .ap-page *::after {
@@ -602,6 +610,15 @@
     overflow: hidden;
     page-break-after: avoid;
     page-break-inside: avoid;
+  }
+
+  .ap-packet-print .ap-page {
+    height: auto;
+    max-height: none;
+    min-height: 11in;
+    overflow: visible;
+    page-break-after: always;
+    page-break-inside: auto;
   }
 
   .ap-section-head {

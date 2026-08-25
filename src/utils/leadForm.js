@@ -292,5 +292,9 @@ export const leadToAssessmentPrefill = (lead) => {
     leadId: lead?.id || null,
     leadCode: lead?.leadCode || '',
     clientId: lead?.clientId || null,
+    leadMeta: {
+      leadId: lead?.id || null,
+      leadCode: lead?.leadCode || '',
+    },
   };
 };

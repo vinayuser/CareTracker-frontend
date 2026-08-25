@@ -44,7 +44,10 @@ export const fetchCarePlanScheduleSources = createAsyncThunk('visitSchedules/car
 
 export const createVisitSchedule = createAsyncThunk('visitSchedules/create', async (payload, { rejectWithValue }) => {
   try {
-    const response = await axiosInstance.post(API_ROUTES.AGENCY.VISIT_SCHEDULES.LIST, payload);
+    // Bulk create can cover many days; allow longer than the default 15s axios timeout
+    const response = await axiosInstance.post(API_ROUTES.AGENCY.VISIT_SCHEDULES.LIST, payload, {
+      timeout: 60000,
+    });
     return response.data.data;
   } catch (error) {
     toast.error(error.response?.data?.message || 'Failed to create schedule');
