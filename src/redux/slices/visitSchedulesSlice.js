@@ -77,11 +77,19 @@ export const deleteVisitSchedule = createAsyncThunk('visitSchedules/delete', asy
   }
 });
 
-export const deleteVisit = createAsyncThunk('visitSchedules/deleteVisit', async (id, { rejectWithValue }) => {
+export const deleteVisit = createAsyncThunk('visitSchedules/deleteVisit', async (arg, { rejectWithValue }) => {
   try {
-    await axiosInstance.delete(`${API_ROUTES.AGENCY.VISITS.LIST}/${id}`);
-    toast.success('Visit deleted for that day');
-    return id;
+    const id = typeof arg === 'object' ? arg.id : arg;
+    const scope = typeof arg === 'object' ? (arg.scope || 'day') : 'day';
+    const params = scope === 'series' ? { scope: 'series' } : {};
+    const response = await axiosInstance.delete(`${API_ROUTES.AGENCY.VISITS.LIST}/${id}`, { params });
+    const deletedCount = response.data?.data?.deleted_count;
+    toast.success(
+      scope === 'series'
+        ? (deletedCount > 1 ? `Deleted ${deletedCount} visits in this series` : (response.data?.message || 'Schedule series deleted'))
+        : (response.data?.message || 'Visit deleted for that day'),
+    );
+    return { id, scope, ...(response.data?.data || {}) };
   } catch (error) {
     toast.error(error.response?.data?.message || 'Failed to delete visit');
     return rejectWithValue(error.response?.data || error.message);

@@ -35,6 +35,48 @@ export async function confirmAlert({
   return result.isConfirmed;
 }
 
+/**
+ * Three-way choice: confirm / deny / cancel.
+ * @returns {'confirm' | 'deny' | null}
+ */
+export async function chooseAlert({
+  title = 'Choose an option',
+  text = '',
+  html = '',
+  confirmText = 'Option A',
+  denyText = 'Option B',
+  cancelText = 'Cancel',
+  icon = 'question',
+  dangerConfirm = false,
+  dangerDeny = true,
+} = {}) {
+  const result = await Swal.fire({
+    title,
+    text: html ? undefined : text,
+    html: html || undefined,
+    icon,
+    showCancelButton: true,
+    showDenyButton: true,
+    confirmButtonText: confirmText,
+    denyButtonText: denyText,
+    cancelButtonText: cancelText,
+    confirmButtonColor: dangerConfirm ? DANGER : PRIMARY,
+    denyButtonColor: dangerDeny ? DANGER : PRIMARY,
+    cancelButtonColor: CANCEL,
+    reverseButtons: true,
+    focusCancel: true,
+    customClass: {
+      popup: 'rounded-2xl',
+      title: 'text-lg font-semibold text-gray-900',
+      htmlContainer: 'text-sm text-gray-600',
+    },
+  });
+
+  if (result.isConfirmed) return 'confirm';
+  if (result.isDenied) return 'deny';
+  return null;
+}
+
 export function showSuccessAlert({ title = 'Success', text = '' } = {}) {
   return Swal.fire({
     title,

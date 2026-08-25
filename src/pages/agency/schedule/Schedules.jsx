@@ -22,7 +22,7 @@ import {
   fetchVisitScheduleStats,
   fetchVisitSchedules,
 } from '../../../redux/slices/visitSchedulesSlice';
-import { confirmAlert } from '../../../utils/swal';
+import { chooseAlert } from '../../../utils/swal';
 import { formatVisitTime, formatTimezoneAbbr } from '../../../utils/visitTimezone';
 
 const MONTH_NAMES = [
@@ -121,14 +121,30 @@ export default function Schedules() {
 
   const handleDeleteFromVisit = async (visit) => {
     if (!visit?.id) return;
-    const confirmed = await confirmAlert({
-      title: 'Delete this day’s visit?',
-      text: `Remove the visit for ${visit.scheduledDate || 'this day'} only. Other days stay scheduled.`,
-      confirmText: 'Delete',
-      danger: true,
+    const choice = await chooseAlert({
+      title: 'Delete schedule?',
+      html: `
+        <p class="text-left text-sm text-gray-600">
+          <strong>${visit.clientName || 'Client'}</strong>
+          · ${visit.scheduledDate || 'this day'}
+          · ${formatTime(visit.scheduledStartAt, visit.timezone)}–${formatTime(visit.scheduledEndAt, visit.timezone)}
+        </p>
+        <p class="mt-3 text-left text-sm text-gray-600">
+          Choose whether to remove only this day, or every matching day in this schedule series
+          (same client, caregiver, and time).
+        </p>
+      `,
+      confirmText: 'This day only',
+      denyText: 'Entire series',
+      cancelText: 'Cancel',
+      dangerConfirm: true,
+      dangerDeny: true,
     });
-    if (!confirmed) return;
-    await dispatch(deleteVisit(visit.id));
+    if (!choice) return;
+    await dispatch(deleteVisit({
+      id: visit.id,
+      scope: choice === 'deny' ? 'series' : 'day',
+    }));
     loadMonth();
     setSelectedVisit(null);
   };
