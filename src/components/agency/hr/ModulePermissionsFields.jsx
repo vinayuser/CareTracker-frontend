@@ -74,7 +74,7 @@ export function ModulePermissionsFields({ selectedModules = [], onChange, error 
 
       {error && <p className="text-xs text-red-600">{error}</p>}
       <p className="text-xs text-gray-400">
-        Administration modules (HR Staff, Users, Billing, Settings) are only available to the agency owner.
+        HR Staff management is only available to the agency owner. All other modules listed above can be granted to HR users.
       </p>
     </section>
   );

@@ -324,7 +324,7 @@ export default function ClientAssessmentForm() {
             </h1>
             <p className="text-sm text-gray-500">{clientLabel}</p>
             <p className="mt-1 text-xs text-gray-500">
-              All 15 forms are listed — only Physical Assessment can be filled for now; others unlock later.
+              All 15 forms are listed — first 3 can be filled for now; others unlock later.
             </p>
           </div>
         </div>
@@ -365,7 +365,7 @@ export default function ClientAssessmentForm() {
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4">
         <p className="text-xs text-gray-500">
-          {ASSESSMENT_PACKET_FORMS.length} forms listed · only form 110 is editable for now
+          {ASSESSMENT_PACKET_FORMS.length} forms listed · forms 110, 324, and 325 are editable for now
         </p>
         <Link
           to={ROUTES.AGENCY_ASSESSMENTS}
