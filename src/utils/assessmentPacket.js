@@ -26,7 +26,7 @@ const ASSESSMENT_PACKET_FORMS_ALL = [
  * Temporary: only these codes can be edited / saved.
  * Set to `null` (or `[]`) to enable all forms again.
  */
-export const ASSESSMENT_PACKET_ENABLED_CODES = ['110', '324', '325'];
+export const ASSESSMENT_PACKET_ENABLED_CODES = ['110', '324', '325', '350', '400', '410'];
 
 /** Always the full packet list (UI shows all; editability is gated separately). */
 export const ASSESSMENT_PACKET_FORMS = ASSESSMENT_PACKET_FORMS_ALL;
