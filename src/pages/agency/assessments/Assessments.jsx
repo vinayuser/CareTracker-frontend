@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, ClipboardList, FileText, UserCheck, DollarSign, Printer, Save } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ClipboardList, FileText, UserCheck, DollarSign, Download, Save } from 'lucide-react';
 import AgencyKpiCard from '../../../components/agency/dashboard/AgencyKpiCard';
+import AssessmentFormsDownloadModal from '../../../components/agency/assessments/AssessmentFormsDownloadModal';
 import ActionIconButton from '../../../components/ui/ActionIconButton';
 import SubmitButton from '../../../components/ui/SubmitButton';
 import {
@@ -107,6 +108,7 @@ export default function Assessments() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [quoteTarget, setQuoteTarget] = useState(null);
+  const [downloadTarget, setDownloadTarget] = useState(null);
   const [quoteLoading, runLocked] = useSubmitLock();
   const isEditQuote = Boolean(quoteTarget?.carePlanId);
 
@@ -248,6 +250,13 @@ export default function Assessments() {
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-0.5">
                         <ActionIconButton
+                          label="Download all forms"
+                          onClick={() => setDownloadTarget(a)}
+                          className="text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                        >
+                          <Download size={16} />
+                        </ActionIconButton>
+                        <ActionIconButton
                           label="Edit"
                           to={ROUTES.AGENCY_ASSESSMENTS_EDIT.replace(':id', a.id)}
                           as={Link}
@@ -325,6 +334,17 @@ export default function Assessments() {
         loading={quoteLoading}
         defaults={quoteDefaults}
         isEdit={isEditQuote}
+      />
+
+      <AssessmentFormsDownloadModal
+        open={Boolean(downloadTarget)}
+        onClose={() => setDownloadTarget(null)}
+        assessment={downloadTarget ? {
+          id: downloadTarget.id,
+          assessmentCode: downloadTarget.assessmentCode,
+          clientName: downloadTarget.clientName,
+          formData: downloadTarget.formData,
+        } : null}
       />
     </div>
   );

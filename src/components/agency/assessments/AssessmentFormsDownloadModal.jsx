@@ -1,66 +1,76 @@
 import { useEffect, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { Download, Loader2, X } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { fetchClientRelatedForms } from '../../../redux/slices/clientsSlice';
-import { exportClientFormsZip } from '../../../utils/clientFormsExport';
+import { fetchAssessment } from '../../../redux/slices/assessmentsSlice';
+import { mergePacketForms } from '../../../utils/assessmentPacket';
+import { downloadAssessmentPacketZip } from '../../../utils/assessmentPacketDownload';
 
 function errorMessage(err) {
-  if (!err) return 'Failed to export client forms';
+  if (!err) return 'Failed to download assessment forms';
   if (typeof err === 'string') return err;
-  return err.message || err.payload?.message || 'Failed to export client forms';
+  return err.message || err.payload?.message || 'Failed to download assessment forms';
 }
 
-export default function ClientFormsExportModal({ open, client, onClose }) {
+export default function AssessmentFormsDownloadModal({ open, assessment, onClose }) {
   const dispatch = useDispatch();
-  const agencyName = useSelector((state) => state.auth.user?.agencyName || '');
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('Starting…');
   const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
-  const startedForId = useRef(null);
+  const startedForKey = useRef(null);
   const onCloseRef = useRef(onClose);
-  const agencyNameRef = useRef(agencyName);
 
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
 
   useEffect(() => {
-    agencyNameRef.current = agencyName;
-  }, [agencyName]);
+    if (!open || !assessment) return undefined;
 
-  useEffect(() => {
-    if (!open || !client?.id) return undefined;
-    if (startedForId.current === client.id) return undefined;
-    startedForId.current = client.id;
+    const runKey = assessment.id || assessment.assessmentCode || 'draft';
+    if (startedForKey.current === runKey) return undefined;
+    startedForKey.current = runKey;
 
     let cancelled = false;
     const run = async () => {
       setRunning(true);
       setError('');
       setProgress(2);
-      setStatus('Gathering related forms…');
+      setStatus('Loading assessment data…');
+
       try {
-        const meta = await dispatch(fetchClientRelatedForms(client.id)).unwrap();
-        if (cancelled) return;
-        setProgress(5);
-        const result = await exportClientFormsZip(meta, agencyNameRef.current, (pct, label) => {
-          if (cancelled) return;
-          setProgress(Math.max(0, Math.min(100, pct)));
-          if (label) setStatus(label);
-        });
-        if (cancelled) return;
-        if (result?.warnings?.length) {
-          toast.warn(result.warnings[0]);
+        let forms = assessment.formData?.forms;
+        if (!forms && assessment.id) {
+          const data = await dispatch(fetchAssessment(assessment.id)).unwrap();
+          forms = data.formData?.forms;
         }
-        toast.success('Client forms ZIP downloaded');
+        if (cancelled) return;
+
+        setProgress(5);
+        setStatus('Preparing official PDF templates…');
+
+        const basename = assessment.assessmentCode
+          || (assessment.id ? `assessment-${assessment.id}` : 'assessment-packet');
+
+        await downloadAssessmentPacketZip(
+          mergePacketForms(forms || {}),
+          basename,
+          (pct, label) => {
+            if (cancelled) return;
+            setProgress(Math.max(0, Math.min(100, pct)));
+            if (label) setStatus(label);
+          },
+        );
+
+        if (cancelled) return;
+        toast.success('Assessment forms downloaded');
         onCloseRef.current?.();
       } catch (err) {
         if (cancelled) return;
         const message = errorMessage(err);
         setError(message);
-        setStatus('Export failed');
+        setStatus('Download failed');
         toast.error(message);
       } finally {
         if (!cancelled) setRunning(false);
@@ -71,11 +81,11 @@ export default function ClientFormsExportModal({ open, client, onClose }) {
     return () => {
       cancelled = true;
     };
-  }, [open, client?.id, dispatch]);
+  }, [open, assessment, dispatch]);
 
   useEffect(() => {
     if (!open) {
-      startedForId.current = null;
+      startedForKey.current = null;
       setProgress(0);
       setStatus('Starting…');
       setError('');
@@ -83,24 +93,25 @@ export default function ClientFormsExportModal({ open, client, onClose }) {
     }
   }, [open]);
 
-  if (!open || !client) return null;
+  if (!open || !assessment) return null;
 
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (progress / 100) * circumference;
+  const subtitle = [
+    assessment.clientName,
+    assessment.assessmentCode,
+  ].filter(Boolean).join(' · ') || 'Assessment packet';
 
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
         <div className="mb-5 flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Preparing client forms</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              {client.fullName || 'Client'}
-              {client.clientCode ? ` · ${client.clientCode}` : ''}
-            </p>
+            <h2 className="text-lg font-semibold text-gray-900">Preparing assessment forms</h2>
+            <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
             <p className="mt-1 text-xs text-gray-400">
-              Assessment forms use filled official PDF templates.
+              Filled official PDF templates for every form in the packet.
             </p>
           </div>
           {!running && (
@@ -142,7 +153,7 @@ export default function ClientFormsExportModal({ open, client, onClose }) {
             <p className="mt-2 text-center text-sm text-red-600">{error}</p>
           ) : (
             <p className="mt-2 text-center text-xs text-gray-500">
-              Includes assessment, care plan, insurance intake, EVV (if any), and insurance documents.
+              Includes each form as a separate PDF plus one combined file in a ZIP.
             </p>
           )}
         </div>

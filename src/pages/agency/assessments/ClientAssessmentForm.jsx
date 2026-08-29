@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { ArrowLeft, ClipboardList, Printer, Save } from 'lucide-react';
+import { ArrowLeft, ClipboardList, Download, Printer, Save } from 'lucide-react';
 import AssessmentPacketFormList from '../../../components/agency/assessments/AssessmentPacketFormList';
+import AssessmentFormsDownloadModal from '../../../components/agency/assessments/AssessmentFormsDownloadModal';
 import { AssessmentPacketFormView } from '../../../components/agency/assessments/packet/AssessmentPacketFormViews';
 import SubmitButton from '../../../components/ui/SubmitButton';
 import { addAssessment, fetchAssessment, updateAssessment } from '../../../redux/slices/assessmentsSlice';
@@ -109,10 +110,12 @@ export default function ClientAssessmentForm() {
   const agencyName = authUser?.agencyName ?? '';
   const [activeCode, setActiveCode] = useState(null);
   const [form, setForm] = useState(EMPTY_ASSESSMENT);
+  const [assessmentCode, setAssessmentCode] = useState('');
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(isEdit);
   const [submitting, runLocked] = useSubmitLock();
   const [printingCode, setPrintingCode] = useState(null);
+  const [downloadOpen, setDownloadOpen] = useState(false);
 
   const activeMeta = useMemo(() => (activeCode ? getPacketFormMeta(activeCode) : null), [activeCode]);
   const progress = useMemo(() => getPacketProgress(form.formData), [form.formData]);
@@ -128,6 +131,7 @@ export default function ClientAssessmentForm() {
     dispatch(fetchAssessment(id)).unwrap()
       .then((data) => {
         setForm(assessmentToForm(data));
+        setAssessmentCode(data.assessmentCode || '');
         setActiveCode(null);
       })
       .catch(() => navigate(ROUTES.AGENCY_ASSESSMENTS))
@@ -324,10 +328,18 @@ export default function ClientAssessmentForm() {
             </h1>
             <p className="text-sm text-gray-500">{clientLabel}</p>
             <p className="mt-1 text-xs text-gray-500">
-              All 15 forms are listed — first 3 can be filled for now; others unlock later.
+              Open each form to fill and save. Use download all to get every filled official PDF.
             </p>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={() => setDownloadOpen(true)}
+          className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:border-primary/30 hover:text-primary"
+        >
+          <Download size={16} />
+          Download all forms
+        </button>
       </div>
 
       <div className="rounded-2xl border border-primary/10 bg-gradient-to-r from-primary/5 to-white px-4 py-3">
@@ -365,7 +377,7 @@ export default function ClientAssessmentForm() {
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4">
         <p className="text-xs text-gray-500">
-          {ASSESSMENT_PACKET_FORMS.length} forms listed · forms 110, 324, and 325 are editable for now
+          {ASSESSMENT_PACKET_FORMS.length} forms in packet
         </p>
         <Link
           to={ROUTES.AGENCY_ASSESSMENTS}
@@ -374,6 +386,17 @@ export default function ClientAssessmentForm() {
           Done
         </Link>
       </div>
+
+      <AssessmentFormsDownloadModal
+        open={downloadOpen}
+        onClose={() => setDownloadOpen(false)}
+        assessment={{
+          id: isEdit ? id : undefined,
+          assessmentCode,
+          clientName: clientLabel,
+          formData: form.formData,
+        }}
+      />
     </div>
   );
 }

@@ -6,17 +6,15 @@ import { domToJpeg } from 'modern-screenshot';
 import { jsPDF } from 'jspdf';
 import axiosInstance from '../api/axiosInstance';
 import API_ROUTES from '../api/apiRoutes';
-import { AssessmentPacketPrintView } from '../components/agency/assessments/packet/AssessmentPacketPrintViews';
 import CarePlanPrintLayout from '../components/agency/care-plans/CarePlanPrintLayout';
 import InsuranceIntakePrintLayout from '../components/agency/insurance-intake/InsuranceIntakePrintLayout';
 import EvvEnrollmentPrintLayout from '../components/agency/evv-enrollment/EvvEnrollmentPrintLayout';
 import { assessmentToForm } from './assessmentForm';
-import { mergePacketForms } from './assessmentPacket';
+import { addAssessmentPacketPdfsToZip } from './assessmentPacketDownload';
 import { carePlanToForm } from './carePlanForm';
 import { insuranceIntakeToForm } from './insuranceIntakeForm';
 import { evvEnrollmentToForm } from './evvEnrollmentForm';
 
-import '../components/agency/assessments/assessmentPrint.css';
 import '../components/agency/care-plans/carePlanPrint.css';
 import '../components/agency/insurance-intake/insuranceIntakePrint.css';
 import '../components/agency/evv-enrollment/evvEnrollmentPrint.css';
@@ -325,17 +323,6 @@ export async function exportClientFormsZip(meta, agencyName = '', onProgress = (
   }
 
   const pdfJobs = [];
-  if (assessmentForm) {
-    pdfJobs.push({
-      label: 'Building assessment PDF…',
-      path: `assessment/${safeFilePart(meta.assessment.assessmentCode || 'assessment')}.pdf`,
-      node: createElement(AssessmentPacketPrintView, {
-        forms: mergePacketForms(assessmentForm.formData?.forms || {}),
-        agencyName,
-        assessmentDate: assessmentForm.assessmentDate,
-      }),
-    });
-  }
   if (carePlanForm) {
     pdfJobs.push({
       label: 'Building care plan PDF…',
@@ -360,6 +347,21 @@ export async function exportClientFormsZip(meta, agencyName = '', onProgress = (
 
   const pdfStart = 28;
   const pdfEnd = 75;
+
+  if (assessmentForm) {
+    onProgress(pdfStart, 'Building assessment forms…');
+    const assessmentResult = await addAssessmentPacketPdfsToZip(
+      folder,
+      assessmentForm.formData?.forms || {},
+      meta.assessment.assessmentCode || 'assessment',
+      (label) => onProgress(pdfStart + 8, label),
+    );
+    if (assessmentResult?.warnings?.length) {
+      warnings.push(...assessmentResult.warnings);
+    }
+    onProgress(pdfStart + 18, 'Added assessment forms');
+  }
+
   for (let i = 0; i < pdfJobs.length; i += 1) {
     const job = pdfJobs[i];
     const pct = pdfStart + Math.round(((i + 0.5) / Math.max(pdfJobs.length, 1)) * (pdfEnd - pdfStart));
