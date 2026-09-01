@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import AgencySidebar from './AgencySidebar';
 import AgencyHeader from './AgencyHeader';
-import { scrollAppToTop } from '../../utils/scrollAppToTop';
+import { scrollAppToTop } from '../../../utils/scrollAppToTop';
 
 const SIDEBAR_KEY = 'caretracker_agency_sidebar_collapsed';
 

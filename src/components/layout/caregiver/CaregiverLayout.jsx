@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import CaregiverSidebar from './CaregiverSidebar';
 import CaregiverHeader from './CaregiverHeader';
-import { scrollAppToTop } from '../../utils/scrollAppToTop';
+import { scrollAppToTop } from '../../../utils/scrollAppToTop';
 
 const TITLES = {
   dashboard: 'Dashboard',
