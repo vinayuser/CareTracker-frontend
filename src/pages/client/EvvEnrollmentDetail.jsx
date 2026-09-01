@@ -13,6 +13,7 @@ import {
 import { evvEnrollmentToForm, WIZARD_STEPS } from '../../utils/evvEnrollmentForm';
 import { ROUTES } from '../../routes/routes';
 import useSubmitLock from '../../hooks/useSubmitLock';
+import useScrollToTopOnChange from '../../hooks/useScrollToTopOnChange';
 
 function Stepper({ currentStep }) {
   return (
@@ -44,6 +45,8 @@ export default function ClientEvvEnrollmentDetail() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(null);
   const [submitting, runLocked] = useSubmitLock();
+
+  useScrollToTopOnChange(step);
 
   useEffect(() => {
     dispatch(fetchClientEvvEnrollment(id));

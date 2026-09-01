@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import CaregiverSidebar from './CaregiverSidebar';
 import CaregiverHeader from './CaregiverHeader';
+import { scrollAppToTop } from '../../utils/scrollAppToTop';
 
 const TITLES = {
   dashboard: 'Dashboard',
@@ -25,6 +26,10 @@ export default function CaregiverLayout() {
   const { pathname } = useLocation();
   const [mobileNav, setMobileNav] = useState(false);
   const title = TITLES[pathname.split('/').pop()] ?? 'Caregiver';
+
+  useEffect(() => {
+    scrollAppToTop('auto');
+  }, [pathname]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f0f4f8]">

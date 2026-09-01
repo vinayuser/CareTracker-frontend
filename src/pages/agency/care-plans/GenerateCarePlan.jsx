@@ -13,6 +13,7 @@ import { carePlanToForm, clientToFormPatch } from '../../../utils/carePlanForm';
 import { saveCarePlanPrintDraft } from './CarePlanPrintPage';
 import { ROUTES } from '../../../routes/routes';
 import useSubmitLock from '../../../hooks/useSubmitLock';
+import useScrollToTopOnChange from '../../../hooks/useScrollToTopOnChange';
 
 export default function GenerateCarePlan() {
   const { id } = useParams();
@@ -31,6 +32,8 @@ export default function GenerateCarePlan() {
   const [clientId, setClientId] = useState(searchParams.get('clientId') || '');
   const [loading, setLoading] = useState(isEdit);
   const [submitting, runLocked] = useSubmitLock();
+
+  useScrollToTopOnChange(step);
 
   useEffect(() => {
     dispatch(fetchClients());

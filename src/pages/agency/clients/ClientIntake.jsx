@@ -9,6 +9,7 @@ import { addClient, fetchClient, updateClient } from '../../../redux/slices/clie
 import { EMPTY_CLIENT_FORM, clientToForm } from '../../../utils/clientForm';
 import { ROUTES } from '../../../routes/routes';
 import useSubmitLock from '../../../hooks/useSubmitLock';
+import useScrollToTopOnChange from '../../../hooks/useScrollToTopOnChange';
 
 function validateStepOne(form) {
   const errors = {};
@@ -28,6 +29,8 @@ export default function ClientIntake() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(isEdit);
   const [submitting, runLocked] = useSubmitLock();
+
+  useScrollToTopOnChange(step);
 
   useEffect(() => {
     if (!isEdit) {
@@ -66,7 +69,6 @@ export default function ClientIntake() {
       return;
     }
     setStep(2);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = () => runLocked(async () => {
@@ -131,7 +133,7 @@ export default function ClientIntake() {
             {step > 1 ? (
               <button
                 type="button"
-                onClick={() => { setStep(1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                onClick={() => setStep(1)}
                 className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
               >
                 Back

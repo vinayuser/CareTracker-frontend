@@ -8,6 +8,7 @@ import { fetchEvvEnrollment, verifyEvvEnrollment } from '../../../redux/slices/e
 import { evvEnrollmentToForm, WIZARD_STEPS } from '../../../utils/evvEnrollmentForm';
 import { ROUTES } from '../../../routes/routes';
 import useSubmitLock from '../../../hooks/useSubmitLock';
+import useScrollToTopOnChange from '../../../hooks/useScrollToTopOnChange';
 
 function Stepper({ currentStep }) {
   return (
@@ -30,6 +31,8 @@ export default function EvvEnrollmentReview() {
   const [form, setForm] = useState(evvEnrollmentToForm(null));
   const [loading, setLoading] = useState(true);
   const [submitting, runLocked] = useSubmitLock();
+
+  useScrollToTopOnChange(step);
 
   useEffect(() => {
     dispatch(fetchEvvEnrollment(id))

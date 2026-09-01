@@ -1,8 +1,10 @@
+import { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import RegistrationSidebar from './RegistrationSidebar';
 import RegistrationHeader from './RegistrationHeader';
 import Footer from './Footer';
 import { REGISTRATION_STEPS, ROUTES } from '../../routes/routes';
+import { scrollAppToTop } from '../../utils/scrollAppToTop';
 
 function getCurrentStep(pathname) {
   const step = REGISTRATION_STEPS.find(({ key }) => ROUTES[key] === pathname);
@@ -12,6 +14,10 @@ function getCurrentStep(pathname) {
 export default function RegistrationLayout() {
   const { pathname } = useLocation();
   const currentStep = getCurrentStep(pathname);
+
+  useEffect(() => {
+    scrollAppToTop('auto');
+  }, [pathname]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-page-bg">

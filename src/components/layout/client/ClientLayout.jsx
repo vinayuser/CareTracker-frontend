@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux';
 import ClientSidebar from './ClientSidebar';
 import ClientHeader from './ClientHeader';
 import { fetchClientDashboard } from '../../../redux/slices/clientPortalSlice';
+import { scrollAppToTop } from '../../../utils/scrollAppToTop';
 
 const TITLES = {
   dashboard: 'Dashboard',
@@ -34,6 +35,10 @@ export default function ClientLayout() {
   useEffect(() => {
     dispatch(fetchClientDashboard());
   }, [dispatch]);
+
+  useEffect(() => {
+    scrollAppToTop('auto');
+  }, [pathname]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f4f6fa]">

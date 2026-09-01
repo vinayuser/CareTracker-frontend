@@ -16,6 +16,7 @@ import { saveCarePlanPrintDraft } from '../agency/care-plans/CarePlanPrintPage';
 import { ROUTES } from '../../routes/routes';
 import { getAuthUser } from '../../utils/auth';
 import useSubmitLock from '../../hooks/useSubmitLock';
+import useScrollToTopOnChange from '../../hooks/useScrollToTopOnChange';
 
 const hasSignatureInk = (value) => Boolean(value && String(value).startsWith('data:image'));
 
@@ -28,6 +29,8 @@ export default function ClientCarePlanDetail() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(null);
   const [submitting, runLocked] = useSubmitLock();
+
+  useScrollToTopOnChange(step);
 
   useEffect(() => {
     dispatch(fetchClientCarePlan(id));

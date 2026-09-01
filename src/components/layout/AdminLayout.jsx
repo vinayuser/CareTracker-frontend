@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import AdminSidebar from './AdminSidebar';
 import AdminHeader from './AdminHeader';
 import Footer from './Footer';
+import { scrollAppToTop } from '../../utils/scrollAppToTop';
 
 const SIDEBAR_COLLAPSED_KEY = 'caretracker_sidebar_collapsed';
 
 export default function AdminLayout() {
+  const { pathname } = useLocation();
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
@@ -18,6 +20,10 @@ export default function AdminLayout() {
   useEffect(() => {
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
   }, [collapsed]);
+
+  useEffect(() => {
+    scrollAppToTop('auto');
+  }, [pathname]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-page-bg">

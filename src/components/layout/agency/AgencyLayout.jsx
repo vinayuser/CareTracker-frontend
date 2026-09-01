@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import AgencySidebar from './AgencySidebar';
 import AgencyHeader from './AgencyHeader';
+import { scrollAppToTop } from '../../utils/scrollAppToTop';
 
 const SIDEBAR_KEY = 'caretracker_agency_sidebar_collapsed';
 
@@ -81,6 +82,10 @@ export default function AgencyLayout() {
   useEffect(() => {
     localStorage.setItem(SIDEBAR_KEY, String(collapsed));
   }, [collapsed]);
+
+  useEffect(() => {
+    scrollAppToTop('auto');
+  }, [pathname]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#f0f4f8]">

@@ -24,6 +24,8 @@ import { saveInsuranceIntakePrintDraft } from './InsuranceIntakePrintPage';
 import { ROUTES } from '../../../routes/routes';
 import { toast } from 'react-toastify';
 import useSubmitLock from '../../../hooks/useSubmitLock';
+import useScrollToTopOnChange from '../../../hooks/useScrollToTopOnChange';
+import { scrollAppToTop } from '../../../utils/scrollAppToTop';
 
 async function loadInsurancePrefill(dispatch, selectedClientId, clientsList = []) {
   if (!selectedClientId) return null;
@@ -70,6 +72,8 @@ export default function ClientInsuranceIntakeForm() {
   const clientLockedFromQuery = Boolean(searchParams.get('clientId'));
   const clientInfoLocked = Boolean(clientId);
   const clientSelectLocked = clientLockedFromQuery || (Boolean(intakeRecordId) && Boolean(clientId));
+
+  useScrollToTopOnChange(step);
 
   useEffect(() => {
     dispatch(fetchClients());
@@ -184,12 +188,6 @@ export default function ClientInsuranceIntakeForm() {
     window.open(ROUTES.AGENCY_INSURANCE_INTAKE_PRINT_DRAFT, '_blank');
   };
 
-  const scrollFormTop = () => {
-    const main = document.querySelector('main.overflow-y-auto');
-    if (main) main.scrollTo({ top: 0, behavior: 'smooth' });
-    else window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   const buildPayload = (status = form.status) => ({
     clientId: clientId || undefined,
     status,
@@ -203,7 +201,7 @@ export default function ClientInsuranceIntakeForm() {
     if (Object.keys(step1).length) {
       setErrors(step1);
       setStep(1);
-      scrollFormTop();
+      scrollAppToTop();
       toast.error('Complete required client details before uploading documents');
       throw new Error('validation');
     }
@@ -265,11 +263,11 @@ export default function ClientInsuranceIntakeForm() {
     const stepErrors = validateInsuranceIntakeStepOne(form, { clientInfoLocked });
     setErrors(stepErrors);
     if (Object.keys(stepErrors).length) {
-      scrollFormTop();
+      scrollAppToTop();
       return;
     }
     setStep(2);
-    scrollFormTop();
+    scrollAppToTop();
   };
 
   const handleSubmit = () => {
@@ -279,11 +277,11 @@ export default function ClientInsuranceIntakeForm() {
     setErrors(allErrors);
     if (Object.keys(step1).length) {
       setStep(1);
-      scrollFormTop();
+      scrollAppToTop();
       return;
     }
     if (Object.keys(step2).length) {
-      scrollFormTop();
+      scrollAppToTop();
       return;
     }
 
@@ -346,7 +344,7 @@ export default function ClientInsuranceIntakeForm() {
 
         <div className="mt-8 flex justify-between border-t border-gray-100 pt-6">
           {step > 1 ? (
-            <button type="button" onClick={() => { setStep(1); scrollFormTop(); }} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
+            <button type="button" onClick={() => setStep(1)} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
               <ArrowLeft size={18} /> Back
             </button>
           ) : (

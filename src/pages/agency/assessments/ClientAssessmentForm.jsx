@@ -24,6 +24,7 @@ import {
 } from '../../../utils/assessmentPacket';
 import { ROUTES } from '../../../routes/routes';
 import useSubmitLock from '../../../hooks/useSubmitLock';
+import useScrollToTopOnChange from '../../../hooks/useScrollToTopOnChange';
 import {
   fillAssessmentPacketPdf,
   openPdfBytes,
@@ -120,6 +121,8 @@ export default function ClientAssessmentForm() {
   const activeMeta = useMemo(() => (activeCode ? getPacketFormMeta(activeCode) : null), [activeCode]);
   const progress = useMemo(() => getPacketProgress(form.formData), [form.formData]);
 
+  useScrollToTopOnChange(activeCode);
+
   useEffect(() => {
     if (!isEdit) {
       setForm(applyLeadPrefill(location.state?.leadPrefill));
@@ -207,7 +210,6 @@ export default function ClientAssessmentForm() {
       if (isEdit) {
         await dispatch(updateAssessment({ id, payload, successMessage })).unwrap();
         setActiveCode(null);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
       const created = await dispatch(addAssessment({ ...payload, successMessage })).unwrap();
@@ -371,7 +373,6 @@ export default function ClientAssessmentForm() {
           }
           setErrors({});
           setActiveCode(code);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
       />
 
