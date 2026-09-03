@@ -10,6 +10,8 @@ import {
   SAFETY_ITEMS,
   isPacketFormEditable,
 } from './assessmentPacket';
+import { isAgencyTextForm } from './assessmentPacketAgencyCopy';
+import { fillAgencyTextFormPdf } from './assessmentPacketLegalPdf';
 
 export const ASSESSMENT_PACKET_PDF_FILES = {
   '110': '110-Physical-Assessment-Info_TX.pdf',
@@ -123,6 +125,222 @@ async function dataUrlToBytes(dataUrl) {
     return new Uint8Array(await res.arrayBuffer());
   } catch {
     return null;
+  }
+}
+
+async function fetchImageBytes(url) {
+  if (!url) return null;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return new Uint8Array(await res.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
+
+/** Mastercare logo sits in the top-right corner only — keep mask above the form title. */
+const TEMPLATE_LOGO_MASK = {
+  x: 370,
+  width: 235,
+  height: 62,
+  topMargin: 0,
+};
+
+/** Agency logo on page 1 only — centered in the header band. */
+const AGENCY_LOGO_BOX = {
+  maxW: 200,
+  maxH: 54,
+  topMargin: 8,
+};
+
+/**
+ * Cover both Mastercare footer lines (contact + copyright/website).
+ * Measured for letter pages (612×792).
+ */
+const TEMPLATE_FOOTER_MASK = {
+  x: 12,
+  width: 588,
+  height: 52,
+  bottom: 4,
+};
+
+function coverTemplateLogo(page, pageHeight) {
+  page.drawRectangle({
+    x: TEMPLATE_LOGO_MASK.x,
+    y: pageHeight - TEMPLATE_LOGO_MASK.topMargin - TEMPLATE_LOGO_MASK.height,
+    width: TEMPLATE_LOGO_MASK.width,
+    height: TEMPLATE_LOGO_MASK.height,
+    color: rgb(1, 1, 1),
+    borderWidth: 0,
+  });
+}
+
+function coverTemplateFooter(page) {
+  page.drawRectangle({
+    x: TEMPLATE_FOOTER_MASK.x,
+    y: TEMPLATE_FOOTER_MASK.bottom,
+    width: TEMPLATE_FOOTER_MASK.width,
+    height: TEMPLATE_FOOTER_MASK.height,
+    color: rgb(1, 1, 1),
+    borderWidth: 0,
+  });
+}
+
+function formatFooterAddress(branding = {}) {
+  const cityState = [branding.city, branding.state].filter(Boolean).join(', ');
+  return [branding.address, cityState].filter(Boolean).join(', ');
+}
+
+function normalizeWebsite(website = '') {
+  return String(website || '')
+    .trim()
+    .replace(/^https?:\/\//i, '')
+    .replace(/\/$/, '');
+}
+
+async function embedLogoBytes(pdfDoc, logoBytes) {
+  if (!logoBytes) return null;
+  try {
+    return await pdfDoc.embedPng(logoBytes);
+  } catch {
+    try {
+      return await pdfDoc.embedJpg(logoBytes);
+    } catch {
+      return null;
+    }
+  }
+}
+
+function resolveBranding(options = {}) {
+  const branding = { ...(options.agencyBranding || {}) };
+  if (!branding.logoUrl && options.agencyLogoUrl) {
+    branding.logoUrl = options.agencyLogoUrl;
+  }
+  return branding;
+}
+
+/**
+ * Hide baked-in Mastercare branding on every page.
+ * Draw agency logo on page 1 only (centered).
+ * Draw agency footer on every page over the cleared Mastercare footer.
+ */
+async function overlayAgencyBranding(pdfDoc, options = {}) {
+  const branding = resolveBranding(options);
+  let logoBytes = null;
+  if (branding.logoUrl) {
+    logoBytes = String(branding.logoUrl).startsWith('data:')
+      ? await dataUrlToBytes(branding.logoUrl)
+      : await fetchImageBytes(branding.logoUrl);
+  }
+
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const address = formatFooterAddress(branding);
+  const phone = branding.phone ? `Phone: ${branding.phone}` : '';
+  const fax = branding.fax ? `Fax: ${branding.fax}` : '';
+  const email = branding.email ? `Email: ${branding.email}` : '';
+  const website = normalizeWebsite(branding.website);
+  const copyright = branding.name
+    ? `©${branding.name} All Rights Reserved`
+    : '';
+  const midContact = [phone, fax].filter(Boolean).join('    ');
+  const hasFooterContent = Boolean(address || midContact || email || copyright || website);
+
+  const logoImage = logoBytes ? await embedLogoBytes(pdfDoc, logoBytes) : null;
+  let logoW = 0;
+  let logoH = 0;
+  if (logoImage) {
+    const dims = logoImage.scale(1);
+    const scale = Math.min(
+      AGENCY_LOGO_BOX.maxW / dims.width,
+      AGENCY_LOGO_BOX.maxH / dims.height,
+      1,
+    );
+    logoW = dims.width * scale;
+    logoH = dims.height * scale;
+  }
+
+  const pageCount = pdfDoc.getPageCount();
+  for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
+    const page = pdfDoc.getPage(pageIndex);
+    const { width, height } = page.getSize();
+    coverTemplateLogo(page, height);
+    coverTemplateFooter(page);
+
+    if (pageIndex === 0 && logoImage) {
+      page.drawImage(logoImage, {
+        x: (width - logoW) / 2,
+        y: height - AGENCY_LOGO_BOX.topMargin - logoH,
+        width: logoW,
+        height: logoH,
+      });
+    }
+
+    if (!hasFooterContent) continue;
+
+    const fontSize = 7;
+    const leftX = 20;
+    const rightEdge = width - 20;
+    const line1Y = 36;
+    const line2Y = 18;
+
+    if (address) {
+      page.drawText(str(address).slice(0, 72), {
+        x: leftX,
+        y: line1Y,
+        size: fontSize,
+        font,
+        color: rgb(0.15, 0.15, 0.15),
+      });
+    }
+    if (midContact) {
+      const midW = font.widthOfTextAtSize(midContact, fontSize);
+      page.drawText(midContact, {
+        x: Math.max(leftX, (width - midW) / 2),
+        y: line1Y,
+        size: fontSize,
+        font,
+        color: rgb(0.15, 0.15, 0.15),
+      });
+    }
+    if (email) {
+      const emailW = font.widthOfTextAtSize(email, fontSize);
+      page.drawText(email, {
+        x: rightEdge - emailW,
+        y: line1Y,
+        size: fontSize,
+        font,
+        color: rgb(0.15, 0.15, 0.15),
+      });
+    }
+
+    page.drawText(`Page ${pageIndex + 1}`, {
+      x: leftX,
+      y: line2Y,
+      size: fontSize,
+      font,
+      color: rgb(0.2, 0.2, 0.2),
+    });
+    if (copyright) {
+      const copyW = font.widthOfTextAtSize(copyright, fontSize);
+      page.drawText(copyright, {
+        x: Math.max(leftX, (width - copyW) / 2),
+        y: line2Y,
+        size: fontSize,
+        font,
+        color: rgb(0.2, 0.2, 0.2),
+      });
+    }
+    if (website) {
+      const siteW = font.widthOfTextAtSize(website, fontSize);
+      page.drawText(website, {
+        x: rightEdge - siteW,
+        y: line2Y,
+        size: fontSize,
+        font,
+        color: rgb(0.2, 0.2, 0.2),
+      });
+    }
   }
 }
 
@@ -617,21 +835,27 @@ async function applyFormData(code, pdfDoc, data) {
 /**
  * @returns {Promise<Uint8Array>}
  */
-export async function fillAssessmentPacketPdf(code, formData) {
+export async function fillAssessmentPacketPdf(code, formData, options = {}) {
+  // Legal / notice forms: recreate with dynamic agency name (no Mastercare body text).
+  if (isAgencyTextForm(code)) {
+    return fillAgencyTextFormPdf(code, formData, options);
+  }
+
   const url = getAssessmentPacketPdfUrl(code);
   if (!url) throw new Error(`No PDF template for form ${code}`);
   const templateBytes = await fetchPdfTemplateBytes(url);
   const pdfDoc = await PDFDocument.load(templateBytes, { ignoreEncryption: true });
   await applyFormData(code, pdfDoc, formData);
-  return pdfDoc.save();
+  await overlayAgencyBranding(pdfDoc, options);
+  return pdfDoc.save({ useObjectStreams: false });
 }
 
 /** Merge all 15 filled forms into one PDF. */
-export async function fillAssessmentPacketAllPdfs(formsByCode = {}) {
+export async function fillAssessmentPacketAllPdfs(formsByCode = {}, options = {}) {
   const merged = await PDFDocument.create();
   for (const { code } of ASSESSMENT_PACKET_FORMS) {
     if (!isPacketFormEditable(code)) continue;
-    const bytes = await fillAssessmentPacketPdf(code, formsByCode[code] || {});
+    const bytes = await fillAssessmentPacketPdf(code, formsByCode[code] || {}, options);
     const doc = await PDFDocument.load(bytes, { ignoreEncryption: true });
     const pages = await merged.copyPages(doc, doc.getPageIndices());
     pages.forEach((p) => merged.addPage(p));

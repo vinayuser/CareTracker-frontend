@@ -29,6 +29,7 @@ import {
   fillAssessmentPacketPdf,
   openPdfBytes,
 } from '../../../utils/assessmentPacketPdfFill';
+import { getAgencyBranding } from '../../../utils/agencyBranding';
 import { toast } from 'react-toastify';
 
 function applyLeadPrefill(prefill) {
@@ -109,6 +110,8 @@ export default function ClientAssessmentForm() {
   const dispatch = useDispatch();
   const authUser = useSelector((state) => state.auth.user);
   const agencyName = authUser?.agencyName ?? '';
+  const agencyLogo = authUser?.agencyLogo ?? '';
+  const agencyBranding = getAgencyBranding(authUser);
   const [activeCode, setActiveCode] = useState(null);
   const [form, setForm] = useState(EMPTY_ASSESSMENT);
   const [assessmentCode, setAssessmentCode] = useState('');
@@ -227,7 +230,10 @@ export default function ClientAssessmentForm() {
     setPrintingCode(code);
     try {
       const forms = mergePacketForms(form.formData?.forms || {});
-      const bytes = await fillAssessmentPacketPdf(code, forms[code] || {});
+      const bytes = await fillAssessmentPacketPdf(code, forms[code] || {}, {
+        agencyBranding,
+        assessmentDate: form.assessmentDate,
+      });
       openPdfBytes(bytes, `assessment-form-${code}.pdf`);
     } catch (err) {
       toast.error(err?.message || `Could not print form ${code}`);
@@ -287,6 +293,7 @@ export default function ClientAssessmentForm() {
               assessmentDate: form.assessmentDate,
               assessorName: form.assessorName,
               agencyName,
+              agencyLogo,
             }}
           />
 

@@ -4,6 +4,7 @@ import { Download, Loader2, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { fetchClientRelatedForms } from '../../../redux/slices/clientsSlice';
 import { exportClientFormsZip } from '../../../utils/clientFormsExport';
+import { getAgencyBranding } from '../../../utils/agencyBranding';
 
 function errorMessage(err) {
   if (!err) return 'Failed to export client forms';
@@ -14,6 +15,7 @@ function errorMessage(err) {
 export default function ClientFormsExportModal({ open, client, onClose }) {
   const dispatch = useDispatch();
   const agencyName = useSelector((state) => state.auth.user?.agencyName || '');
+  const authUser = useSelector((state) => state.auth.user);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('Starting…');
   const [running, setRunning] = useState(false);
@@ -21,6 +23,7 @@ export default function ClientFormsExportModal({ open, client, onClose }) {
   const startedForId = useRef(null);
   const onCloseRef = useRef(onClose);
   const agencyNameRef = useRef(agencyName);
+  const agencyBrandingRef = useRef(getAgencyBranding(authUser));
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -28,7 +31,8 @@ export default function ClientFormsExportModal({ open, client, onClose }) {
 
   useEffect(() => {
     agencyNameRef.current = agencyName;
-  }, [agencyName]);
+    agencyBrandingRef.current = getAgencyBranding(authUser);
+  }, [agencyName, authUser]);
 
   useEffect(() => {
     if (!open || !client?.id) return undefined;
@@ -49,7 +53,7 @@ export default function ClientFormsExportModal({ open, client, onClose }) {
           if (cancelled) return;
           setProgress(Math.max(0, Math.min(100, pct)));
           if (label) setStatus(label);
-        });
+        }, { agencyBranding: agencyBrandingRef.current });
         if (cancelled) return;
         if (result?.warnings?.length) {
           toast.warn(result.warnings[0]);

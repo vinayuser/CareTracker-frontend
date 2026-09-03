@@ -32,7 +32,7 @@ const PATH_MODULE_PREFIXES = [
   { prefix: '/agency/evv', key: 'AGENCY_EVV_DASHBOARD' },
   { prefix: '/agency/billing', key: 'AGENCY_BILLING' },
   { prefix: '/agency/profile', key: null },
-  { prefix: '/agency/settings', key: null },
+  { prefix: '/agency/settings', key: 'AGENCY_SETTINGS' },
   { prefix: '/agency/dashboard', key: 'AGENCY_DASHBOARD' },
 ];
 

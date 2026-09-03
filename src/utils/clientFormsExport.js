@@ -19,7 +19,7 @@ import '../components/agency/care-plans/carePlanPrint.css';
 import '../components/agency/insurance-intake/insuranceIntakePrint.css';
 import '../components/agency/evv-enrollment/evvEnrollmentPrint.css';
 
-const PAGE_SELECTOR = '.ap-page, .cp-page, .ii-page, .ev-page';
+const PAGE_SELECTOR = '.ap-page, .cp-page, .ii-page, .ev-page, .al-page';
 
 /**
  * Canvas / SVG foreignObject capture mishandles flex baseline + border-bottom
@@ -255,8 +255,14 @@ async function fetchBlob(url) {
  * @param {object} meta - related-forms payload
  * @param {string} agencyName
  * @param {(pct: number, label: string) => void} onProgress
+ * @param {{ agencyBranding?: object, agencyLogoUrl?: string }} [options]
  */
-export async function exportClientFormsZip(meta, agencyName = '', onProgress = () => {}) {
+export async function exportClientFormsZip(
+  meta,
+  agencyName = '',
+  onProgress = () => {},
+  options = {},
+) {
   const client = meta?.client || {};
   const hasAny = Boolean(
     meta?.assessment
@@ -355,6 +361,7 @@ export async function exportClientFormsZip(meta, agencyName = '', onProgress = (
       assessmentForm.formData?.forms || {},
       meta.assessment.assessmentCode || 'assessment',
       (label) => onProgress(pdfStart + 8, label),
+      { agencyBranding: options.agencyBranding, agencyLogoUrl: options.agencyLogoUrl },
     );
     if (assessmentResult?.warnings?.length) {
       warnings.push(...assessmentResult.warnings);

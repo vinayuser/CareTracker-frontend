@@ -28,6 +28,7 @@ import AuditLogs from './pages/admin/AuditLogs';
 import Settings from './pages/admin/Settings';
 import AdminModulePage from './pages/admin/AdminModulePage';
 import Profile from './pages/Profile';
+import AgencySettings from './pages/agency/AgencySettings';
 import AgencyDashboard from './pages/agency/Dashboard';
 import AgencyModulePage from './pages/agency/AgencyModulePage';
 import Schedules from './pages/agency/schedule/Schedules';
@@ -253,7 +254,7 @@ export default function App() {
               <Route path={ROUTES.AGENCY_REPORTS} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_USERS} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_ROLES} element={<AgencyModulePage />} />
-              <Route path={ROUTES.AGENCY_SETTINGS} element={<Profile />} />
+              <Route path={ROUTES.AGENCY_SETTINGS} element={<AgencySettings />} />
               <Route path={ROUTES.AGENCY_PROFILE} element={<Profile />} />
               <Route path={ROUTES.AGENCY_BILLING} element={<ClientInvoices />} />
               <Route path={ROUTES.AGENCY_HR_STAFF} element={<HrStaff />} />

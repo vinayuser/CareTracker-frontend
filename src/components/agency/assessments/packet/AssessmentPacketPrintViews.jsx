@@ -3,6 +3,8 @@ import {
   CARE_INSTRUCTION_GROUPS,
   SAFETY_ITEMS,
 } from '../../../../utils/assessmentPacket';
+import { formatAgencyStreetLine } from '../../../../utils/agencyBranding';
+import '../assessmentPrint.css';
 
 const CARE_GROUP_TITLES = {
   assessment: 'Assessment',
@@ -86,25 +88,55 @@ function SigBlock({ label, sig = {} }) {
   );
 }
 
-function Page({ code, title, agencyName, assessmentDate, children }) {
+function Page({
+  code,
+  title,
+  agencyName,
+  agencyLogo,
+  agencyBranding = {},
+  assessmentDate,
+  children,
+}) {
+  const name = val(agencyName || agencyBranding.name) || 'Agency';
+  const logo = agencyLogo || agencyBranding.logoUrl || '';
+  const address = formatAgencyStreetLine(agencyBranding);
+  const phone = agencyBranding.phone ? `Phone: ${agencyBranding.phone}` : '';
+  const fax = agencyBranding.fax ? `Fax: ${agencyBranding.fax}` : '';
+  const email = agencyBranding.email ? `Email: ${agencyBranding.email}` : '';
+  const website = String(agencyBranding.website || '')
+    .replace(/^https?:\/\//i, '')
+    .replace(/\/$/, '');
+  const midContact = [phone, fax].filter(Boolean).join('    ');
+
   return (
-    <div className="ap-page" style={{ height: 'auto', maxHeight: 'none', overflow: 'visible' }}>
-      <header className="ap-header" style={{ gridTemplateColumns: '1fr auto' }}>
-        <div>
-          <div className="ap-agency-label">Agency</div>
-          <div className="ap-agency-name">{val(agencyName) || 'CareTracker Agency'}</div>
-          <div className="ap-assess-date" style={{ marginTop: '0.04in' }}>Form {code}</div>
-        </div>
-        <div className="ap-title-block" style={{ textAlign: 'right' }}>
-          <div className="ap-main-title" style={{ fontSize: '9pt' }}>{title}</div>
-          <div className="ap-assess-date">ASSESSMENT DATE: {val(assessmentDate) || '________________'}</div>
+    <div className="ap-page ap-agency-branded" style={{ height: 'auto', maxHeight: 'none', overflow: 'visible' }}>
+      <header className="ap-header ap-header-branded">
+        <div className="ap-brand-center">
+          {logo ? (
+            <img src={logo} alt="" className="ap-agency-logo-lg" />
+          ) : null}
+          <div className="ap-agency-name-lg">{name}</div>
+          <div className="ap-main-title">{title}</div>
+          <div className="ap-assess-date">
+            Form {code}
+            {assessmentDate ? ` · Assessment date: ${val(assessmentDate)}` : ''}
+          </div>
         </div>
       </header>
       <div className="ap-body" style={{ display: 'flex', flexDirection: 'column', gridTemplateColumns: 'none' }}>
         {children}
       </div>
-      <footer className="ap-footer">
-        Powered by: <strong>CareTracker</strong> · Form {code}
+      <footer className="ap-footer ap-footer-branded">
+        <div className="ap-footer-row">
+          <span>{address || '\u00A0'}</span>
+          <span>{midContact || '\u00A0'}</span>
+          <span>{email || '\u00A0'}</span>
+        </div>
+        <div className="ap-footer-row">
+          <span>Form {code}</span>
+          <span>©{name} All Rights Reserved</span>
+          <span>{website || '\u00A0'}</span>
+        </div>
       </footer>
     </div>
   );
@@ -577,11 +609,56 @@ function renderFormBody(code, d) {
   }
 }
 
-export function AssessmentPacketPrintView({ forms = {}, agencyName, assessmentDate }) {
+export function AssessmentPacketFormPrintView({
+  code,
+  data = {},
+  agencyName,
+  agencyLogo,
+  agencyBranding,
+  assessmentDate,
+}) {
+  const meta = ASSESSMENT_PACKET_FORMS.find((f) => f.code === code);
+  const title = meta?.title || `Form ${code}`;
   return (
     <div className="ap-packet-print">
-      {ASSESSMENT_PACKET_FORMS.map(({ code, title }) => (
-        <Page key={code} code={code} title={title} agencyName={agencyName} assessmentDate={assessmentDate}>
+      <Page
+        code={code}
+        title={title}
+        agencyName={agencyName}
+        agencyLogo={agencyLogo}
+        agencyBranding={agencyBranding}
+        assessmentDate={assessmentDate}
+      >
+        {renderFormBody(code, data)}
+      </Page>
+    </div>
+  );
+}
+
+export function AssessmentPacketPrintView({
+  forms = {},
+  agencyName,
+  agencyLogo,
+  agencyBranding,
+  assessmentDate,
+  codes,
+}) {
+  const list = Array.isArray(codes) && codes.length
+    ? ASSESSMENT_PACKET_FORMS.filter((f) => codes.includes(f.code))
+    : ASSESSMENT_PACKET_FORMS;
+
+  return (
+    <div className="ap-packet-print">
+      {list.map(({ code, title }) => (
+        <Page
+          key={code}
+          code={code}
+          title={title}
+          agencyName={agencyName}
+          agencyLogo={agencyLogo}
+          agencyBranding={agencyBranding}
+          assessmentDate={assessmentDate}
+        >
           {renderFormBody(code, forms[code] || {})}
         </Page>
       ))}

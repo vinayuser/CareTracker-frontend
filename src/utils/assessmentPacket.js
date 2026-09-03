@@ -1,6 +1,6 @@
 /**
- * Client assessment packet — 15 Mastercare TX forms (document number order).
- * Fillable UI + print layouts. Quote / care-plan flow still uses synced clinical fields.
+ * Client assessment packet — 15 TX assessment forms (document number order).
+ * Fillable UI + agency-branded print layouts. Quote / care-plan flow still uses synced clinical fields.
  */
 
 /** Full registry (keep intact so we can re-enable forms later). */

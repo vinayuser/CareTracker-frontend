@@ -164,6 +164,7 @@ const API_ROUTES = {
     EVV_DASHBOARD: '/agency/evv/dashboard',
     DASHBOARD: '/agency/dashboard',
     EVV_SETTINGS: '/agency/evv/settings',
+    SETTINGS: '/agency/settings',
     INVOICES: {
       LIST: '/agency/invoices',
       GENERATE: '/agency/invoices/generate',

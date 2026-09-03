@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Download, Loader2, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { fetchAssessment } from '../../../redux/slices/assessmentsSlice';
 import { mergePacketForms } from '../../../utils/assessmentPacket';
 import { downloadAssessmentPacketZip } from '../../../utils/assessmentPacketDownload';
+import { getAgencyBranding } from '../../../utils/agencyBranding';
 
 function errorMessage(err) {
   if (!err) return 'Failed to download assessment forms';
@@ -14,6 +15,8 @@ function errorMessage(err) {
 
 export default function AssessmentFormsDownloadModal({ open, assessment, onClose }) {
   const dispatch = useDispatch();
+  const authUser = useSelector((state) => state.auth.user);
+  const agencyBrandingRef = useRef(getAgencyBranding(authUser));
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('Starting…');
   const [running, setRunning] = useState(false);
@@ -24,6 +27,10 @@ export default function AssessmentFormsDownloadModal({ open, assessment, onClose
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
+
+  useEffect(() => {
+    agencyBrandingRef.current = getAgencyBranding(authUser);
+  }, [authUser]);
 
   useEffect(() => {
     if (!open || !assessment) return undefined;
@@ -61,6 +68,7 @@ export default function AssessmentFormsDownloadModal({ open, assessment, onClose
             setProgress(Math.max(0, Math.min(100, pct)));
             if (label) setStatus(label);
           },
+          { agencyBranding: agencyBrandingRef.current },
         );
 
         if (cancelled) return;

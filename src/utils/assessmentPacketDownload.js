@@ -25,6 +25,7 @@ export async function downloadAssessmentPacketZip(
   formsByCode = {},
   basename = 'assessment-packet',
   onProgress = () => {},
+  options = {},
 ) {
   const merged = mergePacketForms(formsByCode);
   const editableForms = ASSESSMENT_PACKET_FORMS.filter((f) => isPacketFormEditable(f.code));
@@ -40,13 +41,13 @@ export async function downloadAssessmentPacketZip(
     const { code, short } = editableForms[i];
     const pct = Math.round(((i + 0.5) / editableForms.length) * 88);
     onProgress(pct, `Preparing form ${code}…`);
-    const bytes = await fillAssessmentPacketPdf(code, merged[code] || {});
+    const bytes = await fillAssessmentPacketPdf(code, merged[code] || {}, options);
     folder.file(`${code}-${safeFilePart(short, code)}.pdf`, bytes);
   }
 
   onProgress(92, 'Adding combined PDF…');
   try {
-    const combined = await fillAssessmentPacketAllPdfs(merged);
+    const combined = await fillAssessmentPacketAllPdfs(merged, options);
     folder.file(`${rootName}-combined.pdf`, combined);
   } catch {
     /* combined PDF is optional if one template fails */
@@ -69,8 +70,9 @@ export async function downloadAssessmentPacketZip(
 export async function downloadAssessmentPacketMergedPdf(
   formsByCode = {},
   filename = 'assessment-packet.pdf',
+  options = {},
 ) {
-  const bytes = await fillAssessmentPacketAllPdfs(mergePacketForms(formsByCode));
+  const bytes = await fillAssessmentPacketAllPdfs(mergePacketForms(formsByCode), options);
   triggerPdfDownload(bytes, filename);
 }
 
@@ -80,6 +82,7 @@ export async function addAssessmentPacketPdfsToZip(
   formsByCode = {},
   basename = 'assessment',
   onProgress = () => {},
+  options = {},
 ) {
   const merged = mergePacketForms(formsByCode);
   const editableForms = ASSESSMENT_PACKET_FORMS.filter((f) => isPacketFormEditable(f.code));
@@ -91,7 +94,7 @@ export async function addAssessmentPacketPdfsToZip(
     const { code, short } = editableForms[i];
     onProgress(`Building assessment form ${code}…`);
     try {
-      const bytes = await fillAssessmentPacketPdf(code, merged[code] || {});
+      const bytes = await fillAssessmentPacketPdf(code, merged[code] || {}, options);
       assessmentFolder.file(`${code}-${safeFilePart(short, code)}.pdf`, bytes);
     } catch {
       warnings.push(`Failed to build assessment form ${code}`);
@@ -99,7 +102,7 @@ export async function addAssessmentPacketPdfsToZip(
   }
 
   try {
-    const combined = await fillAssessmentPacketAllPdfs(merged);
+    const combined = await fillAssessmentPacketAllPdfs(merged, options);
     assessmentFolder.file(`${rootName}-combined.pdf`, combined);
   } catch {
     warnings.push('Failed to build combined assessment PDF');

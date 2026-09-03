@@ -1,6 +1,7 @@
 /** Keep in sync with backend/common/agencyModules.js */
 export const OWNER_ONLY_MODULES = [
   'AGENCY_HR_STAFF',
+  'AGENCY_SETTINGS',
 ];
 
 export const MODULE_GROUPS = [

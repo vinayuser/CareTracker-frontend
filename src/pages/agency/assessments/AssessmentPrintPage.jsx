@@ -9,6 +9,7 @@ import {
   fillAssessmentPacketAllPdfs,
   openPdfBytes,
 } from '../../../utils/assessmentPacketPdfFill';
+import { getAgencyBranding } from '../../../utils/agencyBranding';
 import { ROUTES } from '../../../routes/routes';
 import { toast } from 'react-toastify';
 
@@ -38,21 +39,27 @@ export default function AssessmentPrintPage() {
       try {
         let forms = {};
         let label = 'assessment-packet.pdf';
+        let assessmentDate = '';
 
         if (isDraft) {
           const raw = sessionStorage.getItem(DRAFT_KEY);
           if (!raw) throw new Error('No draft assessment to print');
           const parsed = JSON.parse(raw);
           forms = mergePacketForms(parsed.form?.formData?.forms || {});
+          assessmentDate = parsed.form?.assessmentDate || '';
         } else {
           if (!id) throw new Error('Missing assessment id');
           const data = await dispatch(fetchAssessment(id)).unwrap();
           const form = assessmentToForm(data);
           forms = mergePacketForms(form.formData?.forms || {});
+          assessmentDate = form.assessmentDate || '';
           label = `${data.assessmentCode || 'assessment'}-packet.pdf`;
         }
 
-        const bytes = await fillAssessmentPacketAllPdfs(forms);
+        const bytes = await fillAssessmentPacketAllPdfs(forms, {
+          agencyBranding: getAgencyBranding(authUser),
+          assessmentDate,
+        });
         if (cancelled) return;
         openPdfBytes(bytes, label);
         // Close helper tab shortly after opening the PDF
@@ -71,7 +78,7 @@ export default function AssessmentPrintPage() {
 
     run();
     return () => { cancelled = true; };
-  }, [authUser?.agencyName, dispatch, id, isDraft, navigate]);
+  }, [authUser?.agencyLogo, authUser?.agencyName, dispatch, id, isDraft, navigate]);
 
   if (error) {
     return (

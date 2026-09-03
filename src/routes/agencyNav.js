@@ -64,4 +64,10 @@ export const AGENCY_NAV_GROUPS = [
       { key: 'AGENCY_CANDIDATES', label: 'Candidates', icon: 'Users' },
     ],
   },
+  {
+    title: 'Administration',
+    items: [
+      { key: 'AGENCY_SETTINGS', label: 'Settings', icon: 'Settings' },
+    ],
+  },
 ];

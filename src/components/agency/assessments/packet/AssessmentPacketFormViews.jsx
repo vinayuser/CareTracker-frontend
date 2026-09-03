@@ -13,6 +13,7 @@ import {
   YnRRow,
   inputClass,
 } from './PacketFields';
+import AssessmentFormBrandingHeader from './AssessmentFormBrandingHeader';
 
 const QUOTE_SERVICES = [
   'Personal Care', 'Companionship', 'Homemaking', 'Medication Reminders',
@@ -72,10 +73,10 @@ const DENTURE_OPTS = ['Upper Partials', 'Lower Partials'];
 const LIVES_OPTS = ['Alone', 'With significant other(s)', 'With family', 'Other'];
 const NON_MED = ['Chore', 'PA', 'CNA', 'Companion', 'Respite'];
 const PDN = ['RN', 'LPN'];
-const ADV_DIR = [
+const ADV_DIR = (agencyName = 'the agency') => [
   'I do not have an Advanced Directive',
   'I have an Advance Directive',
-  'I will give a copy to Mastercare',
+  `I will give a copy to ${agencyName || 'the agency'}`,
 ];
 const PRIORITY_OPTS = [
   { value: '1', label: '1: High Priority = Uninterrupted Service' },
@@ -398,34 +399,37 @@ function Form110({ data, onChange, shared }) {
   );
 }
 
-function Form324({ data, onChange }) {
+function Form324({ data, onChange, shared }) {
   const d = data || {};
+  const agency = shared?.agencyName || 'the agency';
   return (
     <div className="space-y-4">
       <SectionCard title="What Personal Assistants May NOT Do">
         <LegalText>
           <p>Personal Assistants do not: perform tasks not on the Care Plan; give enemas or remove impactions; irrigate Foley, supra-pubic, or colostomy; provide decubitus/wound care; care for tracheotomy tubes or suctioning; vaginal irrigation or tampon insertion; tube feeding; massage/rub legs; cut fingernails or toenails; restrain clients; change sterile dressings; give medical or legal advice; heavy lifting unrelated to client care; household repairs; care for family members; handle checkbooks/finances; accept gifts or extra pay; landscaping/yard work; smoke on shift; eat client food; text/talk on phone while on shift; drive without prior office approval; enter the home without the client present; or call clients to cancel/reschedule shifts.</p>
           <BoolCheck
-            label="I have read and understand what a Personal Assistant may not do. If I have questions about my service, I will contact my Service Supervisor."
+            label={`I have read and understand what a ${agency} Personal Assistant may not do. If I have questions about my service, I will contact my Service Supervisor.`}
             checked={d.acknowledged}
             onChange={(acknowledged) => onChange({ acknowledged })}
           />
         </LegalText>
       </SectionCard>
       <SignatureBlock title="Client / Client Representative" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship />
-      <SignatureBlock title="Agency Representative" value={d.agency || {}} onChange={(agency) => onChange({ agency })} />
+      <SignatureBlock title="Agency Representative" value={d.agency || {}} onChange={(agencySig) => onChange({ agency: agencySig })} />
     </div>
   );
 }
 
-function Form325({ data, onChange }) {
+function Form325({ data, onChange, shared }) {
   const d = data || {};
+  const agency = shared?.agencyName || 'the agency';
   return (
     <div className="space-y-4">
       <SectionCard title="Participant Agreement Release">
         <LegalText>
-          <p>In consideration of participation in the Homecare program, caregivers do not intend to harm or damage belongings or the home. During ADLs it is common that items may be unintentionally broken or misplaced, and caregivers will use household cleaning products and equipment (vacuum, appliances, washer/dryer). The client is responsible for replacing used supplies.</p>
-          <p>The participant releases and holds harmless the agency, its owners, officers, employees, and agents from claims arising from damage to or use of personal property in the course of care, whether negligent or not. Unusual misuse or intentional destruction must be reported within 24 hours; failure to report may prevent validation of a claim.</p>
+          <p>{`In consideration of the Homecare program that I am participating in with ${agency}, I understand it is never the intent of any caregivers who work in my home to harm or damage belongings or the home. During ADLs it is common that items may be unintentionally broken or misplaced, and caregivers will use household cleaning products and equipment (vacuum, appliances, washer/dryer). The client is responsible for replacing used supplies.`}</p>
+          <p>{`I hereby release, indemnify, and hold harmless ${agency}, its owners, officers, officials, employees, and agents from claims arising from damage to or use of personal property in the course of care, whether negligent or not.`}</p>
+          <p>{`If I observe unusual misuse, mistreatment, or intentional destruction by any representative or caregiver of ${agency}, I will notify ${agency} within 24 hours. I have the right to file a grievance; failure to report may prevent validation of a claim.`}</p>
         </LegalText>
         <Field label="Print Name" className="mt-3"><input className={inputClass} value={d.printName || ''} onChange={(e) => onChange({ printName: e.target.value })} /></Field>
       </SectionCard>
@@ -434,18 +438,19 @@ function Form325({ data, onChange }) {
   );
 }
 
-function Form350({ data, onChange }) {
+function Form350({ data, onChange, shared }) {
   const d = data || {};
+  const agency = shared?.agencyName || 'the agency';
   return (
     <div className="space-y-4">
       <SectionCard title="Client Handbook Acknowledgement">
         <LegalText>
-          <p>I acknowledge that I have received a copy of the Client Handbook describing the agency, Notice of Privacy Practices (HIPAA), Client Rights and Responsibilities, Grievance Reporting Procedures, Agency Contact Information, Home Safety and Emergency Planning, and Advance Directives information. I am expected to read and abide by the Handbook and will contact my Service Supervisor with questions.</p>
+          <p>{`I acknowledge that I have received a copy of the ${agency} Client Handbook describing the agency, Notice of Privacy Practices (HIPAA), Client Rights and Responsibilities, Grievance Reporting Procedures, Agency Contact Information, Home Safety and Emergency Planning, and Advance Directives information. I am expected to read and abide by the Handbook and will contact my Service Supervisor with questions.`}</p>
         </LegalText>
         <Field label="Print First and Last Name" className="mt-3"><input className={inputClass} value={d.printName || ''} onChange={(e) => onChange({ printName: e.target.value })} /></Field>
       </SectionCard>
       <SignatureBlock title="Client / Legal Guardian" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship />
-      <SignatureBlock title="Agency Representative" value={d.agency || {}} onChange={(agency) => onChange({ agency })} />
+      <SignatureBlock title="Agency Representative" value={d.agency || {}} onChange={(agencySig) => onChange({ agency: agencySig })} />
     </div>
   );
 }
@@ -492,13 +497,14 @@ function Form400({ data, onChange }) {
   );
 }
 
-function Form410({ data, onChange }) {
+function Form410({ data, onChange, shared }) {
   const d = data || {};
+  const agency = shared?.agencyName || 'the agency';
   return (
     <div className="space-y-4">
       <SectionCard title="Care Plan Acknowledgement">
         <LegalText>
-          <p>I have been informed of the current Service Plan / Individual Care Plan and have carefully read and understand the services identified for this client.</p>
+          <p>{`I have been informed of the current Service Plan / Individual Care Plan by ${agency} for this client and have carefully read and understand the services identified.`}</p>
         </LegalText>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <Field label="Print First and Last Name"><input className={inputClass} value={d.printName || ''} onChange={(e) => onChange({ printName: e.target.value })} /></Field>
@@ -509,18 +515,19 @@ function Form410({ data, onChange }) {
       </SectionCard>
       <SignatureBlock title="Employee" value={d.employee || {}} onChange={(employee) => onChange({ employee })} />
       <SignatureBlock title="Client" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship />
-      <SignatureBlock title="Agency Representative" value={d.agency || {}} onChange={(agency) => onChange({ agency })} />
+      <SignatureBlock title="Agency Representative" value={d.agency || {}} onChange={(agencySig) => onChange({ agency: agencySig })} />
     </div>
   );
 }
 
-function Form610({ data, onChange }) {
+function Form610({ data, onChange, shared }) {
   const d = data || {};
+  const agency = shared?.agencyName || 'the agency';
   return (
     <div className="space-y-4">
       <SectionCard title="Client Concerns & Grievance Process">
         <LegalText>
-          <p>All clients have the right to file a complaint or grievance at any time and to continue care without fear of retaliation. Information is kept confidential. The agency reviews concerns and starts investigation within 48 hours and attempts resolution within 14 days. You have been provided the Grievance Policy and Procedure and Client Grievance Forms.</p>
+          <p>{`While it is the philosophy of ${agency} to consistently provide quality care, situations or concerns may arise. All clients have the right to file a complaint or grievance at any time and to continue care without fear of retaliation. ${agency} reviews concerns and starts investigation within 48 hours and attempts resolution within 14 days. You have been provided the Grievance Policy and Procedure and Client Grievance Forms.`}</p>
           <BoolCheck
             label="I have been informed of the grievance process and have received a copy of the Grievance Policy and Procedure."
             checked={d.acknowledged}
@@ -565,14 +572,15 @@ function Form790({ data, onChange }) {
   );
 }
 
-function Form800({ data, onChange }) {
+function Form800({ data, onChange, shared }) {
   const d = data || {};
+  const agency = shared?.agencyName || 'the agency';
   return (
     <div className="space-y-4">
       <SectionCard title="Nondiscrimination Notice">
         <LegalText>
-          <p>The agency complies with applicable Federal civil rights laws and does not discriminate on the basis of race, color, national origin, age, sex, sexual orientation, gender identity and expression, or disability in employment, admission, treatment, or receipt of services.</p>
-          <p>Free aids and services are available for people with disabilities (e.g., qualified sign language interpreters, large print/audio/accessible formats) and free language assistance for people whose primary language is not English. Grievances may be filed with the agency Civil Rights Coordinator or with the U.S. Department of Health and Human Services, Office for Civil Rights.</p>
+          <p>{`${agency} complies with applicable Federal civil rights laws and does not discriminate on the basis of race, color, national origin, age, sex, sexual orientation, gender identity and expression, or disability in employment, admission, treatment, or receipt of services.`}</p>
+          <p>{`Free aids and services are available for people with disabilities and free language assistance for people whose primary language is not English. If you believe ${agency} failed to provide these services or discriminated, you may file a grievance with the agency Civil Rights Coordinator or with the U.S. Department of Health and Human Services, Office for Civil Rights.`}</p>
           <BoolCheck label="I acknowledge receipt of this Nondiscrimination Notice." checked={d.acknowledged} onChange={(acknowledged) => onChange({ acknowledged })} />
         </LegalText>
       </SectionCard>
@@ -581,7 +589,7 @@ function Form800({ data, onChange }) {
   );
 }
 
-function Form1009({ data, onChange }) {
+function Form1009({ data, onChange, shared }) {
   const d = data || {};
   return (
     <div className="space-y-4">
@@ -615,7 +623,7 @@ function Form1009({ data, onChange }) {
         </div>
         <div className="mt-4">
           <p className="mb-1 text-xs font-medium text-gray-600">Advance Directive</p>
-          <RadioRow name="adv" options={ADV_DIR} value={d.advancedDirective || ''} onChange={(advancedDirective) => onChange({ advancedDirective })} />
+          <RadioRow name="adv" options={ADV_DIR(shared?.agencyName)} value={d.advancedDirective || ''} onChange={(advancedDirective) => onChange({ advancedDirective })} />
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             <Field label="Directive holder name"><input className={inputClass} value={d.advancedDirectiveHolder || ''} onChange={(e) => onChange({ advancedDirectiveHolder: e.target.value })} /></Field>
             <Field label="Relationship"><input className={inputClass} value={d.advancedDirectiveRelationship || ''} onChange={(e) => onChange({ advancedDirectiveRelationship: e.target.value })} /></Field>
@@ -852,13 +860,24 @@ const FORM_MAP = {
 
 export function AssessmentPacketFormView({ code, data, onChange, shared }) {
   const Comp = FORM_MAP[code];
+  const meta = ASSESSMENT_PACKET_FORMS.find((f) => f.code === code);
   if (!Comp) {
-    const meta = ASSESSMENT_PACKET_FORMS.find((f) => f.code === code);
     return (
       <SectionCard title={meta?.title || `Form ${code}`}>
         <p className="text-sm text-gray-500">Unknown form code: {code}</p>
       </SectionCard>
     );
   }
-  return <Comp data={data} onChange={onChange} shared={shared} />;
+  return (
+    <div>
+      <AssessmentFormBrandingHeader
+        agencyName={shared?.agencyName}
+        agencyLogo={shared?.agencyLogo}
+        assessmentDate={shared?.assessmentDate}
+        formCode={code}
+        formTitle={meta?.title}
+      />
+      <Comp data={data} onChange={onChange} shared={shared} />
+    </div>
+  );
 }

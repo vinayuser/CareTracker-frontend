@@ -115,6 +115,79 @@
   word-break: break-word;
 }
 
+.ap-agency-logo {
+  max-width: 1.35in;
+  max-height: 0.55in;
+  object-fit: contain;
+  object-position: left center;
+  display: block;
+}
+
+.ap-header-branded {
+  display: block !important;
+  grid-template-columns: none !important;
+  text-align: center;
+  border-bottom: 1.5px solid #1a3a6c;
+  padding-bottom: 0.08in;
+  margin-bottom: 0.08in;
+}
+
+.ap-brand-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.03in;
+}
+
+.ap-agency-logo-lg {
+  max-width: 2.4in;
+  max-height: 0.85in;
+  object-fit: contain;
+  display: block;
+}
+
+.ap-agency-name-lg {
+  font-size: 11pt;
+  font-weight: 800;
+  color: #1a3a6c;
+  line-height: 1.15;
+}
+
+.ap-header-branded .ap-main-title {
+  font-size: 10pt;
+  margin-top: 0.02in;
+}
+
+.ap-footer-branded {
+  display: flex !important;
+  flex-direction: column;
+  gap: 0.02in;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 0.06in;
+  border-top: 1px solid #1a3a6c;
+  font-size: 5.8pt;
+  color: #333;
+  justify-content: flex-start;
+  align-items: stretch;
+}
+
+.ap-footer-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1.2fr 1fr;
+  gap: 0.08in;
+  width: 100%;
+  align-items: baseline;
+}
+
+.ap-footer-row span:nth-child(2) {
+  text-align: center;
+}
+
+.ap-footer-row span:nth-child(3) {
+  text-align: right;
+}
+
 .ap-title-block {
   text-align: center;
 }
