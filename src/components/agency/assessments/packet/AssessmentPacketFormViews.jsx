@@ -445,9 +445,25 @@ function Form350({ data, onChange, shared }) {
     <div className="space-y-4">
       <SectionCard title="Client Handbook Acknowledgement">
         <LegalText>
-          <p>{`I acknowledge that I have received a copy of the ${agency} Client Handbook describing the agency, Notice of Privacy Practices (HIPAA), Client Rights and Responsibilities, Grievance Reporting Procedures, Agency Contact Information, Home Safety and Emergency Planning, and Advance Directives information. I am expected to read and abide by the Handbook and will contact my Service Supervisor with questions.`}</p>
+          <div className="flex flex-wrap items-end gap-x-2 gap-y-1 text-sm leading-relaxed text-gray-800">
+            <span className="pb-2 font-medium">I,</span>
+            <label className="inline-flex min-w-[14rem] flex-1 flex-col items-stretch sm:min-w-[18rem]">
+              <input
+                className={`${inputClass} border-0 border-b border-gray-400 bg-transparent px-1 py-1 shadow-none focus:border-primary focus:ring-0`}
+                value={d.printName || ''}
+                onChange={(e) => onChange({ printName: e.target.value })}
+                aria-label="Print First and Last Name"
+              />
+              <span className="mt-0.5 text-center text-[10px] italic text-gray-500">
+                Print First and Last Name
+              </span>
+            </label>
+            <span className="pb-2 font-medium">, acknowledge that I have</span>
+          </div>
+          <p className="mt-2">
+            {`received a copy of the ${agency} Client Handbook, which describes important information about ${agency}, Notice of Privacy Practices (HIPAA), a Statement of Client’s Rights and Responsibilities, Grievance Reporting Procedures, Agency Contact Information, Home Safety and Emergency Planning Information and Advance Directives Information. I understand that I am expected to read and abide with the terms outlined in the Handbook. I also understand that if I have questions concerning any of the terms of ${agency} I should contact my Service Supervisor for clarification.`}
+          </p>
         </LegalText>
-        <Field label="Print First and Last Name" className="mt-3"><input className={inputClass} value={d.printName || ''} onChange={(e) => onChange({ printName: e.target.value })} /></Field>
       </SectionCard>
       <SignatureBlock title="Client / Legal Guardian" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship />
       <SignatureBlock title="Agency Representative" value={d.agency || {}} onChange={(agencySig) => onChange({ agency: agencySig })} />
@@ -504,10 +520,26 @@ function Form410({ data, onChange, shared }) {
     <div className="space-y-4">
       <SectionCard title="Care Plan Acknowledgement">
         <LegalText>
-          <p>{`I have been informed of the current Service Plan / Individual Care Plan by ${agency} for this client and have carefully read and understand the services identified.`}</p>
+          <div className="flex flex-wrap items-end gap-x-2 gap-y-1 text-sm leading-relaxed text-gray-800">
+            <span className="pb-2 font-medium">I,</span>
+            <label className="inline-flex min-w-[14rem] flex-1 flex-col items-stretch sm:min-w-[18rem]">
+              <input
+                className={`${inputClass} border-0 border-b border-gray-400 bg-transparent px-1 py-1 shadow-none focus:border-primary focus:ring-0`}
+                value={d.printName || ''}
+                onChange={(e) => onChange({ printName: e.target.value })}
+                aria-label="Print First and Last Name"
+              />
+              <span className="mt-0.5 text-center text-[10px] italic text-gray-500">
+                Print First and Last Name
+              </span>
+            </label>
+            <span className="pb-2 font-medium">, have been informed of the current Service Plan / Individual Care Plan by</span>
+          </div>
+          <p className="mt-2">
+            {`${agency} for the following client and have carefully read and understand the services identified for this client.`}
+          </p>
         </LegalText>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <Field label="Print First and Last Name"><input className={inputClass} value={d.printName || ''} onChange={(e) => onChange({ printName: e.target.value })} /></Field>
           <Field label="Client Name"><input className={inputClass} value={d.clientName || ''} onChange={(e) => onChange({ clientName: e.target.value })} /></Field>
           <Field label="DOB"><input type="date" className={inputClass} value={d.dob || ''} onChange={(e) => onChange({ dob: e.target.value })} /></Field>
         </div>

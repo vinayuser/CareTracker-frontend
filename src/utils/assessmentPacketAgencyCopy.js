@@ -11,9 +11,11 @@ export function replaceAgencyBrand(text, agencyName) {
   return String(text || '')
     .replace(/Mastercare Homecare and Healthcare/gi, name)
     .replace(/Mastercare Homecare & Healthcare/gi, name)
+    .replace(/Mastercare Homecare Representative/gi, `${name} Representative`)
     .replace(/Mastercare Homecare/gi, name)
     .replace(/Mastercare, Inc\./gi, `${name}`)
     .replace(/Mastercare Inc\./gi, `${name}`)
+    .replace(/Mastercare['’]s/gi, `${name}'s`)
     .replace(/Mastercare Representative/gi, 'Agency Representative')
     .replace(/Mastercare Staff/gi, `${name} staff`)
     .replace(/Mastercare office/gi, 'the agency office')
@@ -110,8 +112,10 @@ export function getForm350Copy(agencyName) {
   const name = agencyDisplayName(agencyName);
   return {
     title: 'Client Handbook Acknowledgement',
+    leadInBefore: 'I,',
+    leadInAfter: 'acknowledge that I have',
     paragraphs: [
-      `I acknowledge that I have received a copy of the ${name} Client Handbook, which describes important information about ${name}, Notice of Privacy Practices (HIPAA), a Statement of Client’s Rights and Responsibilities, Grievance Reporting Procedures, Agency Contact Information, Home Safety and Emergency Planning Information and Advance Directives Information. I understand that I am expected to read and abide with the terms outlined in the Handbook. I also understand that if I have questions concerning any of the terms of ${name} I should contact my Service Supervisor for clarification.`,
+      `received a copy of the ${name} Client Handbook, which describes important information about ${name}, Notice of Privacy Practices (HIPAA), a Statement of Client’s Rights and Responsibilities, Grievance Reporting Procedures, Agency Contact Information, Home Safety and Emergency Planning Information and Advance Directives Information. I understand that I am expected to read and abide with the terms outlined in the Handbook. I also understand that if I have questions concerning any of the terms of ${name} I should contact my Service Supervisor for clarification.`,
     ],
     showAgencySig: true,
   };
@@ -121,8 +125,10 @@ export function getForm410Copy(agencyName) {
   const name = agencyDisplayName(agencyName);
   return {
     title: 'Care Plan Acknowledgement',
+    leadInBefore: 'I,',
+    leadInAfter: 'have been informed of the current Service Plan / Individual Care Plan by',
     paragraphs: [
-      `I have been informed of the current Service Plan / Individual Care Plan by ${name} for the following client and have carefully read and understand the services identified for this client.`,
+      `${name} for the following client and have carefully read and understand the services identified for this client.`,
     ],
     showAgencySig: true,
     showEmployeeSig: true,
@@ -176,3 +182,228 @@ export function getLongFormBody(code, agencyName, rawFallback = '') {
       && !/MC-Rev\./i.test(p)
       && !/^Email:/i.test(p));
 }
+
+const SECTION_HEADING_RE = /^(How We May Use and Disclose Your Health Information|Special Situations|Your Rights|Changes to This Notice)(:)?$/i;
+const INLINE_HEADING_RE = /^([A-Z][\w/'’&\s/-]{1,60}\.)\s+([A-Z\d].+)$/;
+const INLINE_HEADING_ALLOW = /^(Plan of Care\/Treatment|Payment|Agency Operations|Notifications|Workers['’]? Compensation|Public Health|Law Enforcement|Charges Against|Duty to Warn|Right to )/i;
+
+function joinSoftWrappedLines(lines) {
+  let out = '';
+  for (const line of lines) {
+    const t = String(line || '').trim();
+    if (!t) continue;
+    if (!out) {
+      out = t;
+      continue;
+    }
+    if (/[A-Za-z]$/.test(out) && /^[a-z]/.test(t)) {
+      const lastWord = out.split(/\s+/).pop() || '';
+      const commonShort = /^(a|an|and|as|at|be|by|do|for|if|in|is|it|no|not|of|on|or|so|to|up|us|we|ask|may|the|you|all|any|can|has|had|her|his|how|its|our|out|own|too|was|who|are|but|did|use|used)$/i;
+      // Glue only true mid-word wraps (e.g. "Rig"+"ht"), not "ask"+"us"
+      if (lastWord.length <= 3 && !commonShort.test(lastWord)) out += t;
+      else out += ` ${t}`;
+    } else {
+      out += ` ${t}`;
+    }
+  }
+  return out.replace(/\s+/g, ' ').trim();
+}
+
+function isInlineHeadingLine(line, agencyName = '') {
+  const m = String(line || '').match(INLINE_HEADING_RE);
+  if (!m) return false;
+  const heading = m[1].replace(/\.\s*$/, '');
+  if (agencyName && heading.toLowerCase() === String(agencyName).toLowerCase()) return false;
+  return INLINE_HEADING_ALLOW.test(heading);
+}
+
+function pushParagraph(blocks, lines, agencyName = '') {
+  const text = joinSoftWrappedLines(lines);
+  if (!text) return;
+  if (agencyName && text.toLowerCase() === String(agencyName).toLowerCase()) return;
+  if (isInlineHeadingLine(text, agencyName)) {
+    const inline = text.match(INLINE_HEADING_RE);
+    blocks.push({ type: 'lead', heading: inline[1], text: inline[2] });
+  } else {
+    blocks.push({ type: 'p', text });
+  }
+}
+
+/**
+ * Parse long legal notice text into structured blocks for print layout
+ * (paragraphs, bullets, section headings, bold lead-ins).
+ */
+export function parseLegalNoticeBlocks(rawText, agencyName) {
+  const name = agencyDisplayName(agencyName);
+  const branded = replaceAgencyBrand(rawText, name)
+    .replace(/\f/g, '\n')
+    .replace(/\r\n/g, '\n')
+    .replace(/\u00a0/g, ' ');
+
+  const lines = branded.split('\n');
+  const blocks = [];
+  let para = [];
+  let bullets = [];
+
+  const flushPara = () => {
+    if (!para.length) return;
+    pushParagraph(blocks, para, name);
+    para = [];
+  };
+
+  const flushBullets = () => {
+    if (!bullets.length) return;
+    blocks.push({ type: 'ul', items: bullets.map((b) => b.replace(/\s+/g, ' ').trim()) });
+    bullets = [];
+  };
+
+  for (const rawLine of lines) {
+    const trimmed = String(rawLine || '').trim();
+    const isIndented = /^\s{3,}/.test(rawLine || '');
+
+    if (!trimmed) {
+      flushPara();
+      flushBullets();
+      continue;
+    }
+
+    if (/^Effective Date:/i.test(trimmed)) continue;
+    if (/^HIPAA Notice of Privacy$/i.test(trimmed)) continue;
+    if (/^Consent for Homecare Services/i.test(trimmed) && trimmed.length < 80) continue;
+    if (/^Consent To Release/i.test(trimmed) && trimmed.length < 80) continue;
+    if (/All Rights Reserved/i.test(trimmed)) continue;
+    if (/^MC-Rev\./i.test(trimmed)) continue;
+    if (/^www\./i.test(trimmed)) continue;
+    if (/^7920 Belt Line/i.test(trimmed)) continue;
+    if (/^Email:/i.test(trimmed) && trimmed.length < 60) continue;
+    if (/^Dallas,? TX/i.test(trimmed)) continue;
+    if (/^Fax:\s*\(/i.test(trimmed) && trimmed.length < 40) continue;
+    if (name && trimmed.toLowerCase() === name.toLowerCase()) continue;
+
+    if (/^Send all written requests/i.test(trimmed)) {
+      flushPara();
+      flushBullets();
+      blocks.push({ type: 'requests' });
+      continue;
+    }
+
+    if (/^[•·●\u2022]\s*/.test(trimmed)) {
+      flushPara();
+      bullets.push(trimmed.replace(/^[•·●\u2022]\s*/, ''));
+      continue;
+    }
+
+    if (bullets.length && isIndented && !SECTION_HEADING_RE.test(trimmed) && !isInlineHeadingLine(trimmed, name)) {
+      bullets[bullets.length - 1] = `${bullets[bullets.length - 1]} ${trimmed}`;
+      continue;
+    }
+
+    if (SECTION_HEADING_RE.test(trimmed)) {
+      flushPara();
+      flushBullets();
+      const heading = /:\s*$/.test(trimmed) ? trimmed : `${trimmed}:`;
+      blocks.push({ type: 'h', text: heading });
+      continue;
+    }
+
+    if (bullets.length) flushBullets();
+
+    if (isInlineHeadingLine(trimmed, name) && para.length) {
+      flushPara();
+    }
+
+    para.push(trimmed);
+  }
+
+  flushPara();
+  flushBullets();
+  return blocks;
+}
+
+const ROMAN_SECTION_RE = /^\s*((?:I{1,3}|IV|V|VI{0,3}|IX|X)\.)\s+(.+)$/i;
+
+/**
+ * Split consent agreement body (form 1009) into Roman-numeral sections
+ * for print layout. Keeps current copy; only structures it for design.
+ */
+export function parseConsentAgreementSections(rawText, agencyName) {
+  const name = agencyDisplayName(agencyName);
+  const branded = replaceAgencyBrand(rawText, name)
+    .replace(/\f/g, '\n')
+    .replace(/\r\n/g, '\n')
+    .replace(/\u00a0/g, ' ');
+
+  const lines = branded.split('\n');
+  const sections = [];
+  let current = null;
+  let buf = [];
+
+  const flushBuf = () => {
+    if (!current || !buf.length) {
+      buf = [];
+      return;
+    }
+    const text = joinSoftWrappedLines(buf);
+    buf = [];
+    if (!text) return;
+    // Skip template chrome / signature labels that we render separately
+    if (/^Client Name:/i.test(text) && text.length < 80) return;
+    if (/^Consent for Homecare Services/i.test(text) && text.length < 80) return;
+    if (/^Client Signature/i.test(text)) return;
+    if (/^Representative Signature/i.test(text)) return;
+    if (/^Secondary Guarantor/i.test(text)) return;
+    if (/^Tertiary Guarantor/i.test(text)) return;
+    if (/^I\/We guarantee to pay/i.test(text)) return;
+    current.paragraphs.push(text);
+  };
+
+  for (const rawLine of lines) {
+    const trimmed = String(rawLine || '').trim();
+    if (!trimmed) {
+      flushBuf();
+      continue;
+    }
+    if (/^Client Name:/i.test(trimmed) && /DOB:/i.test(trimmed)) continue;
+    if (/^Consent for Homecare Services/i.test(trimmed) && trimmed.length < 90) continue;
+
+    const roman = trimmed.match(ROMAN_SECTION_RE);
+    if (roman) {
+      flushBuf();
+      if (current) sections.push(current);
+      current = {
+        heading: `${roman[1].toUpperCase().replace(/\.$/, '')}. ${roman[2].trim()}`,
+        paragraphs: [],
+      };
+      continue;
+    }
+
+    if (!current) {
+      // preamble before first section — ignore chrome
+      continue;
+    }
+
+    // Skip noisy service-checkbox lines from the template; UI data renders those
+    if (/Non-Medical:/i.test(trimmed) && /Chore|Companion|Respite/i.test(trimmed)) continue;
+    if (/Private Duty Nursing:/i.test(trimmed) && /\bRN\b|\bLPN\b/i.test(trimmed)) continue;
+    if (/^Frequency by Discipline:/i.test(trimmed) && trimmed.length < 40) continue;
+    if (/Billing Cycle:/i.test(trimmed) && /Weekly|Bi-Weekly|Monthly/i.test(trimmed)) {
+      // keep payment prose before billing cycle marker if any
+      const before = trimmed.split(/Billing Cycle:/i)[0].trim();
+      if (before) buf.push(before);
+      flushBuf();
+      continue;
+    }
+    if (/I do not have an Advanced Directive/i.test(trimmed)) continue;
+    if (/^\(Name\)/i.test(trimmed) || /has a copy of my Advanced Directive/i.test(trimmed)) continue;
+    if (/Yes, I have a Health Care Representative/i.test(trimmed)) continue;
+    if (/^Name:\s*$/i.test(trimmed) || (/^Name:/i.test(trimmed) && /Phone:/i.test(trimmed))) continue;
+
+    buf.push(trimmed);
+  }
+
+  flushBuf();
+  if (current) sections.push(current);
+  return sections;
+}
+
+

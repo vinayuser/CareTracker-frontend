@@ -187,6 +187,98 @@ function coverTemplateFooter(page) {
   });
 }
 
+/**
+ * pdftotext y is from top; pdf-lib y is from bottom.
+ * Cover baked-in Mastercare body labels and redraw with agency name.
+ * Keep whiteouts inside text bounds so table/grid rules are not erased.
+ */
+function fitTextToWidth(font, text, maxWidth, maxSize, minSize = 6) {
+  let size = maxSize;
+  let value = String(text || '');
+  while (size > minSize && font.widthOfTextAtSize(value, size) > maxWidth) {
+    size -= 0.5;
+  }
+  while (value.length > 3 && font.widthOfTextAtSize(value, size) > maxWidth) {
+    value = `${value.slice(0, -2).trim()}…`;
+  }
+  return { value, size };
+}
+
+function patchMastercareBodyText(page, pageHeight, font, agencyName, formCode) {
+  const name = String(agencyName || '').trim() || 'Agency';
+  const patchesByCode = {
+    // Only cover "Mastercare Homecare" — leave "Representative and Title:" + grid lines alone
+    790: [
+      {
+        x: 198.5,
+        yFromTop: 109.2,
+        width: 75,
+        height: 9.2,
+        maxSize: 8,
+        text: name,
+      },
+    ],
+    7000: [
+      {
+        x: 58,
+        yFromTop: 688.2,
+        width: 112,
+        height: 9.5,
+        maxSize: 9,
+        text: 'Agency Representative',
+      },
+      {
+        x: 108,
+        yFromTop: 703.2,
+        width: 400,
+        height: 10.5,
+        maxSize: 9,
+        text: `**${name} staff will not make home visits during times of emergency or disaster.`,
+      },
+    ],
+    7050: [
+      {
+        x: 58,
+        yFromTop: 703,
+        width: 112,
+        height: 9.5,
+        maxSize: 9,
+        text: 'Agency Representative',
+      },
+    ],
+  };
+
+  const patches = patchesByCode[String(formCode)] || [];
+  patches.forEach((patch) => {
+    const y = pageHeight - patch.yFromTop - patch.height;
+    page.drawRectangle({
+      x: patch.x,
+      y,
+      width: patch.width,
+      height: patch.height,
+      color: rgb(1, 1, 1),
+      borderWidth: 0,
+    });
+    try {
+      const fitted = fitTextToWidth(
+        font,
+        patch.text,
+        patch.width - 2,
+        patch.maxSize || patch.size || 9,
+      );
+      page.drawText(fitted.value, {
+        x: patch.x + 1,
+        y: y + Math.max(1.5, (patch.height - fitted.size) / 2),
+        size: fitted.size,
+        font,
+        color: rgb(0.05, 0.05, 0.05),
+      });
+    } catch {
+      /* ignore overflow */
+    }
+  });
+}
+
 function formatFooterAddress(branding = {}) {
   const cityState = [branding.city, branding.state].filter(Boolean).join(', ');
   return [branding.address, cityState].filter(Boolean).join(', ');
@@ -266,6 +358,9 @@ async function overlayAgencyBranding(pdfDoc, options = {}) {
     const { width, height } = page.getSize();
     coverTemplateLogo(page, height);
     coverTemplateFooter(page);
+    if (pageIndex === 0) {
+      patchMastercareBodyText(page, height, font, branding.name, options.formCode);
+    }
 
     if (pageIndex === 0 && logoImage) {
       page.drawImage(logoImage, {
@@ -846,7 +941,7 @@ export async function fillAssessmentPacketPdf(code, formData, options = {}) {
   const templateBytes = await fetchPdfTemplateBytes(url);
   const pdfDoc = await PDFDocument.load(templateBytes, { ignoreEncryption: true });
   await applyFormData(code, pdfDoc, formData);
-  await overlayAgencyBranding(pdfDoc, options);
+  await overlayAgencyBranding(pdfDoc, { ...options, formCode: code });
   return pdfDoc.save({ useObjectStreams: false });
 }
 
