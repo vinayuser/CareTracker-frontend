@@ -24,6 +24,7 @@ import {
   Ticket,
   Newspaper,
   Settings,
+  Archive,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -63,6 +64,7 @@ const iconMap = {
   Ticket,
   Newspaper,
   Settings,
+  Archive,
 };
 
 function NavItem({ item, collapsed }) {

@@ -3,6 +3,7 @@ const statusStyles = {
   Pending: 'bg-orange-50 text-warning border-orange-200',
   Inactive: 'bg-gray-50 text-gray-500 border-gray-200',
   Suspended: 'bg-red-50 text-danger border-red-200',
+  Archived: 'bg-slate-100 text-slate-600 border-slate-300',
 };
 
 const dotColors = {
@@ -10,6 +11,7 @@ const dotColors = {
   Pending: 'bg-warning',
   Inactive: 'bg-gray-400',
   Suspended: 'bg-danger',
+  Archived: 'bg-slate-500',
 };
 
 export default function AgencyStatusBadge({ status }) {

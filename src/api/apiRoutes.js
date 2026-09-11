@@ -10,6 +10,7 @@ const API_ROUTES = {
     AGENCY: {
       LIST: '/admin/agencies',
       OPTIONS: '/admin/agencies/options',
+      LIFECYCLE: '/admin/agencies/lifecycle',
       DETAIL: '/admin/agencies',
       CAREGIVERS: '/admin/agencies',
       BILLING: '/admin/agencies',
@@ -18,6 +19,8 @@ const API_ROUTES = {
       CREATE: '/admin/agencies',
       UPDATE: '/admin/agencies',
       DELETE: '/admin/agencies',
+      ARCHIVE: '/admin/agencies',
+      RESTORE: '/admin/agencies',
     },
     SUBSCRIPTION_PLAN: {
       LIST: '/admin/subscription-plans',
@@ -31,6 +34,7 @@ const API_ROUTES = {
       LIST: '/admin/invitations',
       CREATE: '/admin/invitations',
       RESEND: '/admin/invitations',
+      DELETE: '/admin/invitations',
       VALIDATE: '/invitations/validate',
     },
     USERS: {

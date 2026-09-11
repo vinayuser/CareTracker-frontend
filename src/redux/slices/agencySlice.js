@@ -61,9 +61,57 @@ export const deleteAgency = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       await axiosInstance.delete(`${API_ROUTES.ADMIN.AGENCY.DELETE}/${id}`);
-      toast.success('Agency deleted successfully');
+      toast.success('Agency and all related records deleted');
       return id;
     } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete agency');
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  },
+);
+
+export const fetchAgencyLifecycle = createAsyncThunk(
+  'agencies/fetchLifecycle',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const query = new URLSearchParams();
+      if (params.status) query.set('status', params.status);
+      if (params.search) query.set('search', params.search);
+      const qs = query.toString();
+      const url = qs
+        ? `${API_ROUTES.ADMIN.AGENCY.LIFECYCLE}?${qs}`
+        : API_ROUTES.ADMIN.AGENCY.LIFECYCLE;
+      const response = await axiosInstance.get(url);
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  },
+);
+
+export const archiveAgency = createAsyncThunk(
+  'agencies/archive',
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post(`${API_ROUTES.ADMIN.AGENCY.ARCHIVE}/${id}/archive`);
+      toast.success('Agency archived — portal access disabled');
+      return response.data.data;
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to archive agency');
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  },
+);
+
+export const restoreAgency = createAsyncThunk(
+  'agencies/restore',
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post(`${API_ROUTES.ADMIN.AGENCY.RESTORE}/${id}/restore`);
+      toast.success('Agency restored');
+      return response.data.data;
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to restore agency');
       return rejectWithValue(error.response?.data || error.message);
     }
   },
@@ -74,9 +122,12 @@ const agencySlice = createSlice({
   initialState: {
     list: [],
     options: [],
+    lifecycleItems: [],
+    lifecycleStats: { total: 0, active: 0, archived: 0 },
     agency: null,
     status: 'idle',
     optionsStatus: 'idle',
+    lifecycleStatus: 'idle',
     detailStatus: 'idle',
     error: null,
   },
@@ -109,6 +160,18 @@ const agencySlice = createSlice({
       })
       .addCase(fetchAgencyOptions.rejected, (state, action) => {
         state.optionsStatus = 'failed';
+        state.error = action.payload;
+      })
+      .addCase(fetchAgencyLifecycle.pending, (state) => {
+        state.lifecycleStatus = 'loading';
+      })
+      .addCase(fetchAgencyLifecycle.fulfilled, (state, action) => {
+        state.lifecycleStatus = 'succeeded';
+        state.lifecycleItems = Array.isArray(action.payload?.items) ? action.payload.items : [];
+        state.lifecycleStats = action.payload?.stats || { total: 0, active: 0, archived: 0 };
+      })
+      .addCase(fetchAgencyLifecycle.rejected, (state, action) => {
+        state.lifecycleStatus = 'failed';
         state.error = action.payload;
       })
       .addCase(getAgencyById.pending, (state, action) => {
@@ -148,10 +211,25 @@ const agencySlice = createSlice({
         const id = action.payload;
         state.list = state.list.filter((item) => item.id !== id);
         state.options = state.options.filter((item) => item.id !== id);
+        state.lifecycleItems = state.lifecycleItems.filter((item) => item.id !== id);
         if (state.agency?.id === id) {
           state.agency = null;
           state.detailStatus = 'idle';
         }
+      })
+      .addCase(archiveAgency.fulfilled, (state, action) => {
+        const updated = action.payload;
+        state.list = state.list.filter((item) => item.id !== updated.id);
+        state.options = state.options.filter((item) => item.id !== updated.id);
+        const idx = state.lifecycleItems.findIndex((item) => item.id === updated.id);
+        if (idx !== -1) state.lifecycleItems[idx] = updated;
+        if (state.agency?.id === updated.id) state.agency = updated;
+      })
+      .addCase(restoreAgency.fulfilled, (state, action) => {
+        const updated = action.payload;
+        const idx = state.lifecycleItems.findIndex((item) => item.id === updated.id);
+        if (idx !== -1) state.lifecycleItems[idx] = updated;
+        if (state.agency?.id === updated.id) state.agency = updated;
       });
   },
 });

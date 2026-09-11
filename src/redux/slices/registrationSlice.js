@@ -4,10 +4,15 @@ import API_ROUTES from '../../api/apiRoutes';
 
 export const checkUserIdAvailability = createAsyncThunk(
   'registration/checkUserId',
-  async (userId, { rejectWithValue }) => {
+  async (payload, { rejectWithValue }) => {
     try {
+      const userId = typeof payload === 'string' ? payload : payload?.userId;
+      const invitationToken = typeof payload === 'string' ? undefined : payload?.invitationToken;
       const response = await axiosInstance.get(API_ROUTES.REGISTRATION.CHECK_USER_ID, {
-        params: { email: userId },
+        params: {
+          email: userId,
+          ...(invitationToken ? { invitationToken } : {}),
+        },
       });
       return response.data.data;
     } catch (error) {

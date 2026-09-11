@@ -280,9 +280,9 @@ export default function Agencies() {
   const handleDelete = async () => {
     if (!agency) return;
     const confirmed = await confirmAlert({
-      title: 'Delete agency?',
-      text: `Delete ${agency.name}? This cannot be undone.`,
-      confirmText: 'Delete',
+      title: 'Permanently delete agency?',
+      text: `Delete ${agency.name} and all related records (users, clients, schedules, EVV, invoices, and more)? This cannot be undone. Prefer Archive from Agency Lifecycle if you only want to revoke access.`,
+      confirmText: 'Delete forever',
       danger: true,
     });
     if (!confirmed) return;

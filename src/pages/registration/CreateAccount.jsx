@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
+import { toast } from 'react-toastify';
 import { Eye, EyeOff, Copy, CheckCircle2, Lightbulb } from 'lucide-react';
 import { ROUTES } from '../../routes/routes';
 import {
@@ -47,7 +48,12 @@ export default function CreateAccount() {
     setUserId(value);
     if (value.length >= 3) {
       try {
-        await dispatch(checkUserIdAvailability(value)).unwrap();
+        await dispatch(
+          checkUserIdAvailability({
+            userId: value,
+            invitationToken: inviteSession?.token,
+          }),
+        ).unwrap();
         setUserIdAvailable(true);
       } catch {
         setUserIdAvailable(false);
@@ -61,10 +67,17 @@ export default function CreateAccount() {
     e.preventDefault();
     try {
       await dispatch(
-        createRegistrationAccount({ email: userId, password, fullName }),
+        createRegistrationAccount({
+          email: userId,
+          password,
+          fullName,
+          invitationToken: inviteSession?.token,
+        }),
       ).unwrap();
-    } catch {
-      // Demo mode continues with local state
+    } catch (err) {
+      const message = typeof err === 'string' ? err : err?.message || 'Could not create account.';
+      toast.error(message);
+      return;
     }
     updateRegistrationData({ fullName, userId, password });
     setCredentialsReady(true);

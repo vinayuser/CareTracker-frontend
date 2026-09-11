@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
+import { toast } from 'react-toastify';
 import { CreditCard, CheckCircle2, Lock } from 'lucide-react';
 import { ROUTES } from '../../routes/routes';
 import { fetchActivePlans } from '../../redux/slices/subscriptionPlanSlice';
@@ -77,18 +78,20 @@ export default function RegistrationConfirmation() {
           ...registrationData,
         }),
       ).unwrap();
-    } catch {
-      // Demo mode continues
-    }
 
-    if (inviteSession?.token) {
-      markInvitationAccepted(inviteSession.token);
-    }
+      if (inviteSession?.token) {
+        markInvitationAccepted(inviteSession.token);
+      }
 
-    clearInviteSession();
-    clearRegistrationData();
-    setCompleted(true);
-    setLoading(false);
+      clearInviteSession();
+      clearRegistrationData();
+      setCompleted(true);
+    } catch (err) {
+      const message = typeof err === 'string' ? err : err?.message || 'Registration failed. Please try again.';
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (completed) {

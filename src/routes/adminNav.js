@@ -6,6 +6,7 @@ export const ADMIN_NAV_GROUPS = [
     title: 'Agencies & Access',
     items: [
       { key: 'ADMIN_AGENCIES', label: 'Agencies', icon: 'Building2' },
+      { key: 'ADMIN_AGENCY_LIFECYCLE', label: 'Agency Lifecycle', icon: 'Archive' },
       { key: 'ADMIN_INVITATIONS', label: 'Invitations', icon: 'Mail' },
       { key: 'ADMIN_USERS', label: 'Users', icon: 'Users' },
       { key: 'ADMIN_TEAM', label: 'Team', icon: 'UserCog' },

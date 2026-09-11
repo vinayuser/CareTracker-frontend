@@ -12,6 +12,7 @@ export const ROUTES = {
   // Super admin routes
   ADMIN_DASHBOARD: '/admin/dashboard',
   ADMIN_AGENCIES: '/admin/agencies',
+  ADMIN_AGENCY_LIFECYCLE: '/admin/agency-lifecycle',
   ADMIN_INVITATIONS: '/admin/invitations',
   ADMIN_CREATE_INVITATION: '/admin/invitations/create',
   ADMIN_SUBSCRIPTION_PLANS: '/admin/subscription-plans',

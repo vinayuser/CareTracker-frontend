@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
-import { Copy, Plus, MoreVertical } from 'lucide-react';
+import { Copy, Plus, Trash2 } from 'lucide-react';
 import StatCard from '../../components/ui/StatCard';
 import StatusBadge from '../../components/ui/StatusBadge';
 import SendInvitationDrawer from '../../components/admin/SendInvitationDrawer';
@@ -9,8 +9,10 @@ import {
   fetchInvitations,
   fetchInvitationStats,
   resendInvitation,
+  deleteInvitation,
 } from '../../redux/slices/invitationSlice';
 import { formatInviteDate, getInviteUrl } from '../../utils/invitationStore';
+import { confirmAlert } from '../../utils/swal';
 
 export default function Invitations() {
   const dispatch = useDispatch();
@@ -37,6 +39,23 @@ export default function Invitations() {
 
   const handleResend = async (id) => {
     await dispatch(resendInvitation(id)).unwrap();
+    loadInvitations();
+  };
+
+  const handleDelete = async (invitation) => {
+    const confirmed = await confirmAlert({
+      title: 'Delete invitation?',
+      text: `Remove the invite for ${invitation.agencyName} (${invitation.email})? The link will no longer work.`,
+      confirmText: 'Delete',
+      danger: true,
+    });
+    if (!confirmed) return;
+    try {
+      await dispatch(deleteInvitation(invitation.id)).unwrap();
+      loadInvitations();
+    } catch {
+      // toast in slice
+    }
   };
 
   const copyInviteLink = async (invitation) => {
@@ -138,9 +157,17 @@ export default function Invitations() {
                         {inv.status === 'Accepted' && (
                           <span className="text-sm text-success">Registered</span>
                         )}
-                        <button type="button" className="text-gray-400 hover:text-gray-600">
-                          <MoreVertical size={16} />
-                        </button>
+                        {inv.status !== 'Accepted' && (
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(inv)}
+                            className="flex items-center gap-1 text-sm font-medium text-danger hover:underline"
+                            title="Delete invitation"
+                          >
+                            <Trash2 size={14} />
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

@@ -57,6 +57,20 @@ export const resendInvitation = createAsyncThunk(
   },
 );
 
+export const deleteInvitation = createAsyncThunk(
+  'invitations/delete',
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.delete(`${API_ROUTES.ADMIN.INVITATION.DELETE}/${id}`);
+      toast.success('Invitation deleted successfully');
+      return response.data.data;
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete invitation');
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  },
+);
+
 export const validateInvitationToken = createAsyncThunk(
   'invitations/validateToken',
   async (token, { rejectWithValue }) => {
@@ -112,6 +126,10 @@ const invitationSlice = createSlice({
       .addCase(resendInvitation.fulfilled, (state, action) => {
         const index = state.list.findIndex((item) => item.id === action.payload.id);
         if (index !== -1) state.list[index] = action.payload;
+      })
+      .addCase(deleteInvitation.fulfilled, (state, action) => {
+        const deletedId = String(action.payload?.id || '');
+        state.list = state.list.filter((item) => String(item.id) !== deletedId);
       })
       .addCase(validateInvitationToken.fulfilled, (state, action) => {
         state.validatedInvite = action.payload;

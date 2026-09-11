@@ -17,6 +17,7 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import Dashboard from './pages/admin/Dashboard';
 import Agencies from './pages/admin/Agencies';
+import AgencyLifecycle from './pages/admin/AgencyLifecycle';
 import Invitations from './pages/admin/Invitations';
 import SubscriptionPlans from './pages/admin/SubscriptionPlans';
 import Users from './pages/admin/Users';
@@ -165,6 +166,7 @@ export default function App() {
             <Route element={<AdminLayout />}>
               <Route path={ROUTES.ADMIN_DASHBOARD} element={<Dashboard />} />
               <Route path={ROUTES.ADMIN_AGENCIES} element={<Agencies />} />
+              <Route path={ROUTES.ADMIN_AGENCY_LIFECYCLE} element={<AgencyLifecycle />} />
               <Route path={ROUTES.ADMIN_INVITATIONS} element={<Invitations />} />
               <Route
                 path={ROUTES.ADMIN_CREATE_INVITATION}
