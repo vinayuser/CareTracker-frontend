@@ -1,5 +1,7 @@
 export const ROUTES = {
   HOME: '/',
+  LANDING: '/',
+  MARKETING_EVV: '/evv',
   LOGIN: '/login',
   FORGOT_PASSWORD: '/forgot-password',
   RESET_PASSWORD: '/reset-password',

@@ -96,6 +96,9 @@ import InterviewFeedbackPrintPage from './pages/agency/hiring/InterviewFeedbackP
 import AgencyInformation from './pages/registration/AgencyInformation';
 import CreateAccount from './pages/registration/CreateAccount';
 import RegistrationConfirmation from './pages/registration/RegistrationConfirmation';
+import MarketingLayout from './components/marketing/MarketingLayout';
+import Landing from './pages/marketing/Landing';
+import EvvPage from './pages/marketing/EvvPage';
 import { getHomeRouteForRole } from './utils/auth';
 
 function HomeRedirect() {
@@ -120,14 +123,17 @@ function HomeRedirect() {
   if (isAuthenticated && user?.role) {
     return <Navigate to={getHomeRouteForRole(user.role)} replace />;
   }
-  return <Navigate to={ROUTES.LOGIN} replace />;
+  return <Landing />;
 }
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path={ROUTES.HOME} element={<HomeRedirect />} />
+        <Route element={<MarketingLayout />}>
+          <Route path={ROUTES.HOME} element={<HomeRedirect />} />
+          <Route path={ROUTES.MARKETING_EVV} element={<EvvPage />} />
+        </Route>
 
         <Route
           path={ROUTES.LOGIN}
