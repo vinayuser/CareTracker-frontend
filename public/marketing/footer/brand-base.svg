@@ -1,0 +1,15 @@
+<svg width="1440" height="208" viewBox="0 0 1440 208" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Base background -->
+  <rect width="1440" height="208" fill="#EFF6FF"/>
+
+  <!-- Left decorative waves -->
+  <path d="M332.5 195.113C271.7 135.913 163.833 145.446 117.5 157.613C171.5 162.413 220 184.613 237.5 195.113H332.5Z" fill="#8FE4C3"/>
+  <path d="M159.5 161C103.641 154.421 14.3333 109.167 0 88V194L240 190.5C219.2 180.1 215.359 167.579 159.5 161Z" fill="#0A89F1"/>
+
+  <!-- Right decorative waves -->
+  <path d="M1156.5 207.113C1217.3 147.913 1325.17 157.446 1371.5 169.613C1317.5 174.413 1269 196.613 1251.5 207.113H1156.5Z" fill="#8FE4C3"/>
+  <path d="M1329.5 173C1385.36 166.421 1474.67 121.167 1489 100V206L1249 202.5C1269.8 192.1 1273.64 179.579 1329.5 173Z" fill="#0A89F1"/>
+
+  <!-- Dark navy bottom strip; no white bar -->
+  <rect y="190" width="1440" height="18" fill="#003366"/>
+</svg>

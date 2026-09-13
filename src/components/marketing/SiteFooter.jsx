@@ -1,16 +1,17 @@
 import { Link } from 'react-router-dom';
 import {
   Accessibility,
+  BookOpen,
+  Box,
   Building2,
   CalendarDays,
   Cloud,
-  FileText,
-  HandHeart,
+  DollarSign,
+  Heart,
   Link2,
   Mail,
   MapPin,
   Phone,
-  Receipt,
   Search,
   ShieldCheck,
   TrendingUp,
@@ -22,67 +23,142 @@ import { ROUTES } from '../../routes/routes';
 const COLUMNS = [
   {
     title: 'Product',
-    icon: Building2,
+    Icon: Box,
     tone: 'text-emerald-400',
-    links: ['Overview', 'Features', 'Pricing', "What's New", 'Roadmap'],
+    links: ['Overview', 'Features', 'Pricing', "What's New", 'Roadmap', 'Case Studies', 'Request a Demo'],
   },
   {
     title: 'CRM',
-    icon: UserRound,
+    Icon: UserRound,
     tone: 'text-sky-400',
-    links: ['Lead Management', 'Client Intake', 'Referral Tracking', 'Marketing Tools', 'Email & SMS'],
+    links: [
+      'Lead Management',
+      'Client Intake',
+      'Referral Tracking',
+      'Marketing Tools',
+      'Email & SMS',
+      'Patient Engagement',
+      'Analytics & Reports',
+    ],
   },
   {
     title: 'EVV',
-    icon: CalendarDays,
-    tone: 'text-orange-400',
-    links: ['Mobile Check-In/Out', 'GPS & Geo-Fencing', 'Visit Verification', 'Care Notes'],
+    Icon: CalendarDays,
+    tone: 'text-rose-400',
+    links: [
+      'Mobile Check-In/Out',
+      'GPS & Geo-Fencing',
+      'Visit Verification',
+      'Care Notes',
+      'Missed Visit Alerts',
+      'EVV Compliance',
+      'Real-Time Monitoring',
+    ],
   },
   {
     title: 'Hiring & Onboarding',
-    icon: Users,
-    tone: 'text-amber-400',
-    links: ['Applicant Tracking (ATS)', 'Screening & Background', 'Onboarding'],
+    Icon: Users,
+    tone: 'text-orange-400',
+    links: [
+      'Applicant Tracking (ATS)',
+      'Screening & Background',
+      'Onboarding',
+      'Training & LMS',
+      'Credential Tracking',
+      'Talent Pool',
+      'Workforce Analytics',
+    ],
   },
   {
     title: 'HR & Workforce',
-    icon: FileText,
+    Icon: UserRound,
     tone: 'text-blue-400',
-    links: ['Employee Management', 'Time & Attendance', 'Time Card & Payroll'],
+    links: [
+      'Employee Management',
+      'Time & Attendance',
+      'Time Card & Payroll',
+      'Scheduling',
+      'Caregiver Management',
+      'Performance & Reviews',
+      'Compliance & Alerts',
+    ],
   },
   {
     title: 'Billing & Revenue',
-    icon: Receipt,
+    Icon: DollarSign,
     tone: 'text-emerald-400',
-    links: ['Claims Management', 'Medicaid Eligibility', 'Medicare Eligibility', 'Insurance Billing'],
+    links: [
+      'Claims Management',
+      'Medicaid Eligibility',
+      'Medicare Eligibility',
+      'Insurance Verification',
+      'Electronic Claims (EDI)',
+      'Payment Posting',
+      'Accounts Receivable',
+      'Financial Reporting',
+    ],
   },
   {
     title: 'Enterprise',
-    icon: Building2,
-    tone: 'text-sky-400',
-    links: ['Multi-Location Support', 'Franchise Management', 'Role-Based Access'],
+    Icon: Building2,
+    tone: 'text-sky-300',
+    links: [
+      'Multi-Location Support',
+      'Franchise Management',
+      'Role-Based Access',
+      'Custom Workflows',
+      'Advanced Analytics',
+      'API & Webhooks',
+      'White Label Options',
+      'Secure & Scalable',
+    ],
   },
   {
     title: 'Integrations',
-    icon: Link2,
+    Icon: Link2,
     tone: 'text-yellow-400',
-    links: ['EHR / EMR', 'Payers & Insurance', 'QuickBooks', 'Payroll Systems', 'Background Check'],
+    links: [
+      'EHR / EMR',
+      'Payers & Insurance',
+      'QuickBooks',
+      'Payroll Systems',
+      'Background Check',
+      'E-Signature (FomiqSign)',
+      'Communication (Email/SMS)',
+      'And More...',
+    ],
   },
   {
     title: 'Portals',
-    icon: HandHeart,
+    Icon: Heart,
     tone: 'text-rose-400',
-    links: ['Caregiver Dashboard', 'Patient / Family Portal', 'Client Portal', 'Payer / Auditor'],
+    links: [
+      'Caregiver Dashboard',
+      'Patient / Family Portal',
+      'Client Portal',
+      'Payer / Auditor Portal',
+      'Admin Dashboard',
+      'Mobile Apps',
+      'Telehealth',
+      'Communication Tools',
+    ],
   },
   {
     title: 'Resources',
-    icon: FileText,
+    Icon: BookOpen,
     tone: 'text-emerald-400',
-    links: ['Help Center', 'User Guides', 'Video Tutorials', 'Webinars', 'Blog'],
+    links: [
+      'Help Center',
+      'User Guides',
+      'Video Tutorials',
+      'Webinars',
+      'Blog',
+      'Best Practices',
+      'Community',
+      'Contact Us',
+    ],
   },
 ];
-
-const TRUST = ['HIPAA', 'HITRUST', 'Medicaid', 'Medicare', 'CMS'];
 
 const PILLARS = [
   { label: 'Caregivers Supported', Icon: Users, color: 'text-emerald-600' },
@@ -92,52 +168,11 @@ const PILLARS = [
   { label: 'Built for Enterprise', Icon: Cloud, color: 'text-[#0055d4]' },
 ];
 
-function AppStoreBadge() {
-  return (
-    <a
-      href="https://apps.apple.com"
-      target="_blank"
-      rel="noreferrer"
-      className="inline-flex h-9 items-center gap-1.5 rounded-md bg-black px-2.5 text-white transition hover:bg-neutral-800"
-      aria-label="Download on the App Store"
-    >
-      <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden>
-        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
-      </svg>
-      <span className="leading-none">
-        <span className="block text-[8px] opacity-90">Download on the</span>
-        <span className="block text-[12px] font-semibold tracking-tight">App Store</span>
-      </span>
-    </a>
-  );
-}
-
-function GooglePlayBadge() {
-  return (
-    <a
-      href="https://play.google.com"
-      target="_blank"
-      rel="noreferrer"
-      className="inline-flex h-9 items-center gap-1.5 rounded-md bg-black px-2.5 text-white transition hover:bg-neutral-800"
-      aria-label="Get it on Google Play"
-    >
-      <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden>
-        <path fill="#EA4335" d="M3.6 2.3c-.3.2-.5.5-.5.9v17.6c0 .4.2.7.5.9l9.7-9.7L3.6 2.3z" />
-        <path fill="#FBBC04" d="M14.4 13.2l-2.6-2.6 2.6-2.6 3.3 1.9c.7.4.7 1.4 0 1.8l-3.3 1.5z" />
-        <path fill="#4285F4" d="M3.6 21.7c.2.1.4.2.6.2.3 0 .5-.1.8-.2l7.5-4.3-2.6-2.6-6.3 6.9z" />
-        <path fill="#34A853" d="M3.6 2.3l6.3 6.9 2.6-2.6L5 2.3C4.7 2.1 4.3 2 4 2c-.2 0-.3 0-.4.3z" />
-      </svg>
-      <span className="leading-none">
-        <span className="block text-[8px] opacity-90">GET IT ON</span>
-        <span className="block text-[12px] font-semibold tracking-tight">Google Play</span>
-      </span>
-    </a>
-  );
-}
+const LEGAL = ['Terms of Service', 'Privacy Policy', 'Security', 'Accessibility', 'Sitemap'];
 
 function FooterLogoMark() {
   return (
-    <svg viewBox="0 0 48 48" width={40} height={40} className="shrink-0" aria-hidden>
+    <svg viewBox="0 0 48 48" width={42} height={42} className="shrink-0" aria-hidden>
       <rect width="48" height="48" rx="11" fill="#0055d4" />
       <circle cx="24" cy="24" r="13.5" fill="#ffffff" />
       <path
@@ -152,26 +187,69 @@ function FooterLogoMark() {
   );
 }
 
+function HipaaBadge() {
+  return (
+    <div className="flex h-12 items-center gap-2 rounded border border-white/20 bg-white/5 px-2.5">
+      <svg viewBox="0 0 24 24" className="h-7 w-7 text-white" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        <path d="M9 12h6M12 9v6" />
+      </svg>
+      <div className="leading-tight">
+        <p className="text-[9px] font-bold tracking-wide text-white">HIPAA</p>
+        <p className="text-[8px] font-semibold tracking-wider text-white/80">COMPLIANT</p>
+      </div>
+    </div>
+  );
+}
+
+function CheckBadge({ label }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white">
+        ✓
+      </span>
+      <span className="text-[12px] font-semibold text-white">{label}</span>
+    </div>
+  );
+}
+
+function SocialIcon({ href, label, children, className }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={label}
+      className={`inline-flex h-8 w-8 items-center justify-center rounded-md text-white ${className}`}
+    >
+      {children}
+    </a>
+  );
+}
+
 function FooterBrandBanner() {
   return (
-    <div className="relative overflow-hidden bg-[#f0f7ff]">
-      {/* Content row — 4 zones matching the design */}
-      <div className="relative z-10 mx-auto flex max-w-[1280px] flex-col gap-8 px-5 py-8 lg:flex-row lg:items-center lg:justify-between lg:gap-5 lg:px-8 lg:py-7">
-        {/* 1. Brand */}
+    <div className="relative min-h-[208px] overflow-hidden">
+      <img
+        src="/marketing/footer/brand-base.svg"
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover object-bottom"
+      />
+      <div className="relative z-10 mx-auto flex max-w-[1280px] flex-col gap-8 px-5 py-8 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-8 lg:pb-10 lg:pt-7">
         <div className="w-full shrink-0 lg:w-[200px]">
           <div className="flex items-center gap-2.5">
             <FooterLogoMark />
             <span className="text-[20px] font-bold tracking-tight text-[#0b3d91]">CareTraker</span>
           </div>
-          <p className="mt-2 max-w-[190px] text-[11px] font-medium leading-snug text-[#3b82f6]">
+          <p className="mt-2 max-w-[200px] text-[11px] font-medium leading-snug text-[#3b82f6]">
             Smarter Homecare. Healthier Lives.
             <br />
             Brighter Tomorrows.
           </p>
         </div>
 
-        {/* 2. Center message + pillars */}
-        <div className="min-w-0 flex-1 lg:px-2">
+        <div className="min-w-0 flex-1">
           <div className="text-center">
             <h3 className="text-[17px] font-bold leading-tight text-[#0b3d91] sm:text-[19px]">
               All-in-One Homecare &amp; Healthcare Software
@@ -187,116 +265,83 @@ function FooterBrandBanner() {
             {PILLARS.map(({ label, Icon, color }) => (
               <div key={label} className="flex w-[78px] flex-col items-center gap-1">
                 <Icon size={26} className={color} strokeWidth={1.75} />
-                <span className={`text-center text-[9px] font-semibold leading-tight ${color}`}>
-                  {label}
-                </span>
+                <span className={`text-center text-[9px] font-semibold leading-tight ${color}`}>{label}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* 3. QR */}
-        <div className="flex w-full shrink-0 flex-col items-center lg:w-[92px]">
-          <div className="flex h-[78px] w-[78px] items-center justify-center rounded border-2 border-[#0055d4] bg-white">
-            <span className="text-center text-[10px] font-bold uppercase leading-tight tracking-wider text-[#0055d4]">
-              QR
-              <br />
-              CODE
-            </span>
+        <div className="flex shrink-0 items-start justify-center gap-3.5 lg:justify-end">
+          <div className="flex w-[86px] flex-col items-center">
+            <div className="flex h-[72px] w-[72px] items-center justify-center rounded border-2 border-[#0055d4] bg-white">
+              <span className="text-center text-[10px] font-bold uppercase leading-tight tracking-wider text-[#0055d4]">
+                QR
+                <br />
+                CODE
+              </span>
+            </div>
+            <a
+              href="https://caretraker.com"
+              className="mt-1.5 w-full rounded bg-[#0055d4] py-1 text-center text-[10px] font-bold uppercase tracking-wide text-white hover:bg-[#0046b0]"
+            >
+              Scan Me
+            </a>
+            <a href="https://caretraker.com" className="mt-1 text-[9px] font-medium text-[#0d9488] hover:underline">
+              Visit CareTraker.com
+            </a>
           </div>
-          <a
-            href="https://caretraker.com"
-            className="mt-1.5 w-[78px] rounded bg-[#0055d4] py-1 text-center text-[10px] font-bold uppercase tracking-wide text-white hover:bg-[#0046b0]"
-          >
-            Scan Me
-          </a>
-          <a
-            href="https://caretraker.com"
-            className="mt-1 text-center text-[9px] font-medium text-[#0d9488] hover:underline"
-          >
-            Visit CareTraker.com
-          </a>
-        </div>
 
-        {/* 4. Apps + search */}
-        <div className="w-full shrink-0 lg:w-[230px]">
-          <p className="text-[13px] font-bold leading-snug text-[#0b3d91]">
-            Take Care Further with CareTraker
-            <span className="ml-0.5 inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 align-middle" />
-          </p>
-          <p className="mt-0.5 text-[11px] text-slate-500">Anytime. Anywhere.</p>
-          <div className="mt-2.5 flex flex-wrap gap-2">
-            <AppStoreBadge />
-            <GooglePlayBadge />
+          <div className="min-w-0 pt-0.5">
+            <p className="text-[13px] font-bold leading-snug text-[#0b3d91]">
+              Take Care Further with CareTraker
+              <span className="ml-0.5 inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 align-middle" />
+            </p>
+            <p className="mt-0.5 text-[11px] text-slate-500">Anytime. Anywhere.</p>
+            <img
+              src="/marketing/footer/app-badges.png"
+              alt="Download on the App Store and Google Play"
+              className="mt-2.5 h-9 w-auto max-w-[220px] object-contain object-left"
+            />
+            <p className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-bold text-[#0b3d91]">
+              <Search size={14} strokeWidth={2.5} />
+              Search CareTraker
+            </p>
           </div>
-          <p className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-bold text-[#0b3d91]">
-            <Search size={14} strokeWidth={2.5} />
-            Search CareTraker
-          </p>
         </div>
-      </div>
-
-      {/* Bottom wave strip */}
-      <div className="relative h-8 bg-[#0a1628]">
-        <svg
-          className="pointer-events-none absolute -top-6 left-0 h-14 w-[200px] sm:w-[280px]"
-          viewBox="0 0 280 56"
-          fill="none"
-          aria-hidden
-          preserveAspectRatio="none"
-        >
-          <path
-            d="M0 56 C40 20 70 8 110 18 C150 28 170 48 210 42 C240 38 260 28 280 24 V56 H0 Z"
-            fill="#0055d4"
-          />
-          <path
-            d="M0 56 C35 34 65 26 100 32 C140 40 165 52 205 48 C235 45 255 38 280 36 V56 H0 Z"
-            fill="#2dd4bf"
-          />
-        </svg>
-        <svg
-          className="pointer-events-none absolute -top-6 right-0 h-14 w-[200px] sm:w-[280px]"
-          viewBox="0 0 280 56"
-          fill="none"
-          aria-hidden
-          preserveAspectRatio="none"
-        >
-          <path
-            d="M280 56 C240 20 210 8 170 18 C130 28 110 48 70 42 C40 38 20 28 0 24 V56 H280 Z"
-            fill="#0055d4"
-          />
-          <path
-            d="M280 56 C245 34 215 26 180 32 C140 40 115 52 75 48 C45 45 25 38 0 36 V56 H280 Z"
-            fill="#2dd4bf"
-          />
-        </svg>
       </div>
     </div>
   );
 }
 
-export default function SiteFooter() {
-  const year = new Date().getFullYear();
+/** Module boundaries: [Product–EVV] | [Hiring–HR] | [Billing–Enterprise] | [Integrations–Resources] */
+const MODULE_DIVIDER_AFTER = new Set([2, 4, 6]);
 
+export default function SiteFooter() {
   return (
     <footer>
       <FooterBrandBanner />
 
-      <div className="bg-[#0b1b33] text-white">
-        <div className="mx-auto max-w-[1200px] px-4 py-12 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-10">
-            {COLUMNS.map(({ title, icon: Icon, tone, links }) => (
-              <div key={title}>
-                <div className="mb-3 flex items-center gap-1.5">
-                  <Icon size={14} className={tone} strokeWidth={2} />
-                  <p className="text-[12px] font-semibold text-white">{title}</p>
+      {/* Mega menu */}
+      <div className="bg-[#003366] text-white">
+        <div className="mx-auto max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-10">
+            {COLUMNS.map(({ title, Icon, tone, links }, index) => (
+              <div
+                key={title}
+                className={`min-w-0 px-3 py-1 ${
+                  MODULE_DIVIDER_AFTER.has(index) ? 'xl:border-r xl:border-sky-300/35' : ''
+                }`}
+              >
+                <div className="mb-3 flex flex-col items-start gap-1.5">
+                  <Icon size={18} className={tone} strokeWidth={2} />
+                  <p className="text-[12px] font-bold leading-tight text-white">{title}</p>
                 </div>
-                <ul className="space-y-2">
+                <ul className="space-y-1.5">
                   {links.map((label) => (
                     <li key={label}>
                       <Link
                         to={ROUTES.LANDING}
-                        className="text-[12px] leading-snug text-white/55 transition hover:text-white"
+                        className="text-[11px] leading-snug text-sky-100/70 transition hover:text-white"
                       >
                         {label}
                       </Link>
@@ -306,34 +351,118 @@ export default function SiteFooter() {
               </div>
             ))}
           </div>
+        </div>
+      </div>
 
-          <div className="mt-10 flex flex-col gap-4 border-t border-white/10 pt-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-wrap gap-x-6 gap-y-2 text-[12px] text-white/60">
-              <span className="inline-flex items-center gap-1.5">
-                <MapPin size={13} /> United States
-              </span>
-              <a href="mailto:support@caretraker.com" className="inline-flex items-center gap-1.5 hover:text-white">
-                <Mail size={13} /> support@caretraker.com
-              </a>
-              <a href="tel:+18005550199" className="inline-flex items-center gap-1.5 hover:text-white">
-                <Phone size={13} /> +1 (800) 555-0199
-              </a>
+      {/* Contact + motto + social — one continuous line */}
+      <div className="border-t border-white/10 bg-[#003366] text-white">
+        <div className="mx-auto flex max-w-[1280px] flex-col gap-5 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:gap-6 lg:px-8">
+          <div className="flex flex-1 flex-wrap items-start gap-x-8 gap-y-4 text-[12px] text-white/85">
+            <div className="flex max-w-[210px] items-start gap-2">
+              <MapPin size={15} className="mt-0.5 shrink-0 text-sky-400" />
+              <p className="leading-snug">
+                7920 Belt Line Rd., Ste. 720
+                <br />
+                Dallas, TX 75254
+              </p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {TRUST.map((item) => (
-                <span
-                  key={item}
-                  className="rounded border border-white/15 bg-white/5 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white/75"
-                >
-                  {item}
-                </span>
-              ))}
+            <div className="flex items-start gap-2">
+              <Mail size={15} className="mt-0.5 shrink-0 text-sky-400" />
+              <p className="leading-snug">
+                <a href="mailto:support@caretraker.com" className="hover:text-white">
+                  support@caretraker.com
+                </a>
+                <br />
+                <a href="mailto:info@caretraker.com" className="hover:text-white">
+                  info@caretraker.com
+                </a>
+              </p>
+            </div>
+            <div className="flex items-start gap-2">
+              <Phone size={15} className="mt-0.5 shrink-0 text-sky-400" />
+              <p className="leading-snug">
+                <a href="tel:+19722002273" className="text-[13px] font-semibold text-white hover:text-sky-200">
+                  (972) 200-CARE (2273)
+                </a>
+                <br />
+                <span className="text-[11px] text-white/70">Mon – Fri, 8:00 AM – 6:00 PM (CST)</span>
+              </p>
             </div>
           </div>
 
-          <p className="mt-6 text-right text-[11px] text-white/40">
-            © {year} CareTraker. All rights reserved.
-          </p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <div className="flex flex-wrap items-center text-[13px] font-semibold tracking-wide text-white">
+              <span>People</span>
+              <span className="mx-2 inline-block h-1.5 w-1.5 rounded-full bg-teal-400" />
+              <span>Care</span>
+              <span className="mx-2 inline-block h-1.5 w-1.5 rounded-full bg-sky-400" />
+              <span>Progress</span>
+              <span className="mx-2 inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span>Together</span>
+              <span className="mx-3 text-white/40">|</span>
+              <span className="text-[12px] font-medium text-white/80">Follow Us</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <SocialIcon href="https://linkedin.com" label="LinkedIn" className="bg-[#0A66C2]">
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current" aria-hidden>
+                  <path d="M4.98 3.5C4.98 4.88 3.86 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1s2.48 1.12 2.48 2.5zM.5 8.5h4V23h-4V8.5zM8.5 8.5h3.8v2h.05c.53-1 1.82-2.05 3.75-2.05 4 0 4.75 2.65 4.75 6.1V23h-4v-6.6c0-1.57-.03-3.6-2.2-3.6-2.2 0-2.54 1.72-2.54 3.5V23h-4V8.5z" />
+                </svg>
+              </SocialIcon>
+              <SocialIcon href="https://facebook.com" label="Facebook" className="bg-[#1877F2]">
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current" aria-hidden>
+                  <path d="M22 12a10 10 0 1 0-11.5 9.9v-7H8v-3h2.5V9.5c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.4h-1.2c-1.2 0-1.6.8-1.6 1.5V12H17l-.4 3h-2.7v7A10 10 0 0 0 22 12z" />
+                </svg>
+              </SocialIcon>
+              <SocialIcon href="https://youtube.com" label="YouTube" className="bg-[#FF0000]">
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current" aria-hidden>
+                  <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.5 31.5 0 0 0 0 12a31.5 31.5 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.5 31.5 0 0 0 24 12a31.5 31.5 0 0 0-.5-5.8zM9.8 15.5v-7l6.3 3.5-6.3 3.5z" />
+                </svg>
+              </SocialIcon>
+              <SocialIcon
+                href="https://instagram.com"
+                label="Instagram"
+                className="bg-gradient-to-br from-[#f58529] via-[#dd2a7b] to-[#8134af]"
+              >
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-current" aria-hidden>
+                  <path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7zm5 3.5A4.5 4.5 0 1 1 7.5 12 4.5 4.5 0 0 1 12 7.5zm0 2A2.5 2.5 0 1 0 14.5 12 2.5 2.5 0 0 0 12 9.5zm5.75-3.25a1.05 1.05 0 1 1-1.05 1.05 1.05 1.05 0 0 1 1.05-1.05z" />
+                </svg>
+              </SocialIcon>
+              <SocialIcon href="https://x.com" label="X" className="bg-black">
+                <svg viewBox="0 0 24 24" className="h-3 w-3 fill-current" aria-hidden>
+                  <path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.5l-5.1-6.7L5.7 22H2.5l7.3-8.3L.8 2h6.6l4.6 6.1L18.9 2zm-1.1 18h1.8L6.3 3.9H4.4L17.8 20z" />
+                </svg>
+              </SocialIcon>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Brands + terms on the SAME row (same navy as footer body) */}
+      <div className="border-t border-white/10 bg-[#003366] text-white">
+        <div className="mx-auto flex max-w-[1280px] flex-col gap-4 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:gap-6 lg:px-8">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+            <HipaaBadge />
+            <img src="/marketing/footer/aicpa-soc.png" alt="AICPA SOC" className="h-11 w-auto object-contain" />
+            <img src="/marketing/footer/hitrust.png" alt="HITRUST" className="h-6 w-auto object-contain" />
+            <CheckBadge label="Medicaid" />
+            <CheckBadge label="Medicare" />
+            <img src="/marketing/footer/cms.png" alt="CMS" className="h-9 w-auto object-contain" />
+            <img src="/marketing/footer/bbb.png" alt="BBB Accredited Business" className="h-9 w-auto object-contain" />
+          </div>
+
+          <div className="flex shrink-0 flex-col items-start gap-1.5 lg:items-end">
+            <nav className="flex flex-wrap items-center gap-x-1.5 text-[11px] text-white/70">
+              {LEGAL.map((label, i) => (
+                <span key={label} className="inline-flex items-center gap-1.5">
+                  {i > 0 && <span className="text-white/35">|</span>}
+                  <Link to={ROUTES.LANDING} className="hover:text-white">
+                    {label}
+                  </Link>
+                </span>
+              ))}
+            </nav>
+            <p className="text-[11px] text-white/45">© 2026 CareTraker.com. All rights reserved.</p>
+          </div>
         </div>
       </div>
     </footer>

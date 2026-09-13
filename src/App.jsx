@@ -96,9 +96,9 @@ import InterviewFeedbackPrintPage from './pages/agency/hiring/InterviewFeedbackP
 import AgencyInformation from './pages/registration/AgencyInformation';
 import CreateAccount from './pages/registration/CreateAccount';
 import RegistrationConfirmation from './pages/registration/RegistrationConfirmation';
-import MarketingLayout from './components/marketing/MarketingLayout';
 import Landing from './pages/marketing/Landing';
 import EvvPage from './pages/marketing/EvvPage';
+import MarketingLayout from './components/marketing/MarketingLayout';
 import { getHomeRouteForRole } from './utils/auth';
 
 function HomeRedirect() {

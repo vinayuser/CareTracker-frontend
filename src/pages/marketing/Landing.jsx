@@ -149,10 +149,26 @@ const CLIENT_RIGHT = [
   'Notes & communications',
 ];
 
-function Section({ id, className = '', children }) {
+const EVV_ITEMS = [
+  { icon: ShieldCheck, label: 'Electronic Visit Verification (EVV)' },
+  { icon: SpidersFix, label: 'Visit Tracking' },
+  { icon: CalendarDays, label: 'Time & Attendance' },
+  { icon: CloudCheck, label: 'Service Verification' },
+  { icon: Monitor, label: 'Compliance Monitoring' },
+  { icon: Bell, label: 'Administrative Alerts' },
+];
+
+// placeholder - will fix SlidersHorizontal
+function SpidersFix() {
+  return null;
+}
+
+function Section({ id, className = '', children, wide = false }) {
   return (
     <section id={id} className={`scroll-mt-24 ${className}`}>
-      <div className="mx-auto max-w-[1120px] px-4 sm:px-6 lg:px-8">{children}</div>
+      <div className={`mx-auto px-4 sm:px-6 lg:px-8 ${wide ? 'max-w-[1120px]' : 'max-w-[1120px]'}`}>
+        {children}
+      </div>
     </section>
   );
 }
@@ -230,8 +246,8 @@ export default function Landing() {
               key={label}
               className="flex items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-4 py-3.5 shadow-[0_8px_20px_-12px_rgba(15,23,42,0.25)]"
             >
-              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center text-primary">
-                <Icon size={20} strokeWidth={1.75} />
+              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#dbeafe] text-primary">
+                <Icon size={18} strokeWidth={1.85} />
               </span>
               <span className="text-[13px] font-semibold leading-snug text-slate-800">{label}</span>
             </div>
@@ -343,23 +359,13 @@ export default function Landing() {
               Give your team a 360° view of every client and keep all care-related information
               organized and accessible.
             </p>
-            <div className="mt-6 grid gap-x-8 gap-y-3 sm:grid-cols-2">
-              <div className="space-y-3">
-                {CLIENT_LEFT.map((item) => (
-                  <div key={item} className="flex items-start gap-2.5 text-sm text-slate-700">
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                    {item}
-                  </div>
-                ))}
-              </div>
-              <div className="space-y-3">
-                {CLIENT_RIGHT.map((item) => (
-                  <div key={item} className="flex items-start gap-2.5 text-sm text-slate-700">
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
-                    {item}
-                  </div>
-                ))}
-              </div>
+            <div className="mt-6 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+              {[...CLIENT_LEFT, ...CLIENT_RIGHT].map((item) => (
+                <div key={item} className="flex items-start gap-2.5 text-sm text-slate-700">
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                  {item}
+                </div>
+              ))}
             </div>
             <Link
               to={ROUTES.LOGIN}
