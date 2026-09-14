@@ -2,6 +2,8 @@ export const ROUTES = {
   HOME: '/',
   LANDING: '/',
   MARKETING_EVV: '/evv',
+  MARKETING_PRODUCT: '/product',
+  MARKETING_CRM: '/crm',
   LOGIN: '/login',
   FORGOT_PASSWORD: '/forgot-password',
   RESET_PASSWORD: '/reset-password',

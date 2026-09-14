@@ -5,11 +5,11 @@ import CareTrackerLogo from '../brand/CareTrackerLogo';
 import { ROUTES } from '../../routes/routes';
 
 const NAV_LINKS = [
-  { label: 'Platform', href: `${ROUTES.LANDING}#platform` },
-  { label: 'Solutions', href: `${ROUTES.LANDING}#solutions` },
-  { label: 'Resources', href: `${ROUTES.LANDING}#resources` },
-  { label: 'About Us', href: `${ROUTES.LANDING}#about` },
-  { label: 'Pricing', href: `${ROUTES.LANDING}#pricing` },
+  { label: 'Platform', to: ROUTES.MARKETING_PRODUCT },
+  { label: 'Solutions', to: `${ROUTES.LANDING}#solutions` },
+  { label: 'Resources', to: `${ROUTES.LANDING}#resources` },
+  { label: 'About Us', to: `${ROUTES.LANDING}#about` },
+  { label: 'Pricing', to: `${ROUTES.MARKETING_PRODUCT}#pricing` },
 ];
 
 export default function SiteHeader() {
@@ -24,13 +24,13 @@ export default function SiteHeader() {
 
         <nav className="hidden items-center gap-7 lg:flex">
           {NAV_LINKS.map((link) => (
-            <a
+            <Link
               key={link.label}
-              href={link.href}
+              to={link.to}
               className="text-[14px] font-medium text-slate-500 transition-colors hover:text-primary"
             >
               {link.label}
-            </a>
+            </Link>
           ))}
         </nav>
 
@@ -63,14 +63,14 @@ export default function SiteHeader() {
         <div className="border-t border-slate-100 bg-white px-4 py-4 lg:hidden">
           <nav className="flex flex-col gap-2">
             {NAV_LINKS.map((link) => (
-              <a
+              <Link
                 key={link.label}
-                href={link.href}
+                to={link.to}
                 className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700"
                 onClick={() => setOpen(false)}
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
             <a
               href="#demo"

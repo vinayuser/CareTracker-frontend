@@ -25,20 +25,28 @@ const COLUMNS = [
     title: 'Product',
     Icon: Box,
     tone: 'text-emerald-400',
-    links: ['Overview', 'Features', 'Pricing', "What's New", 'Roadmap', 'Case Studies', 'Request a Demo'],
+    links: [
+      { label: 'Overview', to: `${ROUTES.MARKETING_PRODUCT}#overview` },
+      { label: 'Features', to: `${ROUTES.MARKETING_PRODUCT}#features` },
+      { label: 'Pricing', to: `${ROUTES.MARKETING_PRODUCT}#pricing` },
+      { label: "What's New", to: `${ROUTES.MARKETING_PRODUCT}#whats-new` },
+      { label: 'Roadmap', to: `${ROUTES.MARKETING_PRODUCT}#roadmap` },
+      { label: 'Case Studies', to: `${ROUTES.MARKETING_PRODUCT}#case-studies` },
+      { label: 'Request a Demo', to: `${ROUTES.MARKETING_PRODUCT}#demo` },
+    ],
   },
   {
     title: 'CRM',
     Icon: UserRound,
     tone: 'text-sky-400',
     links: [
-      'Lead Management',
-      'Client Intake',
-      'Referral Tracking',
-      'Marketing Tools',
-      'Email & SMS',
-      'Patient Engagement',
-      'Analytics & Reports',
+      { label: 'Lead Management', to: `${ROUTES.MARKETING_CRM}#lead-management` },
+      { label: 'Client Intake', to: `${ROUTES.MARKETING_CRM}#client-intake` },
+      { label: 'Referral Tracking', to: `${ROUTES.MARKETING_CRM}#referral-tracking` },
+      { label: 'Marketing Tools', to: `${ROUTES.MARKETING_CRM}#marketing-tools` },
+      { label: 'Email & SMS', to: `${ROUTES.MARKETING_CRM}#email-sms` },
+      { label: 'Patient Engagement', to: `${ROUTES.MARKETING_CRM}#patient-engagement` },
+      { label: 'Analytics & Reports', to: `${ROUTES.MARKETING_CRM}#analytics-reports` },
     ],
   },
   {
@@ -46,13 +54,13 @@ const COLUMNS = [
     Icon: CalendarDays,
     tone: 'text-rose-400',
     links: [
-      'Mobile Check-In/Out',
-      'GPS & Geo-Fencing',
-      'Visit Verification',
-      'Care Notes',
-      'Missed Visit Alerts',
-      'EVV Compliance',
-      'Real-Time Monitoring',
+      { label: 'Mobile Check-In/Out', to: `${ROUTES.MARKETING_EVV}#checkin` },
+      { label: 'GPS & Geo-Fencing', to: `${ROUTES.MARKETING_EVV}#gps` },
+      { label: 'Visit Verification', to: `${ROUTES.MARKETING_EVV}#verification` },
+      { label: 'Care Notes', to: `${ROUTES.MARKETING_EVV}#details` },
+      { label: 'Missed Visit Alerts', to: `${ROUTES.MARKETING_EVV}#reports` },
+      { label: 'EVV Compliance', to: ROUTES.MARKETING_EVV },
+      { label: 'Real-Time Monitoring', to: ROUTES.MARKETING_EVV },
     ],
   },
   {
@@ -60,13 +68,13 @@ const COLUMNS = [
     Icon: Users,
     tone: 'text-orange-400',
     links: [
-      'Applicant Tracking (ATS)',
-      'Screening & Background',
-      'Onboarding',
-      'Training & LMS',
-      'Credential Tracking',
-      'Talent Pool',
-      'Workforce Analytics',
+      { label: 'Applicant Tracking (ATS)', to: ROUTES.LANDING },
+      { label: 'Screening & Background', to: ROUTES.LANDING },
+      { label: 'Onboarding', to: ROUTES.LANDING },
+      { label: 'Training & LMS', to: ROUTES.LANDING },
+      { label: 'Credential Tracking', to: ROUTES.LANDING },
+      { label: 'Talent Pool', to: ROUTES.LANDING },
+      { label: 'Workforce Analytics', to: ROUTES.LANDING },
     ],
   },
   {
@@ -74,13 +82,13 @@ const COLUMNS = [
     Icon: UserRound,
     tone: 'text-blue-400',
     links: [
-      'Employee Management',
-      'Time & Attendance',
-      'Time Card & Payroll',
-      'Scheduling',
-      'Caregiver Management',
-      'Performance & Reviews',
-      'Compliance & Alerts',
+      { label: 'Employee Management', to: ROUTES.LANDING },
+      { label: 'Time & Attendance', to: ROUTES.LANDING },
+      { label: 'Time Card & Payroll', to: ROUTES.LANDING },
+      { label: 'Scheduling', to: ROUTES.LANDING },
+      { label: 'Caregiver Management', to: ROUTES.LANDING },
+      { label: 'Performance & Reviews', to: ROUTES.LANDING },
+      { label: 'Compliance & Alerts', to: ROUTES.LANDING },
     ],
   },
   {
@@ -88,14 +96,14 @@ const COLUMNS = [
     Icon: DollarSign,
     tone: 'text-emerald-400',
     links: [
-      'Claims Management',
-      'Medicaid Eligibility',
-      'Medicare Eligibility',
-      'Insurance Verification',
-      'Electronic Claims (EDI)',
-      'Payment Posting',
-      'Accounts Receivable',
-      'Financial Reporting',
+      { label: 'Claims Management', to: ROUTES.LANDING },
+      { label: 'Medicaid Eligibility', to: ROUTES.LANDING },
+      { label: 'Medicare Eligibility', to: ROUTES.LANDING },
+      { label: 'Insurance Verification', to: ROUTES.LANDING },
+      { label: 'Electronic Claims (EDI)', to: ROUTES.LANDING },
+      { label: 'Payment Posting', to: ROUTES.LANDING },
+      { label: 'Accounts Receivable', to: ROUTES.LANDING },
+      { label: 'Financial Reporting', to: ROUTES.LANDING },
     ],
   },
   {
@@ -103,14 +111,14 @@ const COLUMNS = [
     Icon: Building2,
     tone: 'text-sky-300',
     links: [
-      'Multi-Location Support',
-      'Franchise Management',
-      'Role-Based Access',
-      'Custom Workflows',
-      'Advanced Analytics',
-      'API & Webhooks',
-      'White Label Options',
-      'Secure & Scalable',
+      { label: 'Multi-Location Support', to: ROUTES.LANDING },
+      { label: 'Franchise Management', to: ROUTES.LANDING },
+      { label: 'Role-Based Access', to: ROUTES.LANDING },
+      { label: 'Custom Workflows', to: ROUTES.LANDING },
+      { label: 'Advanced Analytics', to: ROUTES.LANDING },
+      { label: 'API & Webhooks', to: ROUTES.LANDING },
+      { label: 'White Label Options', to: ROUTES.LANDING },
+      { label: 'Secure & Scalable', to: ROUTES.LANDING },
     ],
   },
   {
@@ -118,14 +126,14 @@ const COLUMNS = [
     Icon: Link2,
     tone: 'text-yellow-400',
     links: [
-      'EHR / EMR',
-      'Payers & Insurance',
-      'QuickBooks',
-      'Payroll Systems',
-      'Background Check',
-      'E-Signature (FomiqSign)',
-      'Communication (Email/SMS)',
-      'And More...',
+      { label: 'EHR / EMR', to: ROUTES.LANDING },
+      { label: 'Payers & Insurance', to: ROUTES.LANDING },
+      { label: 'QuickBooks', to: ROUTES.LANDING },
+      { label: 'Payroll Systems', to: ROUTES.LANDING },
+      { label: 'Background Check', to: ROUTES.LANDING },
+      { label: 'E-Signature (FomiqSign)', to: ROUTES.LANDING },
+      { label: 'Communication (Email/SMS)', to: ROUTES.LANDING },
+      { label: 'And More...', to: ROUTES.LANDING },
     ],
   },
   {
@@ -133,14 +141,14 @@ const COLUMNS = [
     Icon: Heart,
     tone: 'text-rose-400',
     links: [
-      'Caregiver Dashboard',
-      'Patient / Family Portal',
-      'Client Portal',
-      'Payer / Auditor Portal',
-      'Admin Dashboard',
-      'Mobile Apps',
-      'Telehealth',
-      'Communication Tools',
+      { label: 'Caregiver Dashboard', to: ROUTES.LANDING },
+      { label: 'Patient / Family Portal', to: ROUTES.LANDING },
+      { label: 'Client Portal', to: ROUTES.LANDING },
+      { label: 'Payer / Auditor Portal', to: ROUTES.LANDING },
+      { label: 'Admin Dashboard', to: ROUTES.LANDING },
+      { label: 'Mobile Apps', to: ROUTES.LANDING },
+      { label: 'Telehealth', to: ROUTES.LANDING },
+      { label: 'Communication Tools', to: ROUTES.LANDING },
     ],
   },
   {
@@ -148,14 +156,14 @@ const COLUMNS = [
     Icon: BookOpen,
     tone: 'text-emerald-400',
     links: [
-      'Help Center',
-      'User Guides',
-      'Video Tutorials',
-      'Webinars',
-      'Blog',
-      'Best Practices',
-      'Community',
-      'Contact Us',
+      { label: 'Help Center', to: ROUTES.LANDING },
+      { label: 'User Guides', to: ROUTES.LANDING },
+      { label: 'Video Tutorials', to: ROUTES.LANDING },
+      { label: 'Webinars', to: ROUTES.LANDING },
+      { label: 'Blog', to: ROUTES.LANDING },
+      { label: 'Best Practices', to: ROUTES.LANDING },
+      { label: 'Community', to: ROUTES.LANDING },
+      { label: 'Contact Us', to: ROUTES.LANDING },
     ],
   },
 ];
@@ -337,13 +345,13 @@ export default function SiteFooter() {
                   <p className="text-[12px] font-bold leading-tight text-white">{title}</p>
                 </div>
                 <ul className="space-y-1.5">
-                  {links.map((label) => (
-                    <li key={label}>
+                  {links.map((link) => (
+                    <li key={link.label}>
                       <Link
-                        to={ROUTES.LANDING}
+                        to={link.to}
                         className="text-[11px] leading-snug text-sky-100/70 transition hover:text-white"
                       >
-                        {label}
+                        {link.label}
                       </Link>
                     </li>
                   ))}

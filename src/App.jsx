@@ -98,6 +98,8 @@ import CreateAccount from './pages/registration/CreateAccount';
 import RegistrationConfirmation from './pages/registration/RegistrationConfirmation';
 import Landing from './pages/marketing/Landing';
 import EvvPage from './pages/marketing/EvvPage';
+import ProductPage from './pages/marketing/ProductPage';
+import CrmPage from './pages/marketing/CrmPage';
 import MarketingLayout from './components/marketing/MarketingLayout';
 import { getHomeRouteForRole } from './utils/auth';
 
@@ -133,6 +135,8 @@ export default function App() {
         <Route element={<MarketingLayout />}>
           <Route path={ROUTES.HOME} element={<HomeRedirect />} />
           <Route path={ROUTES.MARKETING_EVV} element={<EvvPage />} />
+          <Route path={ROUTES.MARKETING_PRODUCT} element={<ProductPage />} />
+          <Route path={ROUTES.MARKETING_CRM} element={<CrmPage />} />
         </Route>
 
         <Route
