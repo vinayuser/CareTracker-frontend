@@ -21,6 +21,8 @@ const API_ROUTES = {
       DELETE: '/admin/agencies',
       ARCHIVE: '/admin/agencies',
       RESTORE: '/admin/agencies',
+      PASSWORD: '/admin/agencies',
+      RESET_PASSWORD: '/admin/agencies',
     },
     SUBSCRIPTION_PLAN: {
       LIST: '/admin/subscription-plans',

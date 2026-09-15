@@ -4,6 +4,8 @@ export const ROUTES = {
   MARKETING_EVV: '/evv',
   MARKETING_PRODUCT: '/product',
   MARKETING_CRM: '/crm',
+  MARKETING_HIRING: '/hiring',
+  MARKETING_HR: '/hr',
   LOGIN: '/login',
   FORGOT_PASSWORD: '/forgot-password',
   RESET_PASSWORD: '/reset-password',

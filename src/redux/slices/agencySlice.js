@@ -117,6 +117,39 @@ export const restoreAgency = createAsyncThunk(
   },
 );
 
+export const setAgencyPassword = createAsyncThunk(
+  'agencies/setPassword',
+  async ({ id, password }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.patch(
+        `${API_ROUTES.ADMIN.AGENCY.PASSWORD}/${id}/password`,
+        { password },
+      );
+      toast.success(response.data?.message || 'Agency password updated');
+      return response.data.data;
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update agency password');
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  },
+);
+
+export const resetAgencyPassword = createAsyncThunk(
+  'agencies/resetPassword',
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post(
+        `${API_ROUTES.ADMIN.AGENCY.RESET_PASSWORD}/${id}/reset-password`,
+      );
+      toast.success(response.data?.message || 'New password emailed to agency owner');
+      return response.data.data;
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to reset agency password');
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  },
+);
+
 const agencySlice = createSlice({
   name: 'agencies',
   initialState: {

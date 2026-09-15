@@ -1,12 +1,23 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Archive, ArchiveRestore, Building2, Search, Trash2 } from 'lucide-react';
+import {
+  Archive,
+  ArchiveRestore,
+  Building2,
+  KeyRound,
+  Loader2,
+  RefreshCw,
+  Search,
+  Trash2,
+} from 'lucide-react';
 import StatCard from '../../components/ui/StatCard';
 import AgencyStatusBadge from '../../components/ui/AgencyStatusBadge';
+import SetAgencyPasswordDrawer from '../../components/admin/SetAgencyPasswordDrawer';
 import {
   archiveAgency,
   deleteAgency,
   fetchAgencyLifecycle,
+  resetAgencyPassword,
   restoreAgency,
 } from '../../redux/slices/agencySlice';
 import { confirmAlert } from '../../utils/swal';
@@ -30,6 +41,8 @@ export default function AgencyLifecycle() {
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [busyId, setBusyId] = useState(null);
+  const [busyAction, setBusyAction] = useState(null);
+  const [passwordAgency, setPasswordAgency] = useState(null);
 
   const load = (nextFilter = filter, nextSearch = search) => {
     dispatch(
@@ -54,6 +67,19 @@ export default function AgencyLifecycle() {
     load(filter, search);
   };
 
+  const runBusy = async (agencyId, action, fn) => {
+    setBusyId(agencyId);
+    setBusyAction(action);
+    try {
+      await fn();
+    } catch {
+      // toast in slice
+    } finally {
+      setBusyId(null);
+      setBusyAction(null);
+    }
+  };
+
   const handleArchive = async (agency) => {
     const confirmed = await confirmAlert({
       title: 'Archive this agency?',
@@ -62,15 +88,10 @@ export default function AgencyLifecycle() {
       danger: true,
     });
     if (!confirmed) return;
-    setBusyId(agency.id);
-    try {
+    await runBusy(agency.id, 'archive', async () => {
       await dispatch(archiveAgency(agency.id)).unwrap();
       load(filter, search);
-    } catch {
-      // toast in slice
-    } finally {
-      setBusyId(null);
-    }
+    });
   };
 
   const handleRestore = async (agency) => {
@@ -80,15 +101,10 @@ export default function AgencyLifecycle() {
       confirmText: 'Restore',
     });
     if (!confirmed) return;
-    setBusyId(agency.id);
-    try {
+    await runBusy(agency.id, 'restore', async () => {
       await dispatch(restoreAgency(agency.id)).unwrap();
       load(filter, search);
-    } catch {
-      // toast in slice
-    } finally {
-      setBusyId(null);
-    }
+    });
   };
 
   const handleDelete = async (agency) => {
@@ -99,15 +115,22 @@ export default function AgencyLifecycle() {
       danger: true,
     });
     if (!confirmed) return;
-    setBusyId(agency.id);
-    try {
+    await runBusy(agency.id, 'delete', async () => {
       await dispatch(deleteAgency(agency.id)).unwrap();
       load(filter, search);
-    } catch {
-      // toast in slice
-    } finally {
-      setBusyId(null);
-    }
+    });
+  };
+
+  const handleResetPassword = async (agency) => {
+    const confirmed = await confirmAlert({
+      title: 'Reset agency password?',
+      text: `A new random password will be generated for ${agency.name} and emailed to ${agency.email || 'the agency owner'}. Their current password will stop working immediately.`,
+      confirmText: 'Generate & email',
+    });
+    if (!confirmed) return;
+    await runBusy(agency.id, 'reset-password', async () => {
+      await dispatch(resetAgencyPassword(agency.id)).unwrap();
+    });
   };
 
   return (
@@ -115,8 +138,8 @@ export default function AgencyLifecycle() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Agency Lifecycle</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Archive agencies to revoke portal access while keeping records, or permanently delete all
-          agency data.
+          Archive agencies to revoke portal access while keeping records, permanently delete all
+          agency data, or manage agency owner login passwords.
         </p>
       </div>
 
@@ -186,6 +209,7 @@ export default function AgencyLifecycle() {
                 lifecycleItems.map((agency) => {
                   const isArchived = agency.status === 'Archived';
                   const busy = busyId === agency.id;
+                  const resetting = busy && busyAction === 'reset-password';
                   return (
                     <tr key={agency.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
@@ -207,6 +231,28 @@ export default function AgencyLifecycle() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => setPasswordAgency(agency)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 disabled:opacity-50"
+                          >
+                            <KeyRound size={14} />
+                            Set Password
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => handleResetPassword(agency)}
+                            className="inline-flex items-center gap-1 rounded-lg border border-sky-200 px-2.5 py-1.5 text-xs font-medium text-sky-700 hover:bg-sky-50 disabled:opacity-50"
+                          >
+                            {resetting ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <RefreshCw size={14} />
+                            )}
+                            {resetting ? 'Sending...' : 'Reset Password'}
+                          </button>
                           {isArchived ? (
                             <button
                               type="button"
@@ -214,7 +260,11 @@ export default function AgencyLifecycle() {
                               onClick={() => handleRestore(agency)}
                               className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                             >
-                              <ArchiveRestore size={14} />
+                              {busy && busyAction === 'restore' ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <ArchiveRestore size={14} />
+                              )}
                               Restore
                             </button>
                           ) : (
@@ -224,7 +274,11 @@ export default function AgencyLifecycle() {
                               onClick={() => handleArchive(agency)}
                               className="inline-flex items-center gap-1 rounded-lg border border-amber-200 px-2.5 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-50 disabled:opacity-50"
                             >
-                              <Archive size={14} />
+                              {busy && busyAction === 'archive' ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <Archive size={14} />
+                              )}
                               Archive
                             </button>
                           )}
@@ -234,7 +288,11 @@ export default function AgencyLifecycle() {
                             onClick={() => handleDelete(agency)}
                             className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
                           >
-                            <Trash2 size={14} />
+                            {busy && busyAction === 'delete' ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={14} />
+                            )}
                             Delete
                           </button>
                         </div>
@@ -247,6 +305,12 @@ export default function AgencyLifecycle() {
           </table>
         </div>
       </div>
+
+      <SetAgencyPasswordDrawer
+        open={Boolean(passwordAgency)}
+        agency={passwordAgency}
+        onClose={() => setPasswordAgency(null)}
+      />
     </div>
   );
 }
