@@ -2,22 +2,25 @@ const W = 760;
 const H = 280;
 const PAD = { l: 52, r: 64, t: 18, b: 32 };
 
-/** Showcase series matching the Super Admin mock (weekly combo chart). */
-export const PERFORMANCE_SERIES = [
-  { label: 'Apr 22', revenue: 1.85, agencies: 88, claims: 3100 },
-  { label: 'Apr 29', revenue: 2.15, agencies: 96, claims: 3600 },
-  { label: 'May 6', revenue: 1.95, agencies: 104, claims: 3900 },
-  { label: 'May 13', revenue: 2.45, agencies: 112, claims: 4400 },
-  { label: 'May 20', revenue: 2.25, agencies: 118, claims: 4700 },
-  { label: 'May 27', revenue: 2.75, agencies: 128, claims: 5200 },
-  { label: 'Jun 3', revenue: 2.55, agencies: 136, claims: 5600 },
-  { label: 'Jun 10', revenue: 3.15, agencies: 148, claims: 6300 },
-  { label: 'Jun 17', revenue: 2.95, agencies: 158, claims: 6800 },
-];
+function niceMax(raw, fallback = 4) {
+  const v = Number(raw) || 0;
+  if (v <= 0) return fallback;
+  const exp = 10 ** Math.floor(Math.log10(v));
+  const n = v / exp;
+  const nice = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10;
+  return nice * exp;
+}
 
-const REV_MAX = 4;
-const AGENCY_MAX = 200;
-const CLAIMS_MAX = 8000;
+function formatAxisMoney(v) {
+  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(v % 1_000_000 === 0 ? 0 : 1)}M`;
+  if (v >= 1000) return `$${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}K`;
+  return `$${Math.round(v)}`;
+}
+
+function formatAxisCount(v) {
+  if (v >= 1000) return `${(v / 1000).toFixed(v % 1000 === 0 ? 0 : 1)}K`;
+  return String(Math.round(v));
+}
 
 function xAt(i, count) {
   const inner = W - PAD.l - PAD.r;
@@ -27,7 +30,7 @@ function xAt(i, count) {
 
 function yAt(value, max) {
   const usable = H - PAD.t - PAD.b;
-  return PAD.t + usable - (Math.max(0, value) / max) * usable;
+  return PAD.t + usable - (Math.max(0, value) / Math.max(max, 1)) * usable;
 }
 
 function linePath(values, max) {
@@ -36,14 +39,26 @@ function linePath(values, max) {
     .join(' ');
 }
 
-export default function PlatformPerformanceChart({ series = PERFORMANCE_SERIES }) {
-  const data = series.length ? series : PERFORMANCE_SERIES;
+export default function PlatformPerformanceChart({ series = [] }) {
+  const data = Array.isArray(series) ? series : [];
   const n = data.length;
-  const revenue = data.map((d) => d.revenue);
-  const agencies = data.map((d) => d.agencies);
-  const claims = data.map((d) => d.claims);
+  const revenue = data.map((d) => Number(d.revenue) || 0);
+  const agencies = data.map((d) => Number(d.agencies) || 0);
+  const claims = data.map((d) => Number(d.claims) || 0);
+  const revMax = niceMax(Math.max(...revenue, 0), 100);
+  const agencyMax = niceMax(Math.max(...agencies, 0), 4);
+  const claimsMax = niceMax(Math.max(...claims, 0), 4);
   const inner = W - PAD.l - PAD.r;
-  const barW = Math.max(14, (inner / n) * 0.42);
+  const barW = Math.max(14, n ? (inner / n) * 0.42 : 14);
+
+  if (!n) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="text-[15px] font-semibold text-gray-900">Platform Performance Overview</h2>
+        <p className="px-2 py-16 text-center text-sm text-gray-400">No performance data yet.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -58,36 +73,26 @@ export default function PlatformPerformanceChart({ series = PERFORMANCE_SERIES }
               <span className="h-2 w-4 border-t-2 border-[#7C5CFC]" /> Agency Growth
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="h-2 w-4 border-t-2 border-[#22C55E]" /> Claims Processed
+              <span className="h-2 w-4 border-t-2 border-[#22C55E]" /> Visits Completed
             </span>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <select className="rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-xs text-gray-600 outline-none">
-            <option>This Month</option>
-            <option>Last 90 Days</option>
-            <option>This Year</option>
-          </select>
-          <button type="button" className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50">
-            Compare
-          </button>
         </div>
       </div>
 
       <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="Platform performance combo chart">
         {[0, 1, 2, 3, 4].map((tick) => {
-          const y = yAt(tick, REV_MAX);
+          const y = yAt(tick, 4);
           return (
             <g key={tick}>
               <line x1={PAD.l} y1={y} x2={W - PAD.r} y2={y} stroke="#EEF2F7" />
               <text x={PAD.l - 8} y={y + 3} textAnchor="end" className="fill-gray-400 text-[10px]">
-                {tick === 0 ? '$0' : `$${tick}M`}
+                {formatAxisMoney((revMax / 4) * tick)}
               </text>
               <text x={W - PAD.r + 8} y={y + 3} className="fill-[#7C5CFC] text-[10px]">
-                {(AGENCY_MAX / 4) * tick}
+                {formatAxisCount((agencyMax / 4) * tick)}
               </text>
               <text x={W - 8} y={y + 3} textAnchor="end" className="fill-[#22C55E] text-[10px]">
-                {tick === 0 ? '0' : `${(CLAIMS_MAX / 4) * tick / 1000}K`}
+                {formatAxisCount((claimsMax / 4) * tick)}
               </text>
             </g>
           );
@@ -95,12 +100,12 @@ export default function PlatformPerformanceChart({ series = PERFORMANCE_SERIES }
 
         {data.map((d, i) => {
           const x = xAt(i, n) - barW / 2;
-          const h = (d.revenue / REV_MAX) * (H - PAD.t - PAD.b);
+          const h = (Math.max(0, Number(d.revenue) || 0) / revMax) * (H - PAD.t - PAD.b);
           return (
             <rect
-              key={`bar-${d.label}`}
+              key={`bar-${d.label}-${i}`}
               x={x}
-              y={yAt(d.revenue, REV_MAX)}
+              y={yAt(Number(d.revenue) || 0, revMax)}
               width={barW}
               height={Math.max(4, h)}
               rx="4"
@@ -109,14 +114,14 @@ export default function PlatformPerformanceChart({ series = PERFORMANCE_SERIES }
           );
         })}
 
-        <path d={linePath(agencies, AGENCY_MAX)} fill="none" stroke="#7C5CFC" strokeWidth="2.5" strokeLinejoin="round" />
-        <path d={linePath(claims, CLAIMS_MAX)} fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinejoin="round" />
+        <path d={linePath(agencies, agencyMax)} fill="none" stroke="#7C5CFC" strokeWidth="2.5" strokeLinejoin="round" />
+        <path d={linePath(claims, claimsMax)} fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinejoin="round" />
 
         {agencies.map((v, i) => (
-          <circle key={`a-${i}`} cx={xAt(i, n)} cy={yAt(v, AGENCY_MAX)} r="4" fill="#fff" stroke="#7C5CFC" strokeWidth="2.25" />
+          <circle key={`a-${i}`} cx={xAt(i, n)} cy={yAt(v, agencyMax)} r="4" fill="#fff" stroke="#7C5CFC" strokeWidth="2.25" />
         ))}
         {claims.map((v, i) => (
-          <circle key={`c-${i}`} cx={xAt(i, n)} cy={yAt(v, CLAIMS_MAX)} r="4" fill="#fff" stroke="#22C55E" strokeWidth="2.25" />
+          <circle key={`c-${i}`} cx={xAt(i, n)} cy={yAt(v, claimsMax)} r="4" fill="#fff" stroke="#22C55E" strokeWidth="2.25" />
         ))}
 
         {data.map((d, i) => (

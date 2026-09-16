@@ -36,13 +36,23 @@ export async function downloadAssessmentPacketZip(
   const zip = new JSZip();
   const folder = zip.folder(safeFilePart(basename, 'assessment-packet'));
   const rootName = safeFilePart(basename, 'assessment-packet');
+  let built = 0;
 
   for (let i = 0; i < editableForms.length; i += 1) {
     const { code, short } = editableForms[i];
     const pct = Math.round(((i + 0.5) / editableForms.length) * 88);
     onProgress(pct, `Preparing form ${code}…`);
-    const bytes = await fillAssessmentPacketPdf(code, merged[code] || {}, options);
-    folder.file(`${code}-${safeFilePart(short, code)}.pdf`, bytes);
+    try {
+      const bytes = await fillAssessmentPacketPdf(code, merged[code] || {}, options);
+      folder.file(`${code}-${safeFilePart(short, code)}.pdf`, bytes);
+      built += 1;
+    } catch (err) {
+      console.warn(`[assessment packet] failed to build form ${code}`, err);
+    }
+  }
+
+  if (!built) {
+    throw new Error('Could not build assessment PDFs. Try printing a single form first.');
   }
 
   onProgress(92, 'Adding combined PDF…');

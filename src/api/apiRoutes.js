@@ -7,6 +7,7 @@ const API_ROUTES = {
   CHANGE_PASSWORD: '/auth/password',
 
   ADMIN: {
+    DASHBOARD: '/admin/dashboard',
     AGENCY: {
       LIST: '/admin/agencies',
       OPTIONS: '/admin/agencies/options',

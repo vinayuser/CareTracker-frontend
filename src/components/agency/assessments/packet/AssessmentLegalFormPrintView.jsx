@@ -15,6 +15,18 @@ import legalBodies from '../../../../utils/assessmentLegalBodies.json';
 import '../assessmentPrint.css';
 import './assessmentLegalPrint.css';
 
+function formatFormDate(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+    const [year, month, day] = raw.slice(0, 10).split('-');
+    return `${month}/${day}/${year}`;
+  }
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return raw;
+  return parsed.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+}
+
 function Sig({ label, sig = {} }) {
   const isImage = sig.signature?.startsWith?.('data:image');
   return (
@@ -26,7 +38,7 @@ function Sig({ label, sig = {} }) {
       {sig.printedName || sig.date ? (
         <div className="al-sig-meta">
           {sig.printedName ? <span>Print: {sig.printedName}</span> : null}
-          {sig.date ? <span>Date: {sig.date}</span> : null}
+          {sig.date ? <span>Date: {formatFormDate(sig.date)}</span> : null}
         </div>
       ) : null}
     </div>
@@ -731,14 +743,36 @@ export function AssessmentLegalFormPrintView({
 
   if (code === '610') {
     const copy = getForm610Copy(name);
+    const client = d.client || {};
     return (
       <div className="ap-packet-print">
         <LegalShell code={code} title={copy.title} agencyBranding={agencyBranding}>
           <p className="al-p">{copy.greeting}</p>
           {copy.paragraphs.map((p) => <p key={p.slice(0, 40)} className="al-p">{p}</p>)}
-          <p className="al-p al-ack">{copy.acknowledgement}</p>
-          <div className="al-sigs">
-            <Sig label="Client / Legal Representative Signature" sig={d.client} />
+          <p className="al-p al-ack al-ack-row">
+            <CheckMark checked={!!d.acknowledged} />
+            <span>{copy.acknowledgement}</span>
+          </p>
+          <div className="al-sigs al-sigs-610">
+            <div className="al-sig">
+              <div className="al-sig-line">
+                {client.signature?.startsWith?.('data:image')
+                  ? <img src={client.signature} alt="" />
+                  : null}
+              </div>
+              <div className="al-sig-label">Client/Legal Representative Signature</div>
+            </div>
+            <div className="al-sig">
+              <div className="al-sig-line">{formatFormDate(client.date) || '\u00A0'}</div>
+              <div className="al-sig-label">Date</div>
+            </div>
+          </div>
+          <div className="al-print-name">
+            <div className="al-print-line">{client.printedName || '\u00A0'}</div>
+            <div className="al-print-label">
+              Print Name
+              {client.relationship ? ` — Relationship: ${client.relationship}` : ''}
+            </div>
           </div>
         </LegalShell>
       </div>

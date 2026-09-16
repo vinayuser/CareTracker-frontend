@@ -323,6 +323,11 @@ export function mergePacketForms(saved = {}) {
     const base = empty[code];
     const incoming = saved[code] || {};
     out[code] = { ...base, ...incoming };
+    ['client', 'agency', 'employee'].forEach((key) => {
+      if (base[key] && typeof base[key] === 'object') {
+        out[code][key] = { ...base[key], ...(incoming[key] || {}) };
+      }
+    });
     if (code === '400') {
       out[code].tasks = { ...base.tasks, ...(incoming.tasks || {}) };
     }

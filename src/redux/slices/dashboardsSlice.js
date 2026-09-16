@@ -41,6 +41,18 @@ export const fetchCaregiverDashboard = createAsyncThunk('dashboards/caregiver', 
   }
 });
 
+export const fetchAdminDashboard = createAsyncThunk('dashboards/admin', async (_, { rejectWithValue }) => {
+  try {
+    const data = await dedupeRequest(`GET:${API_ROUTES.ADMIN.DASHBOARD}`, async () => {
+      const response = await axiosInstance.get(API_ROUTES.ADMIN.DASHBOARD);
+      return response.data.data;
+    });
+    return data;
+  } catch (error) {
+    return rejectWithValue(error.response?.data || error.message);
+  }
+});
+
 const emptyEvv = {
   range: { from: '', to: '', label: '' },
   overview: {
@@ -85,8 +97,10 @@ const dashboardsSlice = createSlice({
     agencyLoading: false,
     evv: emptyEvv,
     caregiver: null,
+    admin: null,
     evvLoading: false,
     caregiverLoading: false,
+    adminLoading: false,
     error: null,
   },
   reducers: {},
@@ -117,6 +131,15 @@ const dashboardsSlice = createSlice({
       })
       .addCase(fetchCaregiverDashboard.rejected, (state, action) => {
         state.caregiverLoading = false;
+        state.error = action.payload;
+      })
+      .addCase(fetchAdminDashboard.pending, (state) => { state.adminLoading = true; state.error = null; })
+      .addCase(fetchAdminDashboard.fulfilled, (state, action) => {
+        state.adminLoading = false;
+        state.admin = action.payload;
+      })
+      .addCase(fetchAdminDashboard.rejected, (state, action) => {
+        state.adminLoading = false;
         state.error = action.payload;
       });
   },

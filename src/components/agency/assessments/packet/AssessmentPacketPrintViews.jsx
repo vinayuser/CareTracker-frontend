@@ -50,10 +50,11 @@ function Check({ label, on }) {
   );
 }
 
-function Checks({ options, selected }) {
-  const sel = selected || [];
+function Checks({ options, selected, columns = 2 }) {
+  const sel = Array.isArray(selected) ? selected.map(String) : selected ? [String(selected)] : [];
+  const colClass = columns === 3 ? ' cols-3' : columns === 4 ? ' cols-4' : ' cols-2';
   return (
-    <div className="ap-checks cols-2">
+    <div className={`ap-checks${colClass}`}>
       {(options || []).map((opt) => (
         <Check key={opt} label={opt} on={sel.includes(opt)} />
       ))}
@@ -177,9 +178,9 @@ function Print110({ d }) {
         <div className="ap-row"><Field label="Caregiver:" value={[d.primaryCaregiver, d.primaryCaregiverPhone, d.primaryCaregiverRelationship].filter(Boolean).join(' / ')} className="w100" /></div>
         <div className="ap-row"><Field label="PCP:" value={[d.primaryCarePhysician, d.pcpPhone, d.pcpAddress].filter(Boolean).join(' / ')} className="w100" /></div>
         <div className="ap-row"><Field label="Pharmacy:" value={[d.pharmacy, d.pharmacyPhone, d.pharmacyAddress].filter(Boolean).join(' / ')} className="w100" /></div>
-        <div className="ap-subhead">Source</div>
-        <Checks options={['Client', 'Family', 'Other']} selected={d.sourceInfo} />
-        {d.sourceOther ? <Field label="Other:" value={d.sourceOther} className="w100" /> : null}
+        <div className="ap-subhead">Source Information – Client / Family / Other</div>
+        <Checks options={['Client', 'Family', 'Other']} selected={d.sourceInfo} columns={3} />
+        <Field label="Other:" value={d.sourceOther} className="w100" />
       </Section>
       <Section title="VITALS / DIET">
         <div className="ap-row">
@@ -587,7 +588,10 @@ function renderFormBody(code, d) {
     case '610':
       return (
         <PrintAck
-          d={d}
+          d={{
+            ...d,
+            printName: d.printName || d.client?.printedName,
+          }}
           legal="Client Concerns & Grievance: right to file grievances without retaliation; investigation within 48 hours; resolution attempted within 14 days. Client received Grievance Policy and Forms."
         />
       );

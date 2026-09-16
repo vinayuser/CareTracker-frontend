@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, ClipboardList, FileText, UserCheck, DollarSign, Download, Save } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ClipboardList, FileText, UserCheck, DollarSign, Download, Save, ChevronLeft, ChevronRight } from 'lucide-react';
 import AgencyKpiCard from '../../../components/agency/dashboard/AgencyKpiCard';
 import AssessmentFormsDownloadModal from '../../../components/agency/assessments/AssessmentFormsDownloadModal';
 import ActionIconButton from '../../../components/ui/ActionIconButton';
@@ -18,7 +18,8 @@ import { ROUTES } from '../../../routes/routes';
 import { confirmAlert } from '../../../utils/swal';
 import { AssessorDetailCell } from '../../../components/ui/AssessorPhotoUpload';
 import useSubmitLock from '../../../hooks/useSubmitLock';
-import { getPacketProgress } from '../../../utils/assessmentPacket';
+
+const PAGE_SIZE = 10;
 
 const STATUS_STYLES = {
   Enquiry: 'bg-blue-100 text-blue-700',
@@ -27,8 +28,20 @@ const STATUS_STYLES = {
   Declined: 'bg-gray-100 text-gray-600',
 };
 
-function FormsProgressCell({ formData }) {
-  const progress = getPacketProgress(formData || {});
+function pageNumbers(current, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages = [1];
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  if (start > 2) pages.push('…');
+  for (let i = start; i <= end; i += 1) pages.push(i);
+  if (end < total - 1) pages.push('…');
+  pages.push(total);
+  return pages;
+}
+
+function FormsProgressCell({ packetProgress }) {
+  const progress = packetProgress || { total: 15, saved: 0, started: 0 };
   const pct = Math.round((progress.saved / Math.max(progress.total, 1)) * 100);
   const complete = progress.saved >= progress.total;
   return (
@@ -104,31 +117,63 @@ function QuoteModal({ open, onClose, onSubmit, loading, defaults, isEdit }) {
 
 export default function Assessments() {
   const dispatch = useDispatch();
-  const { list, stats, loading } = useSelector((s) => s.assessments);
+  const { list, stats, pagination, loading } = useSelector((s) => s.assessments);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [page, setPage] = useState(1);
   const [quoteTarget, setQuoteTarget] = useState(null);
   const [downloadTarget, setDownloadTarget] = useState(null);
   const [quoteLoading, runLocked] = useSubmitLock();
   const isEditQuote = Boolean(quoteTarget?.carePlanId);
 
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, statusFilter]);
+
+  useEffect(() => {
+    dispatch(fetchAssessments({
+      page,
+      limit: PAGE_SIZE,
+      search: debouncedSearch || undefined,
+      status: statusFilter === 'All' ? undefined : statusFilter,
+    }));
+  }, [dispatch, page, debouncedSearch, statusFilter]);
+
+  useEffect(() => {
+    dispatch(fetchAssessmentStats());
+  }, [dispatch]);
+
   const load = () => {
-    dispatch(fetchAssessments());
+    dispatch(fetchAssessments({
+      page,
+      limit: PAGE_SIZE,
+      search: debouncedSearch || undefined,
+      status: statusFilter === 'All' ? undefined : statusFilter,
+    }));
     dispatch(fetchAssessmentStats());
   };
-  useEffect(() => { load(); }, [dispatch]);
 
-  const filtered = useMemo(() => list.filter((a) => {
-    const matchStatus = statusFilter === 'All' || a.status === statusFilter;
-    const q = search.trim().toLowerCase();
-    if (!q) return matchStatus;
-    return matchStatus && [a.clientName, a.clientPhone, a.assessmentCode, a.assessorName].join(' ').toLowerCase().includes(q);
-  }), [list, search, statusFilter]);
+  useEffect(() => {
+    if (!loading && list.length === 0 && page > 1 && pagination.total > 0) {
+      setPage((p) => Math.max(1, p - 1));
+    }
+  }, [loading, list.length, page, pagination.total]);
+
+  const pages = useMemo(
+    () => pageNumbers(pagination.page || page, pagination.totalPages || 1),
+    [pagination.page, pagination.totalPages, page],
+  );
 
   const handleDelete = async (item) => {
     if (!await confirmAlert({ title: 'Delete assessment?', text: `Remove ${item.clientName || item.assessmentCode}?`, confirmText: 'Delete', danger: true })) return;
     await dispatch(deleteAssessment(item.id));
-    dispatch(fetchAssessmentStats());
+    load();
   };
 
   const handleQuote = (pricing) => runLocked(async () => {
@@ -154,10 +199,14 @@ export default function Assessments() {
     ? {
       hourlyRate: quoteTarget.hourlyRate ?? 35,
       weeklyHours: quoteTarget.weeklyHours
-        ?? quoteTarget.formData?.carePlanSummary?.recommendedWeeklyHours
+        ?? quoteTarget.recommendedWeeklyHours
         ?? 20,
     }
     : null;
+
+  const emptyHint = debouncedSearch || statusFilter !== 'All'
+    ? { title: 'No matching assessments', text: 'Try a different search or status filter.' }
+    : { title: 'No assessments yet', text: 'Start with a new client enquiry assessment.' };
 
   return (
     <div className="space-y-5">
@@ -201,14 +250,17 @@ export default function Assessments() {
 
         {loading && !list.length ? (
           <p className="p-12 text-center text-sm text-gray-500">Loading...</p>
-        ) : !filtered.length ? (
+        ) : !list.length ? (
           <div className="p-12 text-center">
-            <p className="font-medium text-gray-900">No assessments yet</p>
-            <p className="mt-1 text-sm text-gray-500">Start with a new client enquiry assessment.</p>
-            <Link to={ROUTES.AGENCY_ASSESSMENTS_CREATE} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm text-white hover:bg-primary-hover">New Assessment</Link>
+            <p className="font-medium text-gray-900">{emptyHint.title}</p>
+            <p className="mt-1 text-sm text-gray-500">{emptyHint.text}</p>
+            {emptyHint.title === 'No assessments yet' ? (
+              <Link to={ROUTES.AGENCY_ASSESSMENTS_CREATE} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm text-white hover:bg-primary-hover">New Assessment</Link>
+            ) : null}
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className={`overflow-x-auto ${loading ? 'opacity-60' : ''}`}>
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -222,7 +274,7 @@ export default function Assessments() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filtered.map((a) => (
+                {list.map((a) => (
                   <tr key={a.id} className="hover:bg-gray-50">
                     <td className="px-5 py-4">
                       <AssessorDetailCell
@@ -234,7 +286,7 @@ export default function Assessments() {
                     </td>
                     <td className="px-5 py-4">{a.assessmentCode}</td>
                     <td className="px-5 py-4">
-                      <FormsProgressCell formData={a.formData} />
+                      <FormsProgressCell packetProgress={a.packetProgress} />
                     </td>
                     <td className="px-5 py-4">
                       <AssessorDetailCell
@@ -324,6 +376,46 @@ export default function Assessments() {
               </tbody>
             </table>
           </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-5 py-4">
+            <p className="text-sm text-gray-500">
+              Showing {pagination.from || 0}-{pagination.to || 0} of {pagination.total || 0}
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 disabled:opacity-40"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              {pages.map((p, idx) => (
+                p === '…' ? (
+                  <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">…</span>
+                ) : (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPage(p)}
+                    className={`min-w-[34px] rounded-lg px-2 py-1.5 text-sm font-medium ${
+                      p === page ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                )
+              ))}
+              <button
+                type="button"
+                disabled={page >= (pagination.totalPages || 1)}
+                onClick={() => setPage((p) => p + 1)}
+                className="rounded-lg border border-gray-200 p-2 text-gray-500 hover:bg-gray-50 disabled:opacity-40"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+          </>
         )}
       </div>
 
@@ -339,12 +431,7 @@ export default function Assessments() {
       <AssessmentFormsDownloadModal
         open={Boolean(downloadTarget)}
         onClose={() => setDownloadTarget(null)}
-        assessment={downloadTarget ? {
-          id: downloadTarget.id,
-          assessmentCode: downloadTarget.assessmentCode,
-          clientName: downloadTarget.clientName,
-          formData: downloadTarget.formData,
-        } : null}
+        assessment={downloadTarget}
       />
     </div>
   );

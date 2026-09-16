@@ -188,7 +188,7 @@ function Form110({ data, onChange, shared }) {
           <Field label="Pharmacy Address"><input className={inputClass} value={d.pharmacyAddress || ''} onChange={(e) => onChange({ pharmacyAddress: e.target.value })} /></Field>
         </div>
         <div className="mt-3">
-          <p className="mb-1 text-xs font-medium text-gray-600">Source Information</p>
+          <p className="mb-1 text-xs font-medium text-gray-600">Source Information – Client / Family / Other</p>
           <CheckboxRow options={['Client', 'Family', 'Other']} value={d.sourceInfo || []} onChange={(sourceInfo) => onChange({ sourceInfo })} columns={3} />
           {(d.sourceInfo || []).includes('Other') ? (
             <Field label="Other source" className="mt-2"><input className={inputClass} value={d.sourceOther || ''} onChange={(e) => onChange({ sourceOther: e.target.value })} /></Field>

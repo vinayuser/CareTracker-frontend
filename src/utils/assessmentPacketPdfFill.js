@@ -118,6 +118,28 @@ export function getAssessmentPacketPdfUrl(code) {
 
 const str = (v) => (v === null || v === undefined ? '' : String(v));
 
+function formatPdfDate(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+    const [year, month, day] = raw.slice(0, 10).split('-');
+    return `${month}/${day}/${year}`;
+  }
+  return raw;
+}
+
+function formatPdfTime(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const match = raw.match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return raw;
+  let hour = Number(match[1]);
+  const minute = match[2];
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  hour = hour % 12 || 12;
+  return `${hour}:${minute} ${ampm}`;
+}
+
 async function dataUrlToBytes(dataUrl) {
   if (!dataUrl || !String(dataUrl).startsWith('data:')) return null;
   try {
@@ -467,9 +489,9 @@ function normalizeAllTextFieldSizes(form, font, fontSize = DEFAULT_FIELD_FONT_SI
 }
 
 function tryCheck(form, name, on) {
-  if (!name || !on) return;
+  if (name === undefined || name === null || name === '' || !on) return;
   try {
-    form.getCheckBox(name).check();
+    form.getCheckBox(String(name)).check();
   } catch { /* missing */ }
 }
 
@@ -541,7 +563,7 @@ async function embedSignatureOnField(pdfDoc, form, fieldName, signatureDataUrl) 
   }
 }
 
-/** Stamp name/date/signature onto PDFs with no AcroForm fields (1082, 790, 800). */
+/** Stamp name/date/signature onto PDFs with no AcroForm fields (1082, 800). */
 async function stampOverlay(pdfDoc, {
   lines = [],
   signatureDataUrl,
@@ -589,6 +611,54 @@ async function stampOverlay(pdfDoc, {
   }
 }
 
+/**
+ * Form 790 has no AcroForm fields. Draw values into the printed table grid.
+ * Coordinates measured from the Case Notes template (letter, y from top).
+ */
+async function fill790(pdfDoc, d = {}) {
+  const page = pdfDoc.getPages()[0];
+  if (!page) return;
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const pageHeight = page.getSize().height;
+  const ink = rgb(0.05, 0.05, 0.05);
+
+  const draw = (text, x, yFromTop, maxWidth, size = 8) => {
+    const value = str(text).trim();
+    if (!value || maxWidth <= 4) return;
+    const fitted = fitTextToWidth(font, value, maxWidth, size, 6);
+    page.drawText(fitted.value, {
+      x,
+      y: pageHeight - yFromTop,
+      size: fitted.size,
+      font,
+      color: ink,
+    });
+  };
+
+  draw(d.clientId, 90, 99.4, 100, 8);
+  draw(d.clientName, 248, 99.4, 305, 8);
+  draw(formatPdfDate(d.clientDob) || d.clientDob, 100, 114.4, 90, 8);
+  draw(
+    [d.representativeName, d.representativeTitle].filter(Boolean).join(' — '),
+    368,
+    114.4,
+    186,
+    7,
+  );
+
+  const entries = (d.entries || []).filter((e) => e.date || e.time || e.notes);
+  const firstBaseline = 147.0;
+  const rowHeight = 15.554;
+  const maxRows = 36;
+
+  entries.slice(0, maxRows).forEach((entry, index) => {
+    const y = firstBaseline + index * rowHeight;
+    draw(formatPdfDate(entry.date) || entry.date, 56, y, 64, 7.5);
+    draw(formatPdfTime(entry.time) || entry.time, 129, y, 62, 7.5);
+    draw(entry.notes, 202, y, 350, 7.5);
+  });
+}
+
 function fill110(form, pdfDoc, d) {
   trySetText(form, 'Client Name', d.clientName || `${d.firstName || ''} ${d.lastName || ''}`.trim());
   trySetText(form, 'Date', d.date);
@@ -610,6 +680,15 @@ function fill110(form, pdfDoc, d) {
   trySetText(form, 'Pharmacy', d.pharmacy);
   trySetText(form, 'Phone_5', d.pharmacyPhone);
   trySetText(form, 'Address_3', d.pharmacyAddress);
+  // PDF checkboxes for Source Information were left unnamed in the template.
+  const sourceInfo = Array.isArray(d.sourceInfo)
+    ? d.sourceInfo.map(String)
+    : d.sourceInfo
+      ? [String(d.sourceInfo)]
+      : [];
+  if (sourceInfo.includes('Client')) tryCheck(form, 'undefined', true);
+  if (sourceInfo.includes('Family')) tryCheck(form, 'undefined_2', true);
+  if (sourceInfo.includes('Other')) tryCheck(form, 'undefined_3', true);
   trySetText(form, 'Other', d.sourceOther);
   trySetText(form, 'Temperature', d.vitals?.temperature);
   trySetText(form, 'BP', d.vitals?.bp);
@@ -779,15 +858,7 @@ async function applyFormData(code, pdfDoc, data) {
       await embedSignatureOnField(pdfDoc, form, 'Signature79_es_:signer:signature', d.client?.signature);
       break;
     case '790':
-      await stampOverlay(pdfDoc, {
-        lines: [
-          `Client: ${d.clientName || ''}   DOB: ${d.clientDob || ''}`,
-          `Rep: ${d.representativeName || ''}  ${d.representativeTitle || ''}`,
-          ...(d.entries || []).filter((e) => e.date || e.notes).slice(0, 6).map(
-            (e) => `${e.date || ''} ${e.time || ''} — ${str(e.notes).slice(0, 70)}`,
-          ),
-        ],
-      });
+      await fill790(pdfDoc, d);
       break;
     case '800':
       await stampOverlay(pdfDoc, {

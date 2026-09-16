@@ -6,7 +6,7 @@ import InsuranceIntakeStepper from '../../../components/agency/insurance-intake/
 import { InsuranceIntakeStepOne, InsuranceIntakeStepTwo } from '../../../components/agency/insurance-intake/InsuranceIntakeSteps';
 import SubmitButton from '../../../components/ui/SubmitButton';
 import { fetchClient, fetchClients } from '../../../redux/slices/clientsSlice';
-import { fetchAssessments } from '../../../redux/slices/assessmentsSlice';
+import { fetchAssessment, fetchAssessments } from '../../../redux/slices/assessmentsSlice';
 import {
   createInsuranceIntake,
   fetchInsuranceIntake,
@@ -39,12 +39,15 @@ async function loadInsurancePrefill(dispatch, selectedClientId, clientsList = []
 
   let assessment = null;
   try {
-    const list = await dispatch(fetchAssessments({ client_id: selectedClientId })).unwrap();
-    const rows = Array.isArray(list) ? list : [];
-    assessment = rows.find((a) => a.status === 'Accepted')
+    const payload = await dispatch(fetchAssessments({ client_id: selectedClientId, limit: 50 })).unwrap();
+    const rows = Array.isArray(payload) ? payload : (payload?.items || []);
+    const summary = rows.find((a) => a.status === 'Accepted')
       || rows.find((a) => a.clientId === selectedClientId)
       || rows[0]
       || null;
+    if (summary?.id) {
+      assessment = await dispatch(fetchAssessment(summary.id)).unwrap();
+    }
   } catch {
     assessment = null;
   }

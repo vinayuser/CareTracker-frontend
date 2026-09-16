@@ -21,23 +21,33 @@ export default function AssessmentFormsDownloadModal({ open, assessment, onClose
   const [status, setStatus] = useState('Starting…');
   const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
-  const startedForKey = useRef(null);
   const onCloseRef = useRef(onClose);
+  const assessmentRef = useRef(assessment);
 
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
 
   useEffect(() => {
+    assessmentRef.current = assessment;
+  }, [assessment]);
+
+  useEffect(() => {
     agencyBrandingRef.current = getAgencyBranding(authUser);
   }, [authUser]);
 
-  useEffect(() => {
-    if (!open || !assessment) return undefined;
+  const assessmentId = assessment?.id;
+  const assessmentCode = assessment?.assessmentCode;
 
-    const runKey = assessment.id || assessment.assessmentCode || 'draft';
-    if (startedForKey.current === runKey) return undefined;
-    startedForKey.current = runKey;
+  useEffect(() => {
+    if (!open) {
+      setProgress(0);
+      setStatus('Starting…');
+      setError('');
+      setRunning(false);
+      return undefined;
+    }
+    if (!assessmentId && !assessmentRef.current) return undefined;
 
     let cancelled = false;
     const run = async () => {
@@ -47,18 +57,23 @@ export default function AssessmentFormsDownloadModal({ open, assessment, onClose
       setStatus('Loading assessment data…');
 
       try {
-        let forms = assessment.formData?.forms;
-        if (!forms && assessment.id) {
-          const data = await dispatch(fetchAssessment(assessment.id)).unwrap();
-          forms = data.formData?.forms;
+        const current = assessmentRef.current || {};
+        let forms = current.formData?.forms;
+        if (assessmentId) {
+          const data = await dispatch(fetchAssessment(assessmentId)).unwrap();
+          forms = data.formData?.forms || forms;
         }
         if (cancelled) return;
+        if (!forms) {
+          throw new Error('Assessment form data is missing. Open the assessment and save, then try again.');
+        }
 
         setProgress(5);
         setStatus('Preparing official PDF templates…');
 
-        const basename = assessment.assessmentCode
-          || (assessment.id ? `assessment-${assessment.id}` : 'assessment-packet');
+        const basename = current.assessmentCode
+          || assessmentCode
+          || (assessmentId ? `assessment-${assessmentId}` : 'assessment-packet');
 
         await downloadAssessmentPacketZip(
           mergePacketForms(forms || {}),
@@ -89,17 +104,7 @@ export default function AssessmentFormsDownloadModal({ open, assessment, onClose
     return () => {
       cancelled = true;
     };
-  }, [open, assessment, dispatch]);
-
-  useEffect(() => {
-    if (!open) {
-      startedForKey.current = null;
-      setProgress(0);
-      setStatus('Starting…');
-      setError('');
-      setRunning(false);
-    }
-  }, [open]);
+  }, [open, assessmentId, assessmentCode, dispatch]);
 
   if (!open || !assessment) return null;
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -26,12 +26,10 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
-import { fetchAgencies } from '../../redux/slices/agencySlice';
-import { fetchPlans } from '../../redux/slices/subscriptionPlanSlice';
-import { fetchInvitationStats } from '../../redux/slices/invitationSlice';
+import { fetchAdminDashboard } from '../../redux/slices/dashboardsSlice';
 import { ROUTES } from '../../routes/routes';
 import { formatPrice } from '../../utils/subscriptionStore';
-import { buildSuperAdminDashboard, formatCount } from '../../utils/superAdminDashboard';
+import { formatCount } from '../../utils/superAdminDashboard';
 import PlatformPerformanceChart from '../../components/admin/dashboard/PlatformPerformanceChart';
 import AgencyStatusBadge from '../../components/ui/AgencyStatusBadge';
 
@@ -66,21 +64,69 @@ const QUICK_ACTIONS = [
   { label: 'View Reports', icon: BarChart3, to: ROUTES.ADMIN_REPORTS },
 ];
 
-function Card({ title, action, children, className = '' }) {
+const EMPTY = {
+  kpis: {},
+  series: [],
+  sparkline: [],
+  topAgencies: [],
+  health: [],
+  insights: [],
+  alerts: [],
+  tasks: [],
+  recentActivity: [],
+  finance: {},
+  social: {},
+  members: {},
+};
+
+function pulse(className) {
+  return <div className={`animate-pulse rounded bg-gray-100 ${className}`} />;
+}
+
+function Card({ title, action, children, className = '', loading = false, loader }) {
   return (
     <div className={`rounded-xl border border-gray-200 bg-white shadow-sm ${className}`}>
       {(title || action) && (
         <div className="flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-3.5">
           <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
-          {action}
+          {loading ? pulse('h-4 w-12') : action}
         </div>
       )}
-      {children}
+      {loading ? (loader || <CardBodyLoader />) : children}
     </div>
   );
 }
 
-function Kpi({ label, value, sub, up = true, icon: Icon, iconBg }) {
+function CardBodyLoader({ rows = 5 }) {
+  return (
+    <div className="space-y-3 px-5 py-4">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3">
+          {pulse('h-8 w-8 rounded-full')}
+          <div className="flex-1 space-y-2">
+            {pulse('h-3 w-2/3')}
+            {pulse('h-2.5 w-1/3')}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Kpi({ label, value, sub, up = true, icon: Icon, iconBg, loading }) {
+  if (loading) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white px-4 py-3.5 shadow-sm">
+        <div className="flex items-start justify-between gap-2">
+          {pulse('h-3 w-16')}
+          {pulse('h-8 w-8 rounded-full')}
+        </div>
+        {pulse('mt-3 h-6 w-20')}
+        {pulse('mt-2 h-3 w-24')}
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-xl border border-gray-200 bg-white px-4 py-3.5 shadow-sm">
       <div className="flex items-start justify-between gap-2">
@@ -100,6 +146,21 @@ function Kpi({ label, value, sub, up = true, icon: Icon, iconBg }) {
   );
 }
 
+function ChartLoader() {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="mb-4 flex items-start justify-between">
+        <div className="space-y-2">
+          {pulse('h-4 w-48')}
+          {pulse('h-3 w-64')}
+        </div>
+        {pulse('h-8 w-28')}
+      </div>
+      {pulse('h-56 w-full')}
+    </div>
+  );
+}
+
 function timeAgo(value) {
   if (!value) return '';
   const d = new Date(value);
@@ -112,51 +173,47 @@ function timeAgo(value) {
   return `${days}d ago`;
 }
 
-function Sparkline() {
+function Sparkline({ points = [] }) {
+  const values = points.length ? points : [0];
+  const max = Math.max(...values, 1);
+  const w = 220;
+  const h = 56;
+  const coords = values.map((v, i) => {
+    const x = values.length === 1 ? w / 2 : (i / (values.length - 1)) * w;
+    const y = h - 8 - (Math.max(0, v) / max) * (h - 16);
+    return `${x},${y}`;
+  });
+  const last = coords[coords.length - 1].split(',');
+
   return (
-    <svg viewBox="0 0 220 56" className="h-14 w-full">
+    <svg viewBox={`0 0 ${w} ${h}`} className="h-14 w-full">
       <polyline
         fill="none"
         stroke="#5B7CFA"
         strokeWidth="2.5"
         strokeLinejoin="round"
-        points="0,42 24,38 48,40 72,28 96,32 120,18 144,22 168,12 192,16 220,8"
+        points={coords.join(' ')}
       />
-      <circle cx="220" cy="8" r="3.5" fill="#5B7CFA" />
+      <circle cx={last[0]} cy={last[1]} r="3.5" fill="#5B7CFA" />
     </svg>
   );
 }
 
 export default function Dashboard() {
   const dispatch = useDispatch();
-  const { list: agencies, status: agencyStatus } = useSelector((s) => s.agencies);
-  const { list: plans } = useSelector((s) => s.subscriptionPlans);
-  const { stats: invitationStats } = useSelector((s) => s.invitations);
+  const { admin, adminLoading } = useSelector((s) => s.dashboards);
   const [tab, setTab] = useState('Overview');
   const [supportTab, setSupportTab] = useState('tickets');
 
   useEffect(() => {
-    dispatch(fetchAgencies());
-    dispatch(fetchPlans());
-    dispatch(fetchInvitationStats());
+    dispatch(fetchAdminDashboard());
   }, [dispatch]);
 
-  const data = useMemo(
-    () => buildSuperAdminDashboard({ agencies, plans, invitationStats }),
-    [agencies, plans, invitationStats],
-  );
-
-  const loading = agencyStatus === 'loading' && agencies.length === 0;
-  const k = data.kpis;
+  const data = admin || EMPTY;
+  const loading = adminLoading && !admin;
+  const k = data.kpis || {};
+  const members = data.members || {};
   const show = (names) => names.includes(tab);
-
-  if (loading) {
-    return (
-      <div className="rounded-xl border border-gray-200 bg-white px-5 py-16 text-center text-sm text-gray-500 shadow-sm">
-        Loading dashboard…
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-5">
@@ -185,14 +242,14 @@ export default function Dashboard() {
 
       {show(['Overview', 'Agencies', 'Members', 'Finance', 'Analytics']) && (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
-          <Kpi label="Total Agencies" value={formatCount(k.agencies.value)} sub={k.agencies.sub} icon={Building2} iconBg="bg-violet-100 text-violet-600" />
-          <Kpi label="Active Users" value={formatCount(k.users.value)} sub={k.users.sub} icon={Users} iconBg="bg-blue-100 text-blue-600" />
-          <Kpi label="Total Clients" value={formatCount(k.clients.value)} sub={k.clients.sub} icon={HeartHandshake} iconBg="bg-emerald-100 text-emerald-600" />
-          <Kpi label="Active Caregivers" value={formatCount(k.caregivers.value)} sub={k.caregivers.sub} icon={UserCheck} iconBg="bg-pink-100 text-pink-600" />
-          <Kpi label="Monthly Revenue" value={k.revenue.value} sub={k.revenue.sub} icon={DollarSign} iconBg="bg-teal-100 text-teal-600" />
-          <Kpi label="Claims Processed" value={formatCount(k.claims.value)} sub={k.claims.sub} icon={Landmark} iconBg="bg-indigo-100 text-indigo-600" />
-          <Kpi label="Support Tickets" value={formatCount(k.tickets.value)} sub={k.tickets.sub} up={false} icon={Ticket} iconBg="bg-orange-100 text-orange-600" />
-          <Kpi label="Social Engagement" value={formatCount(k.social.value)} sub={k.social.sub} icon={MessageSquare} iconBg="bg-sky-100 text-sky-600" />
+          <Kpi loading={loading} label="Total Agencies" value={formatCount(k.agencies?.value)} sub={k.agencies?.sub} up={k.agencies?.up} icon={Building2} iconBg="bg-violet-100 text-violet-600" />
+          <Kpi loading={loading} label="Active Users" value={formatCount(k.users?.value)} sub={k.users?.sub} up={k.users?.up} icon={Users} iconBg="bg-blue-100 text-blue-600" />
+          <Kpi loading={loading} label="Total Clients" value={formatCount(k.clients?.value)} sub={k.clients?.sub} up={k.clients?.up} icon={HeartHandshake} iconBg="bg-emerald-100 text-emerald-600" />
+          <Kpi loading={loading} label="Active Caregivers" value={formatCount(k.caregivers?.value)} sub={k.caregivers?.sub} up={k.caregivers?.up} icon={UserCheck} iconBg="bg-pink-100 text-pink-600" />
+          <Kpi loading={loading} label="Monthly Revenue" value={k.revenue?.display || formatPrice(k.revenue?.value || 0)} sub={k.revenue?.sub} up={k.revenue?.up} icon={DollarSign} iconBg="bg-teal-100 text-teal-600" />
+          <Kpi loading={loading} label="Visits Completed" value={formatCount(k.claims?.value)} sub={k.claims?.sub} up={k.claims?.up} icon={Landmark} iconBg="bg-indigo-100 text-indigo-600" />
+          <Kpi loading={loading} label="Support Tickets" value={formatCount(k.tickets?.value)} sub={k.tickets?.sub} up={k.tickets?.up !== false ? k.tickets?.up : false} icon={Ticket} iconBg="bg-orange-100 text-orange-600" />
+          <Kpi loading={loading} label="New Leads" value={formatCount(k.social?.value)} sub={k.social?.sub} up={k.social?.up} icon={MessageSquare} iconBg="bg-sky-100 text-sky-600" />
         </div>
       )}
 
@@ -200,14 +257,14 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
           {show(['Overview', 'Analytics']) && (
             <div className="xl:col-span-8">
-              <PlatformPerformanceChart />
+              {loading ? <ChartLoader /> : <PlatformPerformanceChart series={data.series} />}
             </div>
           )}
           <div className={`space-y-5 ${show(['Overview', 'Analytics']) ? 'xl:col-span-4' : 'xl:col-span-12 grid gap-5 lg:grid-cols-3'}`}>
             {show(['Overview', 'Operations', 'System Health']) && (
-              <Card title="Platform Health">
+              <Card title="Platform Health" loading={loading} loader={<CardBodyLoader rows={5} />}>
                 <ul className="divide-y divide-gray-50 px-5 py-2">
-                  {data.health.map((row) => (
+                  {(data.health || []).map((row) => (
                     <li key={row.label} className="flex items-center justify-between gap-3 py-2.5 text-sm">
                       <span className="text-gray-600">{row.label}</span>
                       <span className="flex items-center gap-2">
@@ -225,9 +282,9 @@ export default function Dashboard() {
               </Card>
             )}
             {show(['Overview', 'Operations']) && (
-              <Card title="AI Insights & Recommendations">
+              <Card title="AI Insights & Recommendations" loading={loading}>
                 <ul className="space-y-2.5 p-4">
-                  {data.insights.map((item) => (
+                  {(data.insights || []).map((item) => (
                     <li key={item.id} className="flex gap-2.5 rounded-lg bg-gray-50 px-3 py-2.5">
                       <Sparkles size={16} className={`mt-0.5 shrink-0 ${
                         item.tone === 'emerald' ? 'text-emerald-500' : item.tone === 'amber' ? 'text-amber-500' : 'text-primary'
@@ -245,9 +302,10 @@ export default function Dashboard() {
             {show(['Overview', 'Operations', 'System Health', 'Security']) && (
               <Card
                 title="Urgent Alerts"
-                action={<span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">{data.alerts.length}</span>}
+                loading={loading}
+                action={<span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">{(data.alerts || []).length}</span>}
               >
-                {data.alerts.length === 0 ? (
+                {(data.alerts || []).length === 0 ? (
                   <p className="px-5 py-8 text-center text-sm text-gray-400">No urgent alerts.</p>
                 ) : (
                   <ul className="divide-y divide-gray-50 px-4 py-2">
@@ -274,9 +332,11 @@ export default function Dashboard() {
             <Card
               className="xl:col-span-8"
               title="Top Agencies by Revenue"
+              loading={loading}
+              loader={<CardBodyLoader rows={6} />}
               action={<Link to={ROUTES.ADMIN_AGENCIES} className="text-xs font-medium text-primary hover:underline">View all</Link>}
             >
-              {data.topAgencies.length === 0 ? (
+              {(data.topAgencies || []).length === 0 ? (
                 <p className="px-5 py-10 text-center text-sm text-gray-400">No agencies yet.</p>
               ) : (
                 <div className="overflow-x-auto">
@@ -337,31 +397,31 @@ export default function Dashboard() {
 
           <div className={`space-y-5 ${show(['Overview', 'Agencies']) ? 'xl:col-span-4' : 'xl:col-span-12 grid gap-5 lg:grid-cols-2'}`}>
             {show(['Overview', 'Finance']) && (
-              <Card title="Finance Summary">
+              <Card title="Finance Summary" loading={loading} loader={<CardBodyLoader rows={6} />}>
                 <div className="px-5 pt-3">
-                  <p className="text-[11px] text-gray-500">Revenue trend · last 30 days</p>
-                  <Sparkline />
+                  <p className="text-[11px] text-gray-500">Revenue trend · last 14 days</p>
+                  <Sparkline points={data.sparkline} />
                 </div>
                 <div className="grid grid-cols-2 gap-3 p-4 pt-2">
                   {[
-                    ['MRR', data.finance.mrr],
-                    ['Unpaid Invoices', data.finance.unpaid],
-                    ['Payouts', data.finance.payouts],
-                    ['Collections', data.finance.collections],
-                    ['Refunds', data.finance.refunds],
+                    ['MRR', data.finance?.mrr],
+                    ['Unpaid Invoices', data.finance?.unpaid],
+                    ['Payouts', data.finance?.payouts],
+                    ['Collections', data.finance?.collections],
+                    ['Refunds', data.finance?.refunds],
                   ].map(([label, value]) => (
                     <div key={label} className="rounded-lg bg-gray-50 px-3 py-2.5">
                       <p className="text-[11px] text-gray-500">{label}</p>
-                      <p className="mt-0.5 text-sm font-bold text-gray-900">{value}</p>
+                      <p className="mt-0.5 text-sm font-bold text-gray-900">{value || '$0'}</p>
                     </div>
                   ))}
                 </div>
               </Card>
             )}
             {show(['Overview', 'Operations']) && (
-              <Card title="Platform Tasks">
+              <Card title="Platform Tasks" loading={loading}>
                 <ul className="divide-y divide-gray-50 px-2 py-1">
-                  {data.tasks.map((task) => (
+                  {(data.tasks || []).map((task) => (
                     <li key={task.id}>
                       <Link to={task.to} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50">
                         <input type="checkbox" readOnly checked={task.count === 0} className="h-4 w-4 rounded border-gray-300 text-primary" />
@@ -380,15 +440,15 @@ export default function Dashboard() {
       {show(['Overview', 'Social', 'Members', 'Security', 'Automations']) && (
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-4">
           {show(['Overview', 'Social']) && (
-            <Card title="Social & Community Overview">
+            <Card title="Social & Community Overview" loading={loading}>
               <div className="grid grid-cols-3 gap-2 px-4 pt-4">
                 {[
-                  ['Pending Posts', data.social.pendingPosts],
-                  ['New Reviews', data.social.newReviews],
-                  ['Messages', data.social.unreadMessages],
+                  ['Pending Agencies', data.social?.pendingPosts],
+                  ['New Reviews', data.social?.newReviews],
+                  ['New Leads', data.social?.unreadMessages],
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-lg bg-gray-50 px-2 py-2 text-center">
-                    <p className="text-lg font-bold text-gray-900">{value}</p>
+                    <p className="text-lg font-bold text-gray-900">{value || 0}</p>
                     <p className="text-[10px] text-gray-500">{label}</p>
                   </div>
                 ))}
@@ -403,12 +463,12 @@ export default function Dashboard() {
           )}
 
           {show(['Overview', 'Members']) && (
-            <Card title="User Management" action={<Link to={ROUTES.ADMIN_USERS} className="text-xs font-medium text-primary hover:underline">View users</Link>}>
+            <Card title="User Management" loading={loading} action={<Link to={ROUTES.ADMIN_USERS} className="text-xs font-medium text-primary hover:underline">View users</Link>}>
               <div className="grid grid-cols-3 gap-2 px-4 pt-4">
                 {[
-                  ['New Signups', data.kpis.agencies.sub.startsWith('+') ? data.kpis.agencies.sub.replace(' this month', '') : '0'],
-                  ['Pending', data.tasks[0]?.count ?? 0],
-                  ['Invites', invitationStats.pending || 0],
+                  ['New Signups', members.newSignups || 0],
+                  ['Pending', members.pending || 0],
+                  ['Invites', members.invites || 0],
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-lg bg-gray-50 px-2 py-2 text-center">
                     <p className="text-lg font-bold text-gray-900">{value}</p>
@@ -418,7 +478,7 @@ export default function Dashboard() {
               </div>
               <div className="px-5 py-3">
                 <p className="mb-2 text-xs font-semibold text-gray-500">Recent User Activity</p>
-                {data.recentActivity.length === 0 ? (
+                {(data.recentActivity || []).length === 0 ? (
                   <p className="py-4 text-sm text-gray-400">No recent activity.</p>
                 ) : (
                   <ul className="space-y-2.5">
@@ -443,6 +503,7 @@ export default function Dashboard() {
           {show(['Overview', 'Security']) && (
             <Card
               title="Support & Audit Overview"
+              loading={loading}
               action={(
                 <div className="flex gap-1">
                   {[
@@ -477,9 +538,17 @@ export default function Dashboard() {
               )}
               {supportTab === 'security' && (
                 <ul className="space-y-2 p-4">
-                  <li className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-                    <CheckCircle2 size={15} /> No security alerts
-                  </li>
+                  {(data.alerts || []).some((a) => a.tone === 'danger') ? (
+                    (data.alerts || []).filter((a) => a.tone === 'danger').map((alert) => (
+                      <li key={alert.id} className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">
+                        <AlertTriangle size={15} /> {alert.title}
+                      </li>
+                    ))
+                  ) : (
+                    <li className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                      <CheckCircle2 size={15} /> No security alerts
+                    </li>
+                  )}
                 </ul>
               )}
             </Card>
