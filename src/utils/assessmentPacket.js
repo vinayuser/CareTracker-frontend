@@ -241,6 +241,7 @@ export function buildEmptyPacketForm(code) {
       return {
         clientName: '', dob: '',
         nonMedical: [], privateDutyNursing: [],
+        frequencyByDiscipline: '',
         billingCycle: '',
         privateInsurancePays: false, copayEstimate: '',
         privatePay: false, privatePayCharges: '',

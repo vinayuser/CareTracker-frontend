@@ -294,6 +294,7 @@ export default function ClientAssessmentForm() {
               assessorName: form.assessorName,
               agencyName,
               agencyLogo,
+              agencyBranding,
             }}
           />
 

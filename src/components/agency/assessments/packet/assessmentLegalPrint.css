@@ -586,12 +586,29 @@
   align-items: flex-start;
 }
 
+.al-aob-address > strong {
+  padding-top: 0.02in;
+  flex-shrink: 0;
+}
+
 .al-aob-address-lines {
   display: flex;
   flex-direction: column;
-  gap: 0.06in;
+  gap: 0.05in;
   flex: 1;
   min-width: 0;
+}
+
+.al-aob-address-lines .al-field-line {
+  display: block;
+  width: 100%;
+  flex: none;
+  min-height: 0.24in;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  padding-bottom: 0.02in;
 }
 
 .al-aob-checks {

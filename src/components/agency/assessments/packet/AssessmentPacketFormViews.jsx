@@ -4,6 +4,15 @@ import {
   SAFETY_ITEMS,
 } from '../../../../utils/assessmentPacket';
 import {
+  agencyDisplayName,
+  getForm325Copy,
+  getForm800Copy,
+  parseConsentAgreementSections,
+  parseLegalNoticeBlocks,
+} from '../../../../utils/assessmentPacketAgencyCopy';
+import legalBodies from '../../../../utils/assessmentLegalBodies.json';
+import { formatAgencyStreetLine } from '../../../../utils/agencyBranding';
+import {
   CheckboxRow,
   Field,
   LegalText,
@@ -95,6 +104,65 @@ function BoolCheck({ label, checked, onChange }) {
       <input type="checkbox" className="mt-0.5" checked={!!checked} onChange={(e) => onChange(e.target.checked)} />
       <span>{label}</span>
     </label>
+  );
+}
+
+/** Full HIPAA notice body (same source as print) for the fillable Form 1082. */
+function HipaaNoticeBody({ agencyName = '', agencyBranding = {} }) {
+  const name = agencyDisplayName(agencyName || agencyBranding);
+  const branding = {
+    name,
+    ...(agencyBranding || {}),
+  };
+  const blocks = parseLegalNoticeBlocks(legalBodies['1082'] || '', name);
+  const address = formatAgencyStreetLine(branding);
+  const fax = branding.fax ? `Fax: ${branding.fax}` : '';
+  const email = branding.email ? `Email: ${branding.email}` : '';
+
+  return (
+    <div className="space-y-3 text-sm leading-relaxed text-gray-700">
+      {blocks.map((block, i) => {
+        if (block.type === 'h') {
+          return (
+            <p key={i} className="pt-1 text-sm font-bold text-gray-900 underline underline-offset-2">
+              {block.text}
+            </p>
+          );
+        }
+        if (block.type === 'ul') {
+          return (
+            <ul key={i} className="list-disc space-y-1 pl-5">
+              {block.items.map((item) => (
+                <li key={item.slice(0, 48)}>{item}</li>
+              ))}
+            </ul>
+          );
+        }
+        if (block.type === 'lead') {
+          return (
+            <p key={i}>
+              <strong className="text-gray-900">{block.heading}</strong>
+              {' '}
+              {block.text}
+            </p>
+          );
+        }
+        if (block.type === 'requests') {
+          return (
+            <div key={i} className="rounded-lg border border-gray-100 bg-gray-50/80 px-3 py-2.5">
+              <p className="font-semibold text-gray-900">Send all written requests to:</p>
+              <p className="mt-1">
+                {name}
+                {address ? <><br />{address}</> : null}
+                {fax ? <><br />{fax}</> : null}
+                {email ? <><br />{email}</> : null}
+              </p>
+            </div>
+          );
+        }
+        return <p key={i}>{block.text}</p>;
+      })}
+    </div>
   );
 }
 
@@ -422,16 +490,35 @@ function Form324({ data, onChange, shared }) {
 
 function Form325({ data, onChange, shared }) {
   const d = data || {};
-  const agency = shared?.agencyName || 'the agency';
+  const copy = getForm325Copy(shared?.agencyName || shared?.agencyBranding);
   return (
     <div className="space-y-4">
-      <SectionCard title="Participant Agreement Release">
-        <LegalText>
-          <p>{`In consideration of the Homecare program that I am participating in with ${agency}, I understand it is never the intent of any caregivers who work in my home to harm or damage belongings or the home. During ADLs it is common that items may be unintentionally broken or misplaced, and caregivers will use household cleaning products and equipment (vacuum, appliances, washer/dryer). The client is responsible for replacing used supplies.`}</p>
-          <p>{`I hereby release, indemnify, and hold harmless ${agency}, its owners, officers, officials, employees, and agents from claims arising from damage to or use of personal property in the course of care, whether negligent or not.`}</p>
-          <p>{`If I observe unusual misuse, mistreatment, or intentional destruction by any representative or caregiver of ${agency}, I will notify ${agency} within 24 hours. I have the right to file a grievance; failure to report may prevent validation of a claim.`}</p>
-        </LegalText>
-        <Field label="Print Name" className="mt-3"><input className={inputClass} value={d.printName || ''} onChange={(e) => onChange({ printName: e.target.value })} /></Field>
+      <SectionCard title={copy.title} subtitle={copy.subtitle}>
+        <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-5">
+          <div className="space-y-3 text-sm leading-relaxed text-gray-700">
+            {copy.paragraphs.map((p) => (
+              <p key={p.slice(0, 48)}>{p}</p>
+            ))}
+            <ol className="list-decimal space-y-2 pl-5">
+              {copy.numbered.map((item) => (
+                <li key={item.slice(0, 48)}>{item}</li>
+              ))}
+            </ol>
+            {copy.paragraphsAfter.map((p) => (
+              <p key={p.slice(0, 48)}>{p}</p>
+            ))}
+            <div className="pt-2">
+              <Field label="Print Name">
+                <input
+                  className={inputClass}
+                  value={d.printName || ''}
+                  onChange={(e) => onChange({ printName: e.target.value })}
+                />
+              </Field>
+              <p className="mt-2 text-sm text-gray-700">{copy.printNameLeadIn}</p>
+            </div>
+          </div>
+        </div>
       </SectionCard>
       <SignatureBlock title="Client Signature" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship />
     </div>
@@ -606,15 +693,32 @@ function Form790({ data, onChange }) {
 
 function Form800({ data, onChange, shared }) {
   const d = data || {};
-  const agency = shared?.agencyName || 'the agency';
+  const copy = getForm800Copy(shared?.agencyName || shared?.agencyBranding);
   return (
     <div className="space-y-4">
       <SectionCard title="Nondiscrimination Notice">
-        <LegalText>
-          <p>{`${agency} complies with applicable Federal civil rights laws and does not discriminate on the basis of race, color, national origin, age, sex, sexual orientation, gender identity and expression, or disability in employment, admission, treatment, or receipt of services.`}</p>
-          <p>{`Free aids and services are available for people with disabilities and free language assistance for people whose primary language is not English. If you believe ${agency} failed to provide these services or discriminated, you may file a grievance with the agency Civil Rights Coordinator or with the U.S. Department of Health and Human Services, Office for Civil Rights.`}</p>
-          <BoolCheck label="I acknowledge receipt of this Nondiscrimination Notice." checked={d.acknowledged} onChange={(acknowledged) => onChange({ acknowledged })} />
-        </LegalText>
+        <div className="rounded-xl border border-gray-100 bg-white p-4 sm:p-5">
+          <div className="space-y-3 text-sm leading-relaxed text-gray-700">
+            {copy.paragraphs.map((p) => (
+              <p key={p.slice(0, 48)}>{p}</p>
+            ))}
+            <ul className="list-disc space-y-1.5 pl-5">
+              {copy.bullets.map((b) => (
+                <li key={b.slice(0, 48)}>{b}</li>
+              ))}
+            </ul>
+            {copy.paragraphsAfter.map((p) => (
+              <p key={p.slice(0, 48)}>{p}</p>
+            ))}
+          </div>
+        </div>
+        <div className="mt-4">
+          <BoolCheck
+            label="I acknowledge receipt of this Nondiscrimination Notice."
+            checked={d.acknowledged}
+            onChange={(acknowledged) => onChange({ acknowledged })}
+          />
+        </div>
       </SectionCard>
       <SignatureBlock title="Client / Representative" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship />
     </div>
@@ -623,47 +727,89 @@ function Form800({ data, onChange, shared }) {
 
 function Form1009({ data, onChange, shared }) {
   const d = data || {};
+  const agency = agencyDisplayName(shared?.agencyName || shared?.agencyBranding);
+  const sections = parseConsentAgreementSections(legalBodies['1009'] || '', agency);
+
+  const isPayTemplate = (p) => /private medical insurance|private pay:|2 week deposit|2-week deposit|other sources of payment|the services that i agree to receive are/i.test(p);
+  const showBillingAfter = (p) => /sole responsibility to maintain/i.test(p) || /refused by Medicaid/i.test(p);
+
   return (
     <div className="space-y-4">
-      <SectionCard title="Consent for Homecare Services">
+      <SectionCard title="Consent for Homecare Services & Client Agreement">
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Client Name"><input className={inputClass} value={d.clientName || ''} onChange={(e) => onChange({ clientName: e.target.value })} /></Field>
           <Field label="DOB"><input type="date" className={inputClass} value={d.dob || ''} onChange={(e) => onChange({ dob: e.target.value })} /></Field>
         </div>
-        <LegalText>
-          <p className="mt-3">I consent to services documented in the Plan of Care and understand only those services are to be rendered in my residence. I authorize release of medical records as needed for care coordination, payors, and regulators. I accept responsibility for unapproved changes or refusal of care.</p>
-        </LegalText>
-        <p className="mb-1 mt-3 text-xs font-medium text-gray-600">Non-Medical services</p>
-        <CheckboxRow options={NON_MED} value={d.nonMedical || []} onChange={(nonMedical) => onChange({ nonMedical })} columns={3} />
-        <p className="mb-1 mt-3 text-xs font-medium text-gray-600">Private Duty Nursing</p>
-        <CheckboxRow options={PDN} value={d.privateDutyNursing || []} onChange={(privateDutyNursing) => onChange({ privateDutyNursing })} columns={2} />
-        <div className="mt-3">
-          <p className="mb-1 text-xs font-medium text-gray-600">Billing Cycle</p>
-          <RadioRow name="billing" options={['Weekly', 'Bi-Weekly', 'Monthly']} value={d.billingCycle || ''} onChange={(billingCycle) => onChange({ billingCycle })} />
-        </div>
-        <div className="mt-3 space-y-2">
-          <BoolCheck label="Private Medical Insurance / Managed Care / Third-Party / LTC will pay" checked={d.privateInsurancePays} onChange={(privateInsurancePays) => onChange({ privateInsurancePays })} />
-          {d.privateInsurancePays ? <Field label="Estimated co-pay / deductible ($)"><input className={inputClass} value={d.copayEstimate || ''} onChange={(e) => onChange({ copayEstimate: e.target.value })} /></Field> : null}
-          <BoolCheck label="Private Pay — I am responsible for the total amount due" checked={d.privatePay} onChange={(privatePay) => onChange({ privatePay })} />
-          {d.privatePay ? <Field label="Charges ($)"><input className={inputClass} value={d.privatePayCharges || ''} onChange={(e) => onChange({ privatePayCharges: e.target.value })} /></Field> : null}
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Field label="Other payment source"><input className={inputClass} value={d.otherPayment || ''} onChange={(e) => onChange({ otherPayment: e.target.value })} /></Field>
-            <Field label="Other amount ($)"><input className={inputClass} value={d.otherPaymentAmount || ''} onChange={(e) => onChange({ otherPaymentAmount: e.target.value })} /></Field>
-            <Field label="2-week deposit hours"><input className={inputClass} value={d.depositHours || ''} onChange={(e) => onChange({ depositHours: e.target.value })} /></Field>
-            <Field label="Deposit amount ($)"><input className={inputClass} value={d.depositAmount || ''} onChange={(e) => onChange({ depositAmount: e.target.value })} /></Field>
-          </div>
-        </div>
-        <div className="mt-4">
-          <p className="mb-1 text-xs font-medium text-gray-600">Advance Directive</p>
-          <RadioRow name="adv" options={ADV_DIR(shared?.agencyName)} value={d.advancedDirective || ''} onChange={(advancedDirective) => onChange({ advancedDirective })} />
-          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-            <Field label="Directive holder name"><input className={inputClass} value={d.advancedDirectiveHolder || ''} onChange={(e) => onChange({ advancedDirectiveHolder: e.target.value })} /></Field>
-            <Field label="Relationship"><input className={inputClass} value={d.advancedDirectiveRelationship || ''} onChange={(e) => onChange({ advancedDirectiveRelationship: e.target.value })} /></Field>
-          </div>
+
+        <div className="mt-4 space-y-5 rounded-xl border border-gray-100 bg-white p-4 sm:p-5">
+          {sections.map((section) => {
+            const isPayment = /II\.\s+Payment/i.test(section.heading);
+            const isAdvance = /VI\.\s+Advance/i.test(section.heading);
+            return (
+              <section key={section.heading} className="space-y-2.5 border-b border-gray-100 pb-4 last:border-b-0 last:pb-0">
+                <h3 className="text-sm font-bold text-gray-900">{section.heading}</h3>
+
+                {isPayment ? (
+                  <div className="space-y-3 rounded-lg border border-gray-100 bg-gray-50/70 p-3">
+                    <p className="text-xs font-semibold text-gray-800">The services that I agree to receive are:</p>
+                    <div>
+                      <p className="mb-1 text-xs font-medium text-gray-600">Non-Medical</p>
+                      <CheckboxRow options={NON_MED} value={d.nonMedical || []} onChange={(nonMedical) => onChange({ nonMedical })} columns={3} />
+                    </div>
+                    <div>
+                      <p className="mb-1 text-xs font-medium text-gray-600">Private Duty Nursing</p>
+                      <CheckboxRow options={PDN} value={d.privateDutyNursing || []} onChange={(privateDutyNursing) => onChange({ privateDutyNursing })} columns={2} />
+                    </div>
+                    <Field label="Frequency by Discipline">
+                      <input className={inputClass} value={d.frequencyByDiscipline || ''} onChange={(e) => onChange({ frequencyByDiscipline: e.target.value })} />
+                    </Field>
+                  </div>
+                ) : null}
+
+                {section.paragraphs.map((p) => {
+                  if (isPayTemplate(p)) return null;
+                  return (
+                    <div key={p.slice(0, 56)} className="space-y-2">
+                      <p className="text-sm leading-relaxed text-gray-700">{p}</p>
+                      {isPayment && showBillingAfter(p) ? (
+                        <div className="rounded-lg border border-gray-100 bg-gray-50/70 p-3">
+                          <p className="mb-1 text-xs font-medium text-gray-600">Billing Cycle</p>
+                          <RadioRow name="billing" options={['Weekly', 'Bi-Weekly', 'Monthly']} value={d.billingCycle || ''} onChange={(billingCycle) => onChange({ billingCycle })} />
+                          <div className="mt-3 space-y-2">
+                            <BoolCheck label="Private Medical Insurance / Managed Care / Third-Party / LTC will pay" checked={d.privateInsurancePays} onChange={(privateInsurancePays) => onChange({ privateInsurancePays })} />
+                            {d.privateInsurancePays ? <Field label="Estimated co-pay / deductible ($)"><input className={inputClass} value={d.copayEstimate || ''} onChange={(e) => onChange({ copayEstimate: e.target.value })} /></Field> : null}
+                            <BoolCheck label="Private Pay — I am responsible for the total amount due" checked={d.privatePay} onChange={(privatePay) => onChange({ privatePay })} />
+                            {d.privatePay ? <Field label="Charges ($)"><input className={inputClass} value={d.privatePayCharges || ''} onChange={(e) => onChange({ privatePayCharges: e.target.value })} /></Field> : null}
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              <Field label="Other payment source"><input className={inputClass} value={d.otherPayment || ''} onChange={(e) => onChange({ otherPayment: e.target.value })} /></Field>
+                              <Field label="Other amount ($)"><input className={inputClass} value={d.otherPaymentAmount || ''} onChange={(e) => onChange({ otherPaymentAmount: e.target.value })} /></Field>
+                              <Field label="2-week deposit hours"><input className={inputClass} value={d.depositHours || ''} onChange={(e) => onChange({ depositHours: e.target.value })} /></Field>
+                              <Field label="Deposit amount ($)"><input className={inputClass} value={d.depositAmount || ''} onChange={(e) => onChange({ depositAmount: e.target.value })} /></Field>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+
+                {isAdvance ? (
+                  <div className="space-y-2 rounded-lg border border-gray-100 bg-gray-50/70 p-3">
+                    <p className="mb-1 text-xs font-medium text-gray-600">Advance Directive</p>
+                    <RadioRow name="adv" options={ADV_DIR(agency)} value={d.advancedDirective || ''} onChange={(advancedDirective) => onChange({ advancedDirective })} />
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <Field label="Directive holder name"><input className={inputClass} value={d.advancedDirectiveHolder || ''} onChange={(e) => onChange({ advancedDirectiveHolder: e.target.value })} /></Field>
+                      <Field label="Relationship"><input className={inputClass} value={d.advancedDirectiveRelationship || ''} onChange={(e) => onChange({ advancedDirectiveRelationship: e.target.value })} /></Field>
+                    </div>
+                  </div>
+                ) : null}
+              </section>
+            );
+          })}
         </div>
       </SectionCard>
       <SignatureBlock title="Client / Representative" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship />
-      <SignatureBlock title="Agency Representative" value={d.agency || {}} onChange={(agency) => onChange({ agency })} />
+      <SignatureBlock title="Agency Representative" value={d.agency || {}} onChange={(agencySig) => onChange({ agency: agencySig })} />
     </div>
   );
 }
@@ -710,7 +856,7 @@ function Form1081({ data, onChange }) {
   );
 }
 
-function Form1082({ data, onChange }) {
+function Form1082({ data, onChange, shared }) {
   const d = data || {};
   return (
     <div className="space-y-4">
@@ -720,16 +866,19 @@ function Form1082({ data, onChange }) {
           <Field label="DOB"><input type="date" className={inputClass} value={d.dob || ''} onChange={(e) => onChange({ dob: e.target.value })} /></Field>
           <Field label="Effective Date"><input className={inputClass} value={d.effectiveDate || ''} onChange={(e) => onChange({ effectiveDate: e.target.value })} /></Field>
         </div>
-        <LegalText>
-          <p className="mt-3">This Notice describes how medical information may be used and disclosed and how you can get access to it. The agency maintains the privacy of protected health information, provides this notice of legal duties and privacy practices, and follows the notice currently in effect.</p>
-          <p>PHI may be used for plan of care/treatment, payment, and agency operations. Special situations include emergency notifications, workers&apos; compensation, public health, law enforcement, defense of legal claims, and duty-to-warn disclosures as required by law. Other uses require written permission, which you may revoke.</p>
-          <p>Your rights include inspecting and copying records, obtaining a paper copy of this notice, breach notification, requesting amendments, requesting restrictions, and requesting confidential communications. The agency may update this notice; written requests may be sent to the agency office.</p>
+        <div className="mt-4 rounded-xl border border-gray-100 bg-white p-4 sm:p-5">
+          <HipaaNoticeBody
+            agencyName={shared?.agencyName}
+            agencyBranding={shared?.agencyBranding}
+          />
+        </div>
+        <div className="mt-4">
           <BoolCheck
             label="I acknowledge that I have received and reviewed this HIPAA Notice of Privacy Practices."
             checked={d.acknowledged}
             onChange={(acknowledged) => onChange({ acknowledged })}
           />
-        </LegalText>
+        </div>
       </SectionCard>
       <SignatureBlock title="Client / Representative" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship />
     </div>

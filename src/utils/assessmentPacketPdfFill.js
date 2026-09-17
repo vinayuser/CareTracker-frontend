@@ -502,11 +502,11 @@ function tryRadio(form, name, value) {
   } catch { /* missing / invalid option */ }
 }
 
-async function embedSignatureOnField(pdfDoc, form, fieldName, signatureDataUrl) {
+async function embedSignatureOnField(pdfDoc, form, fieldName, signatureDataUrl, widgetIndex = 0) {
   if (!signatureDataUrl) return;
   const bytes = await dataUrlToBytes(signatureDataUrl);
   if (!bytes) {
-    trySetText(form, fieldName, 'Signed');
+    if (widgetIndex === 0) trySetText(form, fieldName, 'Signed');
     return;
   }
   let image;
@@ -515,7 +515,7 @@ async function embedSignatureOnField(pdfDoc, form, fieldName, signatureDataUrl) 
       ? await pdfDoc.embedJpg(bytes)
       : await pdfDoc.embedPng(bytes);
   } catch {
-    trySetText(form, fieldName, 'Signed');
+    if (widgetIndex === 0) trySetText(form, fieldName, 'Signed');
     return;
   }
 
@@ -534,12 +534,13 @@ async function embedSignatureOnField(pdfDoc, form, fieldName, signatureDataUrl) 
   try {
     const widgets = field.acroField.getWidgets();
     if (!widgets?.length) {
-      trySetText(form, fieldName, 'Signed');
+      if (widgetIndex === 0) trySetText(form, fieldName, 'Signed');
       return;
     }
-    const rect = widgets[0].getRectangle();
+    const widget = widgets[widgetIndex] || widgets[0];
+    const rect = widget.getRectangle();
     const pages = pdfDoc.getPages();
-    const pageRef = widgets[0].P();
+    const pageRef = widget.P();
     let pageIndex = 0;
     for (let i = 0; i < pages.length; i += 1) {
       if (pages[i].ref === pageRef) {
@@ -559,8 +560,44 @@ async function embedSignatureOnField(pdfDoc, form, fieldName, signatureDataUrl) 
       form.getTextField(fieldName).setText('');
     } catch { /* signature field */ }
   } catch {
-    trySetText(form, fieldName, 'Signed');
+    if (widgetIndex === 0) trySetText(form, fieldName, 'Signed');
   }
+}
+
+/**
+ * Draw text near the top of a tall AcroForm box (Form 7000 Address spans two rows).
+ * Leaves the field empty so flatten does not re-stamp the misaligned value.
+ */
+async function drawTextNearTopOfField(pdfDoc, form, fieldName, value, fontSize = 8) {
+  const text = str(value).trim();
+  if (!text) return;
+  try {
+    const field = form.getTextField(fieldName);
+    const widgets = field.acroField.getWidgets();
+    if (!widgets?.length) return;
+    const rect = widgets[0].getRectangle();
+    const pages = pdfDoc.getPages();
+    const pageRef = widgets[0].P();
+    let pageIndex = 0;
+    for (let i = 0; i < pages.length; i += 1) {
+      if (pages[i].ref === pageRef) {
+        pageIndex = i;
+        break;
+      }
+    }
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const lineHeight = Math.min(rect.height, 15.5);
+    const fitted = fitTextToWidth(font, text, Math.max(4, rect.width - 4), fontSize, 6);
+    const y = rect.y + rect.height - lineHeight + Math.max(1.5, (lineHeight - fitted.size) / 2);
+    pages[pageIndex].drawText(fitted.value, {
+      x: rect.x + 2,
+      y,
+      size: fitted.size,
+      font,
+      color: rgb(0.05, 0.05, 0.05),
+    });
+    field.setText('');
+  } catch { /* ignore */ }
 }
 
 /** Stamp name/date/signature onto PDFs with no AcroForm fields (1082, 800). */
@@ -954,7 +991,8 @@ async function applyFormData(code, pdfDoc, data) {
       trySetText(form, 'Reassessment Date', d.reassessmentDate);
       trySetText(form, 'Client Name', d.clientName);
       trySetText(form, 'DOB', d.dob);
-      trySetText(form, 'Address', d.address);
+      // Address AcroForm box is double-height; draw on the Address/Phone row line.
+      await drawTextNearTopOfField(pdfDoc, form, 'Address', d.address, 8);
       trySetText(form, 'Phone', d.phone);
       trySetText(form, 'Cell', d.cell);
       trySetText(form, 'Major Crossroads', d.majorCrossroads);
@@ -979,7 +1017,9 @@ async function applyFormData(code, pdfDoc, data) {
       if (d.priorityLevel === '2') tryCheck(form, '2 Moderate Priority  Phone Call Required', true);
       if (d.priorityLevel === '3') tryCheck(form, '3 Low Priority Stable  Can Miss a Visit', true);
       if (d.priorityLevel === '4') tryCheck(form, '4 Lowest Priority  May Be Postponed for 3 Days', true);
-      await embedSignatureOnField(pdfDoc, form, 'Signature122_es_:signer:signature', d.client?.signature);
+      // Same field name, two widgets: client (0) + agency representative (1)
+      await embedSignatureOnField(pdfDoc, form, 'Signature122_es_:signer:signature', d.client?.signature, 0);
+      await embedSignatureOnField(pdfDoc, form, 'Signature122_es_:signer:signature', d.agency?.signature, 1);
       break;
     case '7050':
       await fill7050(form, pdfDoc, d);

@@ -105,6 +105,20 @@ const EXPORT_FIX_CSS = `
 [data-client-forms-export-root] .ev-value {
   background-image: linear-gradient(#888, #888) !important;
 }
+[data-client-forms-export-root] .al-field-line {
+  border-bottom: none !important;
+  background-image: linear-gradient(#111, #111) !important;
+  background-repeat: no-repeat !important;
+  background-position: left bottom !important;
+  background-size: 100% 1px !important;
+  padding-bottom: 2px !important;
+  line-height: 1.25 !important;
+  align-self: stretch !important;
+}
+[data-client-forms-export-root] .al-aob-address-lines .al-field-line {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+}
 [data-client-forms-export-root] .ap-check,
 [data-client-forms-export-root] .cp-check,
 [data-client-forms-export-root] .ii-check,

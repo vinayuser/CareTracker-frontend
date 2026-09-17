@@ -27,6 +27,29 @@ function formatFormDate(value) {
   return parsed.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
 }
 
+/** Split a long address across the 3 underline rows on Form 1083. */
+function wrapAddressToLines(value, maxLines = 3, maxChars = 36) {
+  const text = String(value || '').trim().replace(/\s+/g, ' ');
+  const lines = Array.from({ length: maxLines }, () => '');
+  if (!text) return lines;
+
+  const words = text.split(' ');
+  let lineIdx = 0;
+  let buf = '';
+  words.forEach((word) => {
+    const next = buf ? `${buf} ${word}` : word;
+    if (lineIdx < maxLines - 1 && next.length > maxChars && buf) {
+      lines[lineIdx] = buf;
+      lineIdx += 1;
+      buf = word;
+      return;
+    }
+    buf = next;
+  });
+  lines[lineIdx] = buf;
+  return lines;
+}
+
 function Sig({ label, sig = {} }) {
   const isImage = sig.signature?.startsWith?.('data:image');
   return (
@@ -448,6 +471,8 @@ function Form1083Print({ data = {}, agencyBranding = {} }) {
   const name = agencyDisplayName(agencyBranding);
   const d = data || {};
   const line = (value) => value || '\u00A0';
+  const clientAddressLines = wrapAddressToLines(d.address);
+  const insuranceAddressLines = wrapAddressToLines(d.insuranceAddress);
 
   return (
     <div className="ap-packet-print">
@@ -475,9 +500,9 @@ function Form1083Print({ data = {}, agencyBranding = {} }) {
             <p className="al-aob-field al-aob-address">
               <strong>Address:</strong>
               <span className="al-aob-address-lines">
-                <span className="al-field-line">{line(d.address)}</span>
-                <span className="al-field-line">{'\u00A0'}</span>
-                <span className="al-field-line">{'\u00A0'}</span>
+                {clientAddressLines.map((part, i) => (
+                  <span key={`client-addr-${i}`} className="al-field-line">{line(part)}</span>
+                ))}
               </span>
             </p>
             <p className="al-aob-field">
@@ -507,9 +532,9 @@ function Form1083Print({ data = {}, agencyBranding = {} }) {
             <p className="al-aob-field al-aob-address">
               <strong>Address:</strong>
               <span className="al-aob-address-lines">
-                <span className="al-field-line">{line(d.insuranceAddress)}</span>
-                <span className="al-field-line">{'\u00A0'}</span>
-                <span className="al-field-line">{'\u00A0'}</span>
+                {insuranceAddressLines.map((part, i) => (
+                  <span key={`ins-addr-${i}`} className="al-field-line">{line(part)}</span>
+                ))}
               </span>
             </p>
             <p className="al-aob-field">
