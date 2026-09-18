@@ -24,6 +24,8 @@ import Users from './pages/admin/Users';
 import Team from './pages/admin/Team';
 import AdminClients from './pages/admin/Clients';
 import AdminCaregivers from './pages/admin/Caregivers';
+import AdminSchedules from './pages/admin/Schedules';
+import AdminEvvCompliance from './pages/admin/EvvCompliance';
 import Reports from './pages/admin/Reports';
 import AuditLogs from './pages/admin/AuditLogs';
 import Settings from './pages/admin/Settings';
@@ -102,6 +104,9 @@ import ProductPage from './pages/marketing/ProductPage';
 import CrmPage from './pages/marketing/CrmPage';
 import HiringPage from './pages/marketing/HiringPage';
 import HrPage from './pages/marketing/HrPage';
+import BillingPage from './pages/marketing/BillingPage';
+import IntegrationsPage from './pages/marketing/IntegrationsPage';
+import PortalsPage from './pages/marketing/PortalsPage';
 import MarketingLayout from './components/marketing/MarketingLayout';
 import { getHomeRouteForRole } from './utils/auth';
 
@@ -141,6 +146,9 @@ export default function App() {
           <Route path={ROUTES.MARKETING_CRM} element={<CrmPage />} />
           <Route path={ROUTES.MARKETING_HIRING} element={<HiringPage />} />
           <Route path={ROUTES.MARKETING_HR} element={<HrPage />} />
+          <Route path={ROUTES.MARKETING_BILLING} element={<BillingPage />} />
+          <Route path={ROUTES.MARKETING_INTEGRATIONS} element={<IntegrationsPage />} />
+          <Route path={ROUTES.MARKETING_PORTALS} element={<PortalsPage />} />
         </Route>
 
         <Route
@@ -192,8 +200,8 @@ export default function App() {
               <Route path={ROUTES.ADMIN_ROLES} element={<Navigate to={ROUTES.ADMIN_TEAM} replace />} />
               <Route path={ROUTES.ADMIN_CLIENTS} element={<AdminClients />} />
               <Route path={ROUTES.ADMIN_CAREGIVERS} element={<AdminCaregivers />} />
-              <Route path={ROUTES.ADMIN_SCHEDULES} element={<AdminModulePage />} />
-              <Route path={ROUTES.ADMIN_EVV_COMPLIANCE} element={<AdminModulePage />} />
+              <Route path={ROUTES.ADMIN_SCHEDULES} element={<AdminSchedules />} />
+              <Route path={ROUTES.ADMIN_EVV_COMPLIANCE} element={<AdminEvvCompliance />} />
               <Route path={ROUTES.ADMIN_MEDICAID} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_BILLING_CLAIMS} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_FINANCE} element={<AdminModulePage />} />

@@ -56,6 +56,13 @@ const API_ROUTES = {
       LIST: '/admin/caregivers',
       OVERVIEW: '/admin/caregivers',
     },
+    SCHEDULES: {
+      CAREGIVER: '/admin/schedules/caregiver',
+    },
+    EVV: {
+      STATS: '/admin/evv/stats',
+      EMPLOYEES: '/admin/evv/employees',
+    },
     TEAM: {
       STATS: '/admin/team/stats',
       LIST: '/admin/team',

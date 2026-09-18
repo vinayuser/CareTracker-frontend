@@ -18,7 +18,7 @@ export const ADMIN_NAV_GROUPS = [
       { key: 'ADMIN_CLIENTS', label: 'Clients', icon: 'HeartHandshake' },
       { key: 'ADMIN_CAREGIVERS', label: 'Caregivers', icon: 'UserCheck' },
       { key: 'ADMIN_SCHEDULES', label: 'Schedules', icon: 'CalendarClock' },
-      { key: 'ADMIN_EVV_COMPLIANCE', label: 'EVV & Compliance', icon: 'ShieldCheck' },
+      { key: 'ADMIN_EVV_COMPLIANCE', label: 'EVV', icon: 'ShieldCheck' },
       { key: 'ADMIN_MEDICAID', label: 'Medicaid', icon: 'Landmark' },
     ],
   },
