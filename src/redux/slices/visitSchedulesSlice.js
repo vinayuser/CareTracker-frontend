@@ -44,7 +44,7 @@ export const fetchCarePlanScheduleSources = createAsyncThunk('visitSchedules/car
 
 export const createVisitSchedule = createAsyncThunk('visitSchedules/create', async (payload, { rejectWithValue }) => {
   try {
-    // Bulk create can cover many days; allow longer than the default 15s axios timeout
+    // Bulk create can cover many days; allow longer than the default axios timeout
     const response = await axiosInstance.post(API_ROUTES.AGENCY.VISIT_SCHEDULES.LIST, payload, {
       timeout: 60000,
     });
