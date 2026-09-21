@@ -98,7 +98,9 @@ export const deleteVisit = createAsyncThunk('visitSchedules/deleteVisit', async 
 
 export const fetchAgencyVisits = createAsyncThunk('visitSchedules/fetchVisits', async (params = {}, { rejectWithValue }) => {
   try {
-    const query = new URLSearchParams(params).toString();
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== ''),
+    ).toString();
     const url = query ? `${API_ROUTES.AGENCY.VISITS.LIST}?${query}` : API_ROUTES.AGENCY.VISITS.LIST;
     const data = await dedupeRequest(`GET:${url}`, async () => {
       const response = await axiosInstance.get(url);
@@ -217,6 +219,15 @@ const visitSchedulesSlice = createSlice({
   initialState: {
     list: [],
     visits: [],
+    visitsPagination: {
+      page: 1,
+      limit: 5,
+      total: 0,
+      totalPages: 1,
+      from: 0,
+      to: 0,
+    },
+    visitsSummary: null,
     caregiverVisits: [],
     activeVisit: null,
     timerStatus: null,
@@ -235,6 +246,15 @@ const visitSchedulesSlice = createSlice({
   reducers: {
     setAgencyVisits(state, action) {
       state.visits = Array.isArray(action.payload) ? action.payload : [];
+      state.visitsPagination = {
+        page: 1,
+        limit: state.visits.length || 5,
+        total: state.visits.length,
+        totalPages: 1,
+        from: state.visits.length ? 1 : 0,
+        to: state.visits.length,
+      };
+      state.visitsSummary = null;
     },
   },
   extraReducers: (builder) => {
@@ -266,7 +286,23 @@ const visitSchedulesSlice = createSlice({
       .addCase(fetchAgencyVisits.pending, (state) => { state.loading = true; })
       .addCase(fetchAgencyVisits.fulfilled, (state, action) => {
         state.loading = false;
-        state.visits = Array.isArray(action.payload) ? action.payload : [];
+        const data = action.payload;
+        if (Array.isArray(data)) {
+          state.visits = data;
+          state.visitsPagination = {
+            page: 1,
+            limit: data.length || 5,
+            total: data.length,
+            totalPages: 1,
+            from: data.length ? 1 : 0,
+            to: data.length,
+          };
+          state.visitsSummary = null;
+        } else {
+          state.visits = Array.isArray(data?.list) ? data.list : [];
+          state.visitsPagination = data?.pagination || state.visitsPagination;
+          state.visitsSummary = data?.summary ?? null;
+        }
       })
       .addCase(fetchAgencyVisits.rejected, (state) => { state.loading = false; })
       .addCase(fetchCaregiverVisits.fulfilled, (state, action) => {

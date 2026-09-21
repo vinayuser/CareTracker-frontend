@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { FileText, Mail, Ban, CheckCircle2, Plus, Printer } from 'lucide-react';
+import {
+  FileText, Mail, Ban, CheckCircle2, Plus, Printer, ChevronLeft, ChevronRight,
+} from 'lucide-react';
 import Drawer from '../../../components/ui/Drawer';
 import InvoiceDetailView from '../../../components/agency/billing/InvoiceDetailView';
 import {
@@ -12,6 +14,8 @@ import {
   voidInvoice,
 } from '../../../redux/slices/invoicesSlice';
 import { fetchClients } from '../../../redux/slices/clientsSlice';
+
+const PAGE_SIZE = 5;
 
 const statusStyles = {
   Draft: 'bg-gray-100 text-gray-700',
@@ -27,12 +31,25 @@ function toDateKey(d = new Date()) {
   return `${y}-${m}-${day}`;
 }
 
+function pageNumbers(current, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages = [1];
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  if (start > 2) pages.push('…');
+  for (let i = start; i <= end; i += 1) pages.push(i);
+  if (end < total - 1) pages.push('…');
+  pages.push(total);
+  return pages;
+}
+
 export default function ClientInvoices() {
   const dispatch = useDispatch();
-  const { list, loading, actionLoading } = useSelector((state) => state.invoices);
+  const { list, pagination, loading, actionLoading } = useSelector((state) => state.invoices);
   const { list: clients } = useSelector((state) => state.clients);
   const authUser = useSelector((state) => state.auth.user);
   const [statusFilter, setStatusFilter] = useState('All');
+  const [page, setPage] = useState(1);
   const [generateOpen, setGenerateOpen] = useState(false);
   const [detail, setDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -49,14 +66,35 @@ export default function ClientInvoices() {
   });
 
   useEffect(() => {
-    dispatch(fetchInvoices());
+    setPage(1);
+  }, [statusFilter]);
+
+  const loadList = (nextPage = page) => {
+    dispatch(fetchInvoices({
+      page: nextPage,
+      limit: PAGE_SIZE,
+      status: statusFilter === 'All' ? undefined : statusFilter,
+    }));
+  };
+
+  useEffect(() => {
+    loadList(page);
+  }, [dispatch, page, statusFilter]);
+
+  useEffect(() => {
     dispatch(fetchClients());
   }, [dispatch]);
 
-  const filtered = useMemo(() => {
-    if (statusFilter === 'All') return list;
-    return list.filter((inv) => inv.status === statusFilter);
-  }, [list, statusFilter]);
+  useEffect(() => {
+    if (!loading && list.length === 0 && page > 1 && pagination.total > 0) {
+      setPage((p) => Math.max(1, p - 1));
+    }
+  }, [loading, list.length, page, pagination.total]);
+
+  const pages = useMemo(
+    () => pageNumbers(pagination.page || page, pagination.totalPages || 1),
+    [pagination.page, pagination.totalPages, page],
+  );
 
   const openDetail = async (inv) => {
     setDetail(inv);
@@ -77,6 +115,8 @@ export default function ClientInvoices() {
     try {
       const created = await dispatch(generateInvoice(form)).unwrap();
       setGenerateOpen(false);
+      loadList(1);
+      setPage(1);
       if (created) openDetail(created);
     } catch {
       // toast in slice
@@ -87,6 +127,7 @@ export default function ClientInvoices() {
     try {
       const updated = await dispatch(action(id)).unwrap();
       if (detail?.id === id && updated) setDetail(updated);
+      loadList(page);
     } catch {
       // toast in slice
     }
@@ -143,18 +184,18 @@ export default function ClientInvoices() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {loading && filtered.length === 0 ? (
+              {loading && list.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-5 py-12 text-center text-gray-500">Loading invoices…</td>
                 </tr>
-              ) : filtered.length === 0 ? (
+              ) : list.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-5 py-12 text-center text-gray-500">
                     No invoices yet. Generate a draft from approved visits.
                   </td>
                 </tr>
               ) : (
-                filtered.map((inv) => (
+                list.map((inv) => (
                   <tr key={inv.id} className="hover:bg-gray-50">
                     <td className="px-5 py-4 font-medium text-primary">{inv.invoiceCode}</td>
                     <td className="px-5 py-4">
@@ -166,7 +207,7 @@ export default function ClientInvoices() {
                     <td className="px-5 py-4 text-gray-700">
                       {inv.periodFrom} → {inv.periodTo}
                     </td>
-                    <td className="px-5 py-4 text-gray-700">{inv.lines?.length || 0}</td>
+                    <td className="px-5 py-4 text-gray-700">{inv.lineCount ?? inv.lines?.length ?? 0}</td>
                     <td className="px-5 py-4 font-semibold text-gray-900">
                       ${Number(inv.total || 0).toFixed(2)}
                     </td>
@@ -225,6 +266,45 @@ export default function ClientInvoices() {
               )}
             </tbody>
           </table>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-5 py-3">
+          <p className="text-sm text-gray-500">
+            Showing {pagination.from || 0}-{pagination.to || 0} of {pagination.total || 0}
+          </p>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="rounded-lg border border-gray-200 p-1.5 text-gray-600 disabled:text-gray-300"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            {pages.map((p, idx) => (
+              typeof p === 'number' ? (
+                <button
+                  key={`p-${p}`}
+                  type="button"
+                  onClick={() => setPage(p)}
+                  className={`min-w-[32px] rounded-lg px-2 py-1 text-sm font-semibold ${
+                    p === page ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {p}
+                </button>
+              ) : (
+                <span key={`e-${idx}`} className="px-1 text-gray-400">…</span>
+              )
+            ))}
+            <button
+              type="button"
+              disabled={page >= (pagination.totalPages || 1)}
+              onClick={() => setPage((p) => p + 1)}
+              className="rounded-lg border border-gray-200 p-1.5 text-gray-600 disabled:text-gray-300"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
         </div>
       </div>
 

@@ -3,12 +3,33 @@ import { toast } from 'react-toastify';
 import axiosInstance from '../../api/axiosInstance';
 import API_ROUTES from '../../api/apiRoutes';
 
+const emptyPagination = {
+  page: 1,
+  limit: 5,
+  total: 0,
+  totalPages: 1,
+  from: 0,
+  to: 0,
+};
+
+const normalizeListPayload = (data) => {
+  if (Array.isArray(data)) {
+    return { list: data, pagination: { ...emptyPagination, total: data.length, to: data.length } };
+  }
+  return {
+    list: Array.isArray(data?.list) ? data.list : [],
+    pagination: { ...emptyPagination, ...(data?.pagination || {}) },
+  };
+};
+
 export const fetchEvvEnrollments = createAsyncThunk('evvEnrollments/fetchAll', async (params = {}, { rejectWithValue }) => {
   try {
-    const query = new URLSearchParams(params).toString();
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== ''),
+    ).toString();
     const url = query ? `${API_ROUTES.AGENCY.EVV_ENROLLMENTS.LIST}?${query}` : API_ROUTES.AGENCY.EVV_ENROLLMENTS.LIST;
     const response = await axiosInstance.get(url);
-    return response.data.data;
+    return normalizeListPayload(response.data.data);
   } catch (error) {
     return rejectWithValue(error.response?.data || error.message);
   }
@@ -94,6 +115,7 @@ const evvEnrollmentsSlice = createSlice({
   name: 'evvEnrollments',
   initialState: {
     list: [],
+    pagination: emptyPagination,
     caregiverList: [],
     selected: null,
     stats: { total: 0, pending: 0, submitted: 0, verified: 0, rejected: 0 },
@@ -109,14 +131,21 @@ const evvEnrollmentsSlice = createSlice({
       .addCase(fetchEvvEnrollments.pending, (state) => { state.loading = true; })
       .addCase(fetchEvvEnrollments.fulfilled, (state, action) => {
         state.loading = false;
-        state.list = Array.isArray(action.payload) ? action.payload : [];
+        state.list = action.payload.list;
+        state.pagination = action.payload.pagination;
       })
       .addCase(fetchEvvEnrollments.rejected, (state) => { state.loading = false; })
       .addCase(fetchEvvEnrollmentStats.fulfilled, (state, action) => { state.stats = action.payload || state.stats; })
       .addCase(fetchEvvEnrollment.fulfilled, (state, action) => { state.selected = action.payload; })
       .addCase(verifyEvvEnrollment.fulfilled, (state, action) => {
         const idx = state.list.findIndex((i) => i.id === action.payload.id);
-        if (idx !== -1) state.list[idx] = action.payload;
+        if (idx !== -1) {
+          state.list[idx] = {
+            ...state.list[idx],
+            status: action.payload.status,
+            verifiedAt: action.payload.verifiedAt,
+          };
+        }
         state.selected = action.payload;
       })
       .addCase(deleteEvvEnrollment.fulfilled, (state, action) => {

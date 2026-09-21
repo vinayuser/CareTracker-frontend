@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { AlertTriangle, Check, Download, Pencil, Search, X } from 'lucide-react';
+import { AlertTriangle, Check, ChevronLeft, ChevronRight, Download, Pencil, Search, X } from 'lucide-react';
 import {
   approveVisit,
   fetchAgencyVisits,
@@ -18,6 +18,8 @@ import {
   summarizeEvvLogs,
   toDateKey,
 } from '../../../utils/evvVisitLogs';
+
+const PAGE_SIZE = 5;
 
 const statusStyles = {
   Verified: 'bg-emerald-100 text-emerald-700',
@@ -38,6 +40,18 @@ const methodStyles = {
   purple: 'bg-violet-100 text-violet-700',
   teal: 'bg-teal-100 text-teal-700',
 };
+
+function pageNumbers(current, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages = [1];
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  if (start > 2) pages.push('…');
+  for (let i = start; i <= end; i += 1) pages.push(i);
+  if (end < total - 1) pages.push('…');
+  pages.push(total);
+  return pages;
+}
 
 export default function EvvVisitLogsTable({
   title = 'EVV Visit Logs',
@@ -60,10 +74,18 @@ export default function EvvVisitLogsTable({
   skipFetch = false,
 }) {
   const dispatch = useDispatch();
-  const { visits, caregiverVisits, loading: agencyLoading } = useSelector((state) => state.visitSchedules);
+  const {
+    visits,
+    visitsPagination,
+    visitsSummary,
+    caregiverVisits,
+    loading: agencyLoading,
+  } = useSelector((state) => state.visitSchedules);
   const { visits: clientVisits, visitsLoading: clientLoading } = useSelector((state) => state.clientPortal);
   const [status, setStatus] = useState(defaultStatus);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [date, setDate] = useState(initialDate);
   const [fromDate, setFromDate] = useState(() => {
     const d = new Date();
@@ -77,44 +99,96 @@ export default function EvvVisitLogsTable({
   const isCaregiver = audience === 'caregiver';
   const isClient = audience === 'client';
   const isReadOnly = isCaregiver || isClient;
+  const useServerPaging = audience === 'agency' && !skipFetch;
   const sourceVisits = isClient ? clientVisits : (isCaregiver ? caregiverVisits : visits);
   const loading = isClient ? clientLoading : agencyLoading;
   const effectiveFrom = controlledFrom ?? fromDate;
   const effectiveTo = controlledTo ?? toDate;
 
+  const evvMode = alertOnly || defaultStatus === 'Alerts'
+    ? 'alerts'
+    : (defaultStatus === 'Unverified' ? 'unverified' : undefined);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [date, effectiveFrom, effectiveTo, debouncedSearch, status, evvMode]);
+
+  const buildAgencyParams = (nextPage = page) => {
+    const params = mode === 'day' ? { date } : { from: effectiveFrom, to: effectiveTo };
+    if (!useServerPaging) return params;
+    params.page = nextPage;
+    params.limit = PAGE_SIZE;
+    if (debouncedSearch) params.search = debouncedSearch;
+    if (evvMode) params.evv_mode = evvMode;
+    if (status && status !== 'All' && status !== 'Alerts') params.evv_status = status;
+    if (showSummary) params.summary = '1';
+    return params;
+  };
+
   useEffect(() => {
     if (skipFetch) return undefined;
-    const params = mode === 'day' ? { date } : { from: effectiveFrom, to: effectiveTo };
-    if (isClient) dispatch(fetchClientVisits(params));
-    else if (isCaregiver) dispatch(fetchCaregiverVisits(params));
-    else dispatch(fetchAgencyVisits(params));
+    if (isClient) {
+      dispatch(fetchClientVisits(mode === 'day' ? { date } : { from: effectiveFrom, to: effectiveTo }));
+    } else if (isCaregiver) {
+      dispatch(fetchCaregiverVisits(mode === 'day' ? { date } : { from: effectiveFrom, to: effectiveTo }));
+    } else {
+      dispatch(fetchAgencyVisits(buildAgencyParams(page)));
+    }
     return undefined;
-  }, [dispatch, mode, date, effectiveFrom, effectiveTo, isCaregiver, isClient, skipFetch]);
+  }, [
+    dispatch, mode, date, effectiveFrom, effectiveTo, isCaregiver, isClient, skipFetch,
+    page, debouncedSearch, status, evvMode, showSummary, useServerPaging,
+  ]);
 
   const logs = useMemo(() => (sourceVisits || []).map(mapVisitToEvvLog), [sourceVisits]);
 
-  const filtered = useMemo(
-    () => filterVisitLogs(logs, {
+  const filtered = useMemo(() => {
+    if (useServerPaging) return logs;
+    return filterVisitLogs(logs, {
       status: defaultStatus === 'Alerts' || alertOnly
         ? (status === 'All' ? 'Alerts' : status)
         : (defaultStatus !== 'All' ? defaultStatus : status),
       search,
       alertOnly,
-    }),
-    [logs, status, search, defaultStatus, alertOnly],
+    });
+  }, [logs, status, search, defaultStatus, alertOnly, useServerPaging]);
+
+  const summary = useMemo(() => {
+    if (useServerPaging && visitsSummary) return visitsSummary;
+    return summarizeEvvLogs(logs);
+  }, [logs, useServerPaging, visitsSummary]);
+
+  const pagination = visitsPagination || {
+    page: 1, limit: PAGE_SIZE, total: filtered.length, totalPages: 1, from: 0, to: 0,
+  };
+
+  const pages = useMemo(
+    () => pageNumbers(pagination.page || page, pagination.totalPages || 1),
+    [pagination.page, pagination.totalPages, page],
   );
 
-  const summary = useMemo(() => summarizeEvvLogs(logs), [logs]);
+  const refreshVisits = () => {
+    if (skipFetch) return;
+    if (isClient) {
+      dispatch(fetchClientVisits(mode === 'day' ? { date } : { from: effectiveFrom, to: effectiveTo }));
+    } else if (isCaregiver) {
+      dispatch(fetchCaregiverVisits(mode === 'day' ? { date } : { from: effectiveFrom, to: effectiveTo }));
+    } else {
+      dispatch(fetchAgencyVisits(buildAgencyParams(page)));
+    }
+  };
 
   const handleApprove = async (row) => {
     if (!row.canApprove || actionId) return;
     setActionId(row.visitId);
     try {
       await dispatch(approveVisit({ id: row.visitId })).unwrap();
-      if (!skipFetch) {
-        if (mode === 'day') dispatch(fetchAgencyVisits({ date }));
-        else dispatch(fetchAgencyVisits({ from: effectiveFrom, to: effectiveTo }));
-      }
+      refreshVisits();
     } catch {
       // toast in slice
     } finally {
@@ -133,10 +207,7 @@ export default function EvvVisitLogsTable({
     setActionId(row.visitId);
     try {
       await dispatch(rejectVisit({ id: row.visitId, payload: { reason: String(reason).trim() } })).unwrap();
-      if (!skipFetch) {
-        if (mode === 'day') dispatch(fetchAgencyVisits({ date }));
-        else dispatch(fetchAgencyVisits({ from: effectiveFrom, to: effectiveTo }));
-      }
+      refreshVisits();
     } catch {
       // toast in slice
     } finally {
@@ -154,21 +225,12 @@ export default function EvvVisitLogsTable({
         id: row.visitId,
         payload: { note: String(note).trim() },
       })).unwrap();
-      if (!skipFetch) {
-        if (mode === 'day') dispatch(fetchAgencyVisits({ date }));
-        else dispatch(fetchAgencyVisits({ from: effectiveFrom, to: effectiveTo }));
-      }
+      refreshVisits();
     } catch {
       // toast in slice
     } finally {
       setActionId(null);
     }
-  };
-
-  const refreshVisits = () => {
-    if (skipFetch) return;
-    if (mode === 'day') dispatch(fetchAgencyVisits({ date }));
-    else dispatch(fetchAgencyVisits({ from: effectiveFrom, to: effectiveTo }));
   };
 
   const handleSaveLog = async (payload) => {
@@ -229,11 +291,13 @@ export default function EvvVisitLogsTable({
   );
 
   const colSpan = (
-    10 // Visit ID, Date, Service, Check In, Check Out, Hours, Rate, Amount, Status, Approval
+    10
     + (hideClientColumn ? 0 : 1)
     + (hideCaregiverColumn ? 0 : 1)
     + (isReadOnly ? 0 : 1)
   );
+
+  const shownCount = useServerPaging ? (pagination.total || 0) : filtered.length;
 
   return (
     <div className="space-y-4">
@@ -325,7 +389,7 @@ export default function EvvVisitLogsTable({
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4">
           <div className="flex items-center gap-2">
             <h3 className="text-base font-semibold text-gray-900">{title}</h3>
-            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">{filtered.length}</span>
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">{shownCount}</span>
           </div>
           {showFilters && (defaultStatus === 'All' || defaultStatus === 'Alerts' || alertOnly) && (
             <select
@@ -521,17 +585,62 @@ export default function EvvVisitLogsTable({
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-5 py-3 text-sm text-gray-500">
-          <span>
-            Showing {filtered.length} visit{filtered.length === 1 ? '' : 's'}
-            {mode === 'day' ? ` for ${date}` : ` from ${effectiveFrom} to ${effectiveTo}`}
-          </span>
-          <p className="text-xs text-gray-500">
-            {isClient
-              ? 'Your visit verification history. Late check-ins and missed visits stay highlighted in red.'
-              : isCaregiver
-                ? 'Ended visits wait for agency approval. Late check-ins stay highlighted in red.'
-                : 'Use Edit to correct Missed or completed times, then Approve. Late check-ins stay highlighted in red.'}
-          </p>
+          {useServerPaging ? (
+            <>
+              <span>
+                Showing {pagination.from || 0}-{pagination.to || 0} of {pagination.total || 0}
+                {mode === 'day' ? ` for ${date}` : ` from ${effectiveFrom} to ${effectiveTo}`}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="rounded-lg border border-gray-200 p-1.5 text-gray-600 disabled:text-gray-300"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                {pages.map((p, idx) => (
+                  typeof p === 'number' ? (
+                    <button
+                      key={`p-${p}`}
+                      type="button"
+                      onClick={() => setPage(p)}
+                      className={`min-w-[32px] rounded-lg px-2 py-1 text-sm font-semibold ${
+                        p === page ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ) : (
+                    <span key={`e-${idx}`} className="px-1 text-gray-400">…</span>
+                  )
+                ))}
+                <button
+                  type="button"
+                  disabled={page >= (pagination.totalPages || 1)}
+                  onClick={() => setPage((p) => p + 1)}
+                  className="rounded-lg border border-gray-200 p-1.5 text-gray-600 disabled:text-gray-300"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <span>
+                Showing {filtered.length} visit{filtered.length === 1 ? '' : 's'}
+                {mode === 'day' ? ` for ${date}` : ` from ${effectiveFrom} to ${effectiveTo}`}
+              </span>
+              <p className="text-xs text-gray-500">
+                {isClient
+                  ? 'Your visit verification history. Late check-ins and missed visits stay highlighted in red.'
+                  : isCaregiver
+                    ? 'Ended visits wait for agency approval. Late check-ins stay highlighted in red.'
+                    : 'Use Edit to correct Missed or completed times, then Approve. Late check-ins stay highlighted in red.'}
+              </p>
+            </>
+          )}
         </div>
       </div>
 
