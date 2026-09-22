@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, createElement } from 'react';
 import {
   ChevronDown,
   ChevronLeft,
@@ -6,8 +6,11 @@ import {
   Download,
   Eye,
   Filter,
+  Loader2,
   MoreVertical,
   Plus,
+  Power,
+  Printer,
   Search,
   Upload,
   UserCheck,
@@ -22,11 +25,19 @@ import { toast } from 'react-toastify';
 import axiosInstance from '../../api/axiosInstance';
 import API_ROUTES from '../../api/apiRoutes';
 import ActionIconButton from '../../components/ui/ActionIconButton';
+import Drawer from '../../components/ui/Drawer';
+import EvvEnrollmentPrintLayout from '../../components/agency/evv-enrollment/EvvEnrollmentPrintLayout';
+import { EvvEnrollmentStepOne, EvvEnrollmentStepTwo } from '../../components/agency/evv-enrollment/EvvEnrollmentSteps';
+import { evvEnrollmentToForm } from '../../utils/evvEnrollmentForm';
+import { renderLayoutToPdfBlob } from '../../utils/clientFormsExport';
+import { confirmAlert } from '../../utils/swal';
+import '../../components/agency/evv-enrollment/evvEnrollmentPrint.css';
+import { ROUTES } from '../../routes/routes';
 
 const PAGE_SIZE = 10;
 const ROLE_OPTIONS = ['All Roles', 'Caregiver', 'Office Staff', 'Agency Owner'];
 const STATUS_OPTIONS = ['All Status', 'Active', 'Inactive', 'Pending'];
-const EVV_STATUS_OPTIONS = ['All Status', 'Verified', 'Pending', 'Rejected'];
+const EVV_STATUS_OPTIONS = ['All Status', 'Verified', 'Pending', 'Submitted', 'Rejected'];
 
 function formatLongDate(value) {
   if (!value) return '—';
@@ -65,6 +76,7 @@ function StatusPill({ status }) {
     Active: 'bg-emerald-50 text-emerald-700',
     Inactive: 'bg-rose-50 text-rose-700',
     Pending: 'bg-amber-50 text-amber-700',
+    Submitted: 'bg-sky-50 text-sky-700',
     Verified: 'bg-emerald-50 text-emerald-700',
     Rejected: 'bg-rose-50 text-rose-700',
     'In Progress': 'bg-sky-50 text-sky-700',
@@ -137,6 +149,15 @@ function SelectMenu({ value, options, onChange, className = '' }) {
   );
 }
 
+function DetailRow({ label, value }) {
+  return (
+    <div className="grid grid-cols-1 gap-1 border-b border-slate-50 py-2.5 last:border-0 sm:grid-cols-3">
+      <dt className="text-sm text-slate-500">{label}</dt>
+      <dd className="text-sm font-medium text-slate-900 sm:col-span-2">{value || '—'}</dd>
+    </div>
+  );
+}
+
 export default function Users() {
   const [options, setOptions] = useState([]);
   const [optionsLoading, setOptionsLoading] = useState(true);
@@ -168,6 +189,15 @@ export default function Users() {
   const [evvStatus, setEvvStatus] = useState('All Status');
   const [evvForms, setEvvForms] = useState({ list: [], users: [] });
   const [evvLoading, setEvvLoading] = useState(false);
+  const [evvFormView, setEvvFormView] = useState(null);
+  const [evvFormLoading, setEvvFormLoading] = useState(false);
+  const [evvDownloadingId, setEvvDownloadingId] = useState('');
+
+  const [viewOpen, setViewOpen] = useState(false);
+  const [viewUser, setViewUser] = useState(null);
+  const [menuOpenId, setMenuOpenId] = useState('');
+  const [statusUpdatingId, setStatusUpdatingId] = useState('');
+  const menuRef = useRef(null);
 
   const selectedAgency = useMemo(
     () => options.find((o) => o.id === agencyId) || null,
@@ -192,13 +222,14 @@ export default function Users() {
   }, []);
 
   useEffect(() => {
-    if (!selectorOpen) return undefined;
+    if (!selectorOpen && !menuOpenId) return undefined;
     const onDown = (e) => {
       if (selectorRef.current && !selectorRef.current.contains(e.target)) setSelectorOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpenId('');
     };
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
-  }, [selectorOpen]);
+  }, [selectorOpen, menuOpenId]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -210,6 +241,9 @@ export default function Users() {
     setSelectedIds([]);
     setScheduleUserId('');
     setEvvUserId('');
+    setMenuOpenId('');
+    setViewOpen(false);
+    setViewUser(null);
   }, [agencyId, debouncedSearch, role, status]);
 
   useEffect(() => {
@@ -307,11 +341,9 @@ export default function Users() {
         const res = await axiosInstance.get(API_ROUTES.ADMIN.USERS.EVV_FORMS, {
           params: {
             agencyId,
-            weekStart: weekStart || undefined,
-            weekEnd: schedules.weekEnd || undefined,
             userId: evvUserId || undefined,
             status: evvStatus === 'All Status' ? undefined : evvStatus,
-            limit: 8,
+            limit: evvUserId ? 100 : 20,
           },
         });
         if (cancelled) return;
@@ -325,7 +357,121 @@ export default function Users() {
     };
     load();
     return () => { cancelled = true; };
-  }, [agencyId, weekStart, schedules.weekEnd, evvUserId, evvStatus]);
+  }, [agencyId, evvUserId, evvStatus]);
+
+  const openEvvForm = async (row) => {
+    if (!agencyId || !row?.id) return;
+    setEvvFormLoading(true);
+    setEvvFormView(evvEnrollmentToForm(row));
+    try {
+      const res = await axiosInstance.get(API_ROUTES.ADMIN.USERS.EVV_FORM_DETAIL(row.id), {
+        params: { agencyId },
+      });
+      const data = res.data?.data;
+      if (data) setEvvFormView(evvEnrollmentToForm(data));
+    } catch {
+      toast.error('Failed to load EVV form');
+      setEvvFormView(null);
+    } finally {
+      setEvvFormLoading(false);
+    }
+  };
+
+  const downloadEvvForm = async (row) => {
+    if (!agencyId || !row?.id) return;
+    setEvvDownloadingId(row.id);
+    try {
+      let data = row;
+      if (!row.formData) {
+        const res = await axiosInstance.get(API_ROUTES.ADMIN.USERS.EVV_FORM_DETAIL(row.id), {
+          params: { agencyId },
+        });
+        data = res.data?.data || row;
+      }
+      const form = evvEnrollmentToForm(data);
+      const blob = await renderLayoutToPdfBlob(
+        createElement(EvvEnrollmentPrintLayout, { form }),
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const safeName = String(form.caregiverName || form.clientName || 'evv').replace(/[^\w.-]+/g, '_');
+      a.href = url;
+      a.download = `evv-enrollment-${form.enrollmentCode || safeName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Failed to download EVV form');
+    } finally {
+      setEvvDownloadingId('');
+    }
+  };
+
+  const printEvvForm = () => {
+    if (!evvFormView?.id || !agencyId) return;
+    const url = `${ROUTES.ADMIN_EVV_ENROLLMENT_PRINT.replace(':id', evvFormView.id)}?agencyId=${encodeURIComponent(agencyId)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const openView = async (user) => {
+    setMenuOpenId('');
+    setViewUser(user);
+    setViewOpen(true);
+    if (!agencyId || !user?.id) return;
+    try {
+      const res = await axiosInstance.get(API_ROUTES.ADMIN.USERS.DETAIL(user.id), {
+        params: { agencyId },
+      });
+      if (res.data?.data) setViewUser(res.data.data);
+    } catch {
+      /* keep list row */
+    }
+  };
+
+  const handleStatusToggle = async (user) => {
+    setMenuOpenId('');
+    if (!agencyId || !user?.id) return;
+    const nextStatus = user.status === 'Active' ? 'Inactive' : 'Active';
+    const confirmed = await confirmAlert({
+      title: nextStatus === 'Inactive' ? 'Deactivate account?' : 'Activate account?',
+      text: nextStatus === 'Inactive'
+        ? `${user.name} will no longer be able to sign in.`
+        : `${user.name} will regain access to their portal.`,
+      confirmText: nextStatus === 'Inactive' ? 'Deactivate' : 'Activate',
+      danger: nextStatus === 'Inactive',
+    });
+    if (!confirmed) return;
+
+    setStatusUpdatingId(user.id);
+    try {
+      const res = await axiosInstance.patch(
+        API_ROUTES.ADMIN.USERS.STATUS(user.id),
+        { status: nextStatus },
+        { params: { agencyId } },
+      );
+      const updated = res.data?.data;
+      toast.success(`Account marked as ${nextStatus}`);
+      setUsers((rows) => rows.map((row) => (
+        row.id === user.id
+          ? { ...row, status: updated?.status || nextStatus }
+          : row
+      )));
+      if (viewUser?.id === user.id) {
+        setViewUser((prev) => (prev ? { ...prev, status: updated?.status || nextStatus } : prev));
+      }
+      try {
+        const statsRes = await axiosInstance.get(API_ROUTES.ADMIN.USERS.STATS, { params: { agencyId } });
+        setStats(statsRes.data?.data || null);
+      } catch {
+        /* ignore stats refresh */
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update account status');
+    } finally {
+      setStatusUpdatingId('');
+    }
+  };
 
   const pages = useMemo(
     () => pageNumbers(pagination.page || page, pagination.totalPages || 1),
@@ -571,21 +717,46 @@ export default function Users() {
                           <td className="py-3.5"><StatusPill status={user.status} /></td>
                           <td className="py-3.5 text-slate-600">{formatLongDate(user.joinedOn)}</td>
                           <td className="px-5 py-3.5">
-                            <div className="flex items-center justify-end gap-0.5">
+                            <div
+                              className="relative flex items-center justify-end gap-0.5"
+                              ref={menuOpenId === user.id ? menuRef : null}
+                            >
                               <ActionIconButton
                                 label="View"
                                 className="text-primary hover:bg-primary/10"
-                                onClick={() => toast.info(`${user.name} · ${user.roleLabel}`)}
+                                onClick={() => openView(user)}
                               >
                                 <Eye size={15} />
                               </ActionIconButton>
                               <ActionIconButton
-                                label="More"
+                                label="More actions"
                                 className="text-slate-500 hover:bg-slate-100"
-                                onClick={() => toast.info(user.email || 'No email')}
+                                onClick={() => setMenuOpenId((id) => (id === user.id ? '' : user.id))}
                               >
                                 <MoreVertical size={15} />
                               </ActionIconButton>
+                              {menuOpenId === user.id ? (
+                                <div className="absolute right-0 top-full z-20 mt-1 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+                                  <button
+                                    type="button"
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                                    onClick={() => openView(user)}
+                                  >
+                                    <Eye size={14} /> View details
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={statusUpdatingId === user.id}
+                                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50 disabled:opacity-50 ${
+                                      user.status === 'Active' ? 'text-rose-600' : 'text-emerald-700'
+                                    }`}
+                                    onClick={() => handleStatusToggle(user)}
+                                  >
+                                    <Power size={14} />
+                                    {user.status === 'Active' ? 'Deactivate account' : 'Activate account'}
+                                  </button>
+                                </div>
+                              ) : null}
                             </div>
                           </td>
                         </tr>
@@ -642,11 +813,8 @@ export default function Users() {
             <div className="space-y-5 xl:col-span-2">
               {/* Schedules */}
               <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3.5">
+                <div className="border-b border-slate-100 px-4 py-3.5">
                   <h2 className="text-sm font-semibold text-slate-900">Schedules</h2>
-                  <button type="button" className="text-xs font-medium text-primary hover:underline">
-                    View all schedules →
-                  </button>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 border-b border-slate-50 px-4 py-3">
                   <div className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-1.5 py-1 text-xs font-medium text-slate-700">
@@ -670,7 +838,10 @@ export default function Users() {
                   </div>
                   <SelectMenu
                     value={scheduleUserId}
-                    onChange={setScheduleUserId}
+                    onChange={(id) => {
+                      setScheduleUserId(id);
+                      setEvvUserId(id);
+                    }}
                     className="min-w-[140px] flex-1"
                     options={[
                       { value: '', label: 'Filter by User' },
@@ -731,11 +902,8 @@ export default function Users() {
 
               {/* EVV Forms */}
               <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3.5">
+                <div className="border-b border-slate-100 px-4 py-3.5">
                   <h2 className="text-sm font-semibold text-slate-900">EVV Forms</h2>
-                  <button type="button" className="text-xs font-medium text-primary hover:underline">
-                    View all EVV forms →
-                  </button>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 border-b border-slate-50 px-4 py-3">
                   <SelectMenu
@@ -764,8 +932,8 @@ export default function Users() {
                         <th className="px-4 py-2.5">User</th>
                         <th className="py-2.5">Date</th>
                         <th className="py-2.5">Client</th>
-                        <th className="py-2.5">In / Out</th>
-                        <th className="py-2.5">Hrs</th>
+                        <th className="py-2.5">Enrollment</th>
+                        <th className="py-2.5">Service</th>
                         <th className="py-2.5">Status</th>
                         <th className="px-4 py-2.5 text-right">Actions</th>
                       </tr>
@@ -777,7 +945,9 @@ export default function Users() {
                         </tr>
                       ) : evvForms.list.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="px-4 py-10 text-center text-slate-400">No EVV forms for this period.</td>
+                          <td colSpan={7} className="px-4 py-10 text-center text-slate-400">
+                            {evvUserId ? 'No EVV forms for this user.' : 'No EVV forms for this agency.'}
+                          </td>
                         </tr>
                       ) : (
                         evvForms.list.map((row) => (
@@ -790,30 +960,31 @@ export default function Users() {
                             </td>
                             <td className="py-2.5 text-slate-600 whitespace-nowrap">{formatLongDate(row.date)}</td>
                             <td className="py-2.5 text-slate-600">
-                              <span className="max-w-[80px] truncate block">{row.clientName}</span>
+                              <span className="max-w-[90px] truncate block">{row.clientName}</span>
                             </td>
-                            <td className="py-2.5 text-slate-600 whitespace-nowrap">
-                              {row.checkIn || '—'}
-                              <span className="text-slate-300"> / </span>
-                              {row.checkOut || '—'}
+                            <td className="py-2.5 text-slate-600 whitespace-nowrap">{row.enrollmentCode || '—'}</td>
+                            <td className="py-2.5 text-slate-600">
+                              <span className="max-w-[90px] truncate block">
+                                {(row.serviceAreas || []).join(', ') || '—'}
+                              </span>
                             </td>
-                            <td className="py-2.5 font-medium text-slate-800">{row.hours}</td>
                             <td className="py-2.5"><StatusPill status={row.status} /></td>
                             <td className="px-4 py-2.5">
                               <div className="flex items-center justify-end gap-0.5">
                                 <ActionIconButton
                                   label="View"
                                   className="text-primary hover:bg-primary/10"
-                                  onClick={() => toast.info(`${row.userName} · ${row.clientName}`)}
+                                  onClick={() => openEvvForm(row)}
                                 >
                                   <Eye size={14} />
                                 </ActionIconButton>
                                 <ActionIconButton
                                   label="Download"
                                   className="text-slate-500 hover:bg-slate-100"
-                                  onClick={() => toast.info('EVV export coming soon')}
+                                  onClick={() => downloadEvvForm(row)}
+                                  disabled={evvDownloadingId === row.id}
                                 >
-                                  <Download size={14} />
+                                  {evvDownloadingId === row.id ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                                 </ActionIconButton>
                               </div>
                             </td>
@@ -826,8 +997,122 @@ export default function Users() {
               </div>
             </div>
           </div>
+
+          {evvFormView || evvFormLoading ? (
+            <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-4 sm:p-6">
+              <div className="relative my-4 w-full max-w-5xl rounded-2xl bg-white shadow-2xl">
+                <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-white px-4 py-3 rounded-t-2xl">
+                  <div className="min-w-0">
+                    <h3 className="truncate text-base font-bold text-slate-900">EVV Enrollment Form</h3>
+                    <p className="truncate text-[12px] text-slate-500">
+                      {evvFormView?.clientName || '—'}
+                      {evvFormView?.caregiverName ? ` · ${evvFormView.caregiverName}` : ''}
+                      {evvFormView?.enrollmentCode ? ` · ${evvFormView.enrollmentCode}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={printEvvForm}
+                      disabled={!evvFormView || evvFormLoading}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      <Printer size={14} /> Print Form
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => evvFormView && downloadEvvForm(evvFormView)}
+                      disabled={!evvFormView || evvFormLoading || Boolean(evvDownloadingId)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      {evvDownloadingId ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                      Download PDF
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEvvFormView(null)}
+                      className="rounded-lg px-3 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+                <div className="max-h-[80vh] space-y-6 overflow-y-auto px-4 py-5 sm:px-6">
+                  {evvFormLoading && !evvFormView ? (
+                    <p className="py-16 text-center text-sm text-slate-400">Loading EVV form…</p>
+                  ) : (
+                    <>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <StatusPill status={evvFormView?.status} />
+                        {evvFormView?.planCode ? (
+                          <span className="text-[11px] font-medium text-slate-400">Care Plan {evvFormView.planCode}</span>
+                        ) : null}
+                      </div>
+                      <EvvEnrollmentStepOne form={evvFormView} onFormDataChange={() => {}} readOnly />
+                      <EvvEnrollmentStepTwo form={evvFormView} onFormDataChange={() => {}} readOnly showOfficeUse />
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : null}
         </>
       )}
+
+      <Drawer
+        open={viewOpen}
+        onClose={() => {
+          setViewOpen(false);
+          setViewUser(null);
+        }}
+        title="User details"
+        width="md"
+      >
+        {viewUser ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+              <Avatar name={viewUser.name || viewUser.fullName} src={viewUser.profilePic} size="h-16 w-16" />
+              <div className="min-w-0">
+                <p className="font-medium text-slate-900">{viewUser.name || viewUser.fullName || '—'}</p>
+                <p className="text-sm text-slate-500">{viewUser.email || '—'}</p>
+                <div className="mt-1">
+                  <StatusPill status={viewUser.status} />
+                </div>
+              </div>
+            </div>
+            <dl>
+              <DetailRow label="Role" value={viewUser.roleLabel || viewUser.role} />
+              <DetailRow label="Login ID" value={viewUser.userId} />
+              <DetailRow label="Phone" value={viewUser.phone} />
+              <DetailRow label="Employee ID" value={viewUser.employeeId} />
+              <DetailRow label="Agency" value={viewUser.agencyName || selectedAgency?.name} />
+              <DetailRow label="Date of birth" value={viewUser.dateOfBirth} />
+              <DetailRow label="Status" value={viewUser.status} />
+              <DetailRow
+                label="Joined"
+                value={formatLongDate(viewUser.joinedOn || viewUser.createdAt)}
+              />
+            </dl>
+            <div className="pt-2">
+              <button
+                type="button"
+                disabled={statusUpdatingId === viewUser.id}
+                onClick={() => handleStatusToggle(viewUser)}
+                className={`inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-semibold disabled:opacity-50 ${
+                  viewUser.status === 'Active'
+                    ? 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
+                    : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                }`}
+              >
+                <Power size={15} />
+                {viewUser.status === 'Active' ? 'Deactivate account' : 'Activate account'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="py-8 text-center text-sm text-slate-400">No user selected.</p>
+        )}
+      </Drawer>
     </div>
   );
 }

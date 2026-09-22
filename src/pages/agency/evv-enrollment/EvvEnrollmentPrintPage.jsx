@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 import { Printer, X } from 'lucide-react';
+import axiosInstance from '../../../api/axiosInstance';
+import API_ROUTES from '../../../api/apiRoutes';
 import EvvEnrollmentPrintLayout from '../../../components/agency/evv-enrollment/EvvEnrollmentPrintLayout';
 import { fetchEvvEnrollment, fetchCaregiverEvvEnrollment } from '../../../redux/slices/evvEnrollmentsSlice';
 import { evvEnrollmentToForm } from '../../../utils/evvEnrollmentForm';
@@ -17,12 +19,15 @@ export function saveEvvEnrollmentPrintDraft(form) {
 export default function EvvEnrollmentPrintPage() {
   const { id } = useParams();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [form, setForm] = useState(null);
   const [loading, setLoading] = useState(true);
   const isDraft = location.pathname.endsWith('/draft/print');
   const isCaregiver = location.pathname.startsWith('/caregiver/');
+  const isAdmin = location.pathname.startsWith('/admin/');
+  const agencyId = searchParams.get('agencyId') || '';
 
   useEffect(() => {
     if (isDraft) {
@@ -35,12 +40,25 @@ export default function EvvEnrollmentPrintPage() {
     }
     if (!id) { setLoading(false); return; }
     setLoading(true);
+
+    if (isAdmin) {
+      if (!agencyId) {
+        setLoading(false);
+        return;
+      }
+      axiosInstance.get(API_ROUTES.ADMIN.USERS.EVV_FORM_DETAIL(id), { params: { agencyId } })
+        .then((res) => setForm(evvEnrollmentToForm(res.data?.data)))
+        .catch(() => navigate(ROUTES.ADMIN_USERS))
+        .finally(() => setLoading(false));
+      return;
+    }
+
     const fetcher = isCaregiver ? fetchCaregiverEvvEnrollment(id) : fetchEvvEnrollment(id);
     dispatch(fetcher).unwrap()
       .then((data) => setForm(evvEnrollmentToForm(data)))
       .catch(() => navigate(isCaregiver ? ROUTES.CAREGIVER_EVV_ENROLLMENTS : ROUTES.AGENCY_EVV_ENROLLMENTS))
       .finally(() => setLoading(false));
-  }, [dispatch, id, isCaregiver, isDraft, navigate]);
+  }, [dispatch, id, isAdmin, isCaregiver, isDraft, agencyId, navigate]);
 
   if (loading) return <div className="ev-screen-wrap flex min-h-screen items-center justify-center text-sm text-gray-500">Preparing print view...</div>;
 

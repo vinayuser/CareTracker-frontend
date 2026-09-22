@@ -7,12 +7,12 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  CloudUpload,
   Eye,
   FileText,
   MapPin,
   MoreVertical,
   Plus,
+  Power,
   RefreshCw,
   Search,
   UserCheck,
@@ -21,6 +21,8 @@ import { toast } from 'react-toastify';
 import axiosInstance from '../../api/axiosInstance';
 import API_ROUTES from '../../api/apiRoutes';
 import ActionIconButton from '../../components/ui/ActionIconButton';
+import ViewCaregiverDrawer from '../../components/agency/caregivers/ViewCaregiverDrawer';
+import { confirmAlert } from '../../utils/swal';
 
 const PAGE_SIZE = 5;
 
@@ -152,6 +154,11 @@ export default function AdminCaregivers() {
   const [selectedId, setSelectedId] = useState('');
   const [overview, setOverview] = useState(EMPTY_OVERVIEW);
   const [overviewLoading, setOverviewLoading] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
+  const [viewCaregiver, setViewCaregiver] = useState(null);
+  const [menuOpenId, setMenuOpenId] = useState('');
+  const [statusUpdatingId, setStatusUpdatingId] = useState('');
+  const menuRef = useRef(null);
 
   const selectedAgency = useMemo(
     () => options.find((o) => o.id === agencyId) || null,
@@ -171,13 +178,14 @@ export default function AdminCaregivers() {
   }, []);
 
   useEffect(() => {
-    if (!selectorOpen) return undefined;
+    if (!selectorOpen && !menuOpenId) return undefined;
     const onDown = (e) => {
       if (selectorRef.current && !selectorRef.current.contains(e.target)) setSelectorOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpenId('');
     };
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
-  }, [selectorOpen]);
+  }, [selectorOpen, menuOpenId]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -187,6 +195,9 @@ export default function AdminCaregivers() {
   useEffect(() => {
     setPage(1);
     setSelectedId('');
+    setMenuOpenId('');
+    setViewOpen(false);
+    setViewCaregiver(null);
   }, [agencyId, debouncedSearch]);
 
   const loadStatsAndList = async () => {
@@ -244,6 +255,76 @@ export default function AdminCaregivers() {
     () => pageNumbers(pagination.page || page, pagination.totalPages || 1),
     [pagination.page, pagination.totalPages, page],
   );
+
+  const toViewModel = (caregiver, overviewCaregiver = null) => {
+    const src = overviewCaregiver || caregiver || {};
+    return {
+      id: src.id || caregiver?.id,
+      fullName: src.fullName || src.name || caregiver?.name || '',
+      email: src.email || caregiver?.email || '',
+      phone: src.phone || caregiver?.phone || '',
+      userId: src.userId || caregiver?.userId || '',
+      employeeId: src.employeeId || src.caregiverCode || caregiver?.caregiverCode || '',
+      dateOfBirth: src.dateOfBirth || caregiver?.dateOfBirth || '',
+      status: src.status || caregiver?.status || '',
+      profilePic: src.profilePic || caregiver?.profilePic || '',
+      createdAt: src.createdAt || caregiver?.createdAt || null,
+      agencyName: src.agencyName || caregiver?.agencyName || '',
+    };
+  };
+
+  const openView = async (caregiver) => {
+    setSelectedId(caregiver.id);
+    setMenuOpenId('');
+    setViewCaregiver(toViewModel(caregiver));
+    setViewOpen(true);
+    try {
+      const res = await axiosInstance.get(`${API_ROUTES.ADMIN.CAREGIVERS.OVERVIEW}/${caregiver.id}/overview`);
+      const data = res.data?.data;
+      if (data) {
+        setOverview(data);
+        if (data.caregiver) setViewCaregiver(toViewModel(caregiver, data.caregiver));
+      }
+    } catch {
+      /* keep list row details */
+    }
+  };
+
+  const handleStatusToggle = async (caregiver) => {
+    setMenuOpenId('');
+    const nextStatus = caregiver.status === 'Active' ? 'Inactive' : 'Active';
+    const confirmed = await confirmAlert({
+      title: nextStatus === 'Inactive' ? 'Deactivate account?' : 'Activate account?',
+      text: nextStatus === 'Inactive'
+        ? `${caregiver.name} will no longer be able to sign in to the caregiver portal.`
+        : `${caregiver.name} will regain access to the caregiver portal.`,
+      confirmText: nextStatus === 'Inactive' ? 'Deactivate' : 'Activate',
+      danger: nextStatus === 'Inactive',
+    });
+    if (!confirmed) return;
+
+    setStatusUpdatingId(caregiver.id);
+    try {
+      const res = await axiosInstance.patch(API_ROUTES.ADMIN.CAREGIVERS.STATUS(caregiver.id), {
+        status: nextStatus,
+      });
+      const updated = res.data?.data;
+      toast.success(`Account marked as ${nextStatus}`);
+      setList((rows) => rows.map((row) => (
+        row.id === caregiver.id
+          ? { ...row, status: updated?.status || nextStatus }
+          : row
+      )));
+      if (viewCaregiver?.id === caregiver.id) {
+        setViewCaregiver((prev) => (prev ? { ...prev, status: updated?.status || nextStatus } : prev));
+      }
+      loadStatsAndList();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update account status');
+    } finally {
+      setStatusUpdatingId('');
+    }
+  };
 
   const portalHint = () => toast.info('This action is managed in the agency portal.');
 
@@ -382,13 +463,55 @@ export default function AdminCaregivers() {
                     ) : <span className="text-slate-400">—</span>}
                   </td>
                   <td className="px-5 py-3.5">
-                    <div className="flex items-center justify-end gap-0.5">
-                      <ActionIconButton label="View" className="text-primary hover:bg-primary/10" onClick={(e) => { e.stopPropagation(); setSelectedId(caregiver.id); }}>
+                    <div className="relative flex items-center justify-end gap-0.5" ref={menuOpenId === caregiver.id ? menuRef : null}>
+                      <ActionIconButton
+                        label="View"
+                        className="text-primary hover:bg-primary/10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openView(caregiver);
+                        }}
+                      >
                         <Eye size={15} />
                       </ActionIconButton>
-                      <ActionIconButton label="More" className="text-slate-500 hover:bg-slate-100" onClick={(e) => { e.stopPropagation(); portalHint(); }}>
+                      <ActionIconButton
+                        label="More actions"
+                        className="text-slate-500 hover:bg-slate-100"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMenuOpenId((id) => (id === caregiver.id ? '' : caregiver.id));
+                        }}
+                      >
                         <MoreVertical size={15} />
                       </ActionIconButton>
+                      {menuOpenId === caregiver.id ? (
+                        <div className="absolute right-0 top-full z-20 mt-1 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openView(caregiver);
+                            }}
+                          >
+                            <Eye size={14} /> View details
+                          </button>
+                          <button
+                            type="button"
+                            disabled={statusUpdatingId === caregiver.id}
+                            className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50 disabled:opacity-50 ${
+                              caregiver.status === 'Active' ? 'text-rose-600' : 'text-emerald-700'
+                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStatusToggle(caregiver);
+                            }}
+                          >
+                            <Power size={14} />
+                            {caregiver.status === 'Active' ? 'Deactivate account' : 'Activate account'}
+                          </button>
+                        </div>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
@@ -419,11 +542,7 @@ export default function AdminCaregivers() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         <WidgetCard
           title="Clients Associated"
-          headerLink={<button type="button" onClick={portalHint} className="text-[12px] font-medium text-primary hover:underline">View All</button>}
           action={<CaregiverSelect caregivers={list} value={selectedId} onChange={setSelectedId} />}
-          footer={(
-            <button type="button" onClick={portalHint} className="w-full text-center text-[13px] font-medium text-primary hover:underline">View All Clients</button>
-          )}
         >
           {overviewLoading ? <p className="py-8 text-center text-sm text-slate-400">Loading…</p> : overview.clients.length ? (
             <ul className="space-y-3">
@@ -451,13 +570,7 @@ export default function AdminCaregivers() {
 
         <WidgetCard
           title="Caregiver Documents"
-          headerLink={<button type="button" onClick={portalHint} className="text-[12px] font-medium text-primary hover:underline">View All</button>}
           action={<CaregiverSelect caregivers={list} value={selectedId} onChange={setSelectedId} />}
-          footer={(
-            <button type="button" onClick={portalHint} className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-              <CloudUpload size={15} /> Upload Document
-            </button>
-          )}
         >
           {overviewLoading ? <p className="py-8 text-center text-sm text-slate-400">Loading…</p> : overview.documents.length ? (
             <ul className="space-y-3">
@@ -481,11 +594,7 @@ export default function AdminCaregivers() {
 
         <WidgetCard
           title="Upcoming Schedules"
-          headerLink={<button type="button" onClick={portalHint} className="text-[12px] font-medium text-primary hover:underline">View Calendar</button>}
           action={<CaregiverSelect caregivers={list} value={selectedId} onChange={setSelectedId} />}
-          footer={(
-            <button type="button" onClick={portalHint} className="w-full text-center text-[13px] font-medium text-primary hover:underline">View Full Schedule</button>
-          )}
         >
           {overviewLoading ? <p className="py-8 text-center text-sm text-slate-400">Loading…</p> : overview.upcoming.length ? (
             <ul className="space-y-3">
@@ -509,9 +618,6 @@ export default function AdminCaregivers() {
         <WidgetCard
           title="Next Schedule"
           action={<CaregiverSelect caregivers={list} value={selectedId} onChange={setSelectedId} />}
-          footer={(
-            <button type="button" onClick={portalHint} className="w-full text-center text-[13px] font-medium text-primary hover:underline">View Details</button>
-          )}
         >
           {overviewLoading ? <p className="py-8 text-center text-sm text-slate-400">Loading…</p> : overview.next ? (
             <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
@@ -537,11 +643,7 @@ export default function AdminCaregivers() {
 
         <WidgetCard
           title="Invoices"
-          headerLink={<button type="button" onClick={portalHint} className="text-[12px] font-medium text-primary hover:underline">View All</button>}
           action={<CaregiverSelect caregivers={list} value={selectedId} onChange={setSelectedId} />}
-          footer={(
-            <button type="button" onClick={portalHint} className="w-full text-center text-[13px] font-medium text-primary hover:underline">View All Invoices</button>
-          )}
         >
           {overviewLoading ? <p className="py-8 text-center text-sm text-slate-400">Loading…</p> : overview.invoices.length ? (
             <ul className="space-y-3">
@@ -559,6 +661,15 @@ export default function AdminCaregivers() {
           ) : <p className="py-8 text-center text-sm text-slate-400">No invoices yet.</p>}
         </WidgetCard>
       </div>
+
+      <ViewCaregiverDrawer
+        open={viewOpen}
+        onClose={() => {
+          setViewOpen(false);
+          setViewCaregiver(null);
+        }}
+        caregiver={viewCaregiver}
+      />
     </div>
   );
 }

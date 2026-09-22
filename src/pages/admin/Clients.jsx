@@ -7,7 +7,6 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  CloudUpload,
   Eye,
   FileText,
   MoreVertical,
@@ -409,13 +408,7 @@ export default function AdminClients() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         <WidgetCard
           title="Client Documents"
-          headerLink={<button type="button" onClick={portalHint} className="text-[12px] font-medium text-primary hover:underline">View All</button>}
           action={<ClientSelect clients={list} value={selectedId} onChange={setSelectedId} />}
-          footer={(
-            <button type="button" onClick={portalHint} className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-              <CloudUpload size={15} /> Upload Document
-            </button>
-          )}
         >
           {overviewLoading ? <p className="py-8 text-center text-sm text-slate-400">Loading…</p> : overview.documents.length ? (
             <ul className="space-y-3">
@@ -439,11 +432,7 @@ export default function AdminClients() {
 
         <WidgetCard
           title="Upcoming Schedules"
-          headerLink={<button type="button" onClick={portalHint} className="text-[12px] font-medium text-primary hover:underline">View Calendar</button>}
           action={<ClientSelect clients={list} value={selectedId} onChange={setSelectedId} />}
-          footer={(
-            <button type="button" onClick={portalHint} className="w-full text-center text-[13px] font-medium text-primary hover:underline">View Full Schedule</button>
-          )}
         >
           {overviewLoading ? <p className="py-8 text-center text-sm text-slate-400">Loading…</p> : overview.upcoming.length ? (
             <ul className="space-y-3">
@@ -467,9 +456,6 @@ export default function AdminClients() {
         <WidgetCard
           title="Current Schedule"
           action={<ClientSelect clients={list} value={selectedId} onChange={setSelectedId} />}
-          footer={(
-            <button type="button" onClick={portalHint} className="w-full text-center text-[13px] font-medium text-primary hover:underline">View Details</button>
-          )}
         >
           {overviewLoading ? <p className="py-8 text-center text-sm text-slate-400">Loading…</p> : overview.current ? (
             <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
@@ -489,13 +475,7 @@ export default function AdminClients() {
 
         <WidgetCard
           title="Caregivers"
-          headerLink={<button type="button" onClick={portalHint} className="text-[12px] font-medium text-primary hover:underline">View All</button>}
           action={<ClientSelect clients={list} value={selectedId} onChange={setSelectedId} />}
-          footer={(
-            <button type="button" onClick={portalHint} className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
-              <Plus size={14} /> Assign Caregiver
-            </button>
-          )}
         >
           {overviewLoading ? <p className="py-8 text-center text-sm text-slate-400">Loading…</p> : overview.caregivers.length ? (
             <ul className="space-y-3">
@@ -518,11 +498,7 @@ export default function AdminClients() {
 
         <WidgetCard
           title="Invoices"
-          headerLink={<button type="button" onClick={portalHint} className="text-[12px] font-medium text-primary hover:underline">View All</button>}
           action={<ClientSelect clients={list} value={selectedId} onChange={setSelectedId} />}
-          footer={(
-            <button type="button" onClick={portalHint} className="w-full text-center text-[13px] font-medium text-primary hover:underline">View All Invoices</button>
-          )}
         >
           {overviewLoading ? <p className="py-8 text-center text-sm text-slate-400">Loading…</p> : overview.invoices.length ? (
             <ul className="space-y-3">

@@ -38,6 +38,7 @@ export default function ViewCaregiverDrawer({ open, onClose, caregiver }) {
           <Row label="Login ID" value={caregiver.userId} />
           <Row label="Phone" value={caregiver.phone} />
           <Row label="Employee ID" value={caregiver.employeeId} />
+          <Row label="Agency" value={caregiver.agencyName} />
           <Row label="Date of birth" value={caregiver.dateOfBirth} />
           <Row label="Status" value={caregiver.status} />
           <Row label="Hired for job" value={caregiver.source_job_title} />

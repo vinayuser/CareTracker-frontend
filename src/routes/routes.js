@@ -32,6 +32,7 @@ export const ROUTES = {
   ADMIN_CAREGIVERS: '/admin/caregivers',
   ADMIN_SCHEDULES: '/admin/schedules',
   ADMIN_EVV_COMPLIANCE: '/admin/evv-compliance',
+  ADMIN_EVV_ENROLLMENT_PRINT: '/admin/evv-forms/:id/print',
   ADMIN_MEDICAID: '/admin/medicaid',
   ADMIN_BILLING_CLAIMS: '/admin/billing-claims',
   ADMIN_FINANCE: '/admin/finance',

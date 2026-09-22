@@ -43,8 +43,11 @@ const API_ROUTES = {
     USERS: {
       STATS: '/admin/users/stats',
       LIST: '/admin/users',
+      DETAIL: (id) => `/admin/users/${id}`,
+      STATUS: (id) => `/admin/users/${id}/status`,
       SCHEDULES: '/admin/users/schedules',
       EVV_FORMS: '/admin/users/evv-forms',
+      EVV_FORM_DETAIL: (id) => `/admin/users/evv-forms/${id}`,
     },
     CLIENTS: {
       STATS: '/admin/clients/stats',
@@ -55,6 +58,7 @@ const API_ROUTES = {
       STATS: '/admin/caregivers/stats',
       LIST: '/admin/caregivers',
       OVERVIEW: '/admin/caregivers',
+      STATUS: (id) => `/admin/caregivers/${id}/status`,
     },
     SCHEDULES: {
       CAREGIVER: '/admin/schedules/caregiver',
@@ -189,6 +193,7 @@ const API_ROUTES = {
   },
   CAREGIVER: {
     DASHBOARD: '/caregiver/dashboard',
+    PAYROLL: '/caregiver/payroll',
     EVV_ENROLLMENTS: {
       LIST: '/caregiver/evv-enrollments',
       SUBMIT: '/caregiver/evv-enrollments',

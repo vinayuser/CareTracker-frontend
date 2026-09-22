@@ -185,6 +185,7 @@ export default function App() {
           {/* Super Admin — /admin/* */}
           <Route element={<RoleRoute allowedRoles={[ROLES.SUPER_ADMIN, ROLES.ADMIN]} />}>
             <Route path={ROUTES.ADMIN_PREFIX} element={<Navigate to={ROUTES.ADMIN_DASHBOARD} replace />} />
+            <Route path={ROUTES.ADMIN_EVV_ENROLLMENT_PRINT} element={<EvvEnrollmentPrintPage />} />
             <Route element={<AdminLayout />}>
               <Route path={ROUTES.ADMIN_DASHBOARD} element={<Dashboard />} />
               <Route path={ROUTES.ADMIN_AGENCIES} element={<Agencies />} />
