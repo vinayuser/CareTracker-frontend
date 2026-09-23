@@ -67,6 +67,16 @@ const API_ROUTES = {
       STATS: '/admin/evv/stats',
       EMPLOYEES: '/admin/evv/employees',
     },
+    BILLING_CLAIMS: {
+      STATS: '/admin/billing-claims/stats',
+      LIST: '/admin/billing-claims',
+      DETAIL: (id) => `/admin/billing-claims/${id}`,
+    },
+    FINANCE: {
+      STATS: '/admin/finance/stats',
+      LIST: '/admin/finance',
+      DETAIL: (id) => `/admin/finance/${id}`,
+    },
     TEAM: {
       STATS: '/admin/team/stats',
       LIST: '/admin/team',

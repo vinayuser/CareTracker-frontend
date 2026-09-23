@@ -82,11 +82,11 @@ export const ADMIN_MODULE_META = {
   },
   'billing-claims': {
     title: 'Billing & Claims',
-    description: 'Monitor claims processing, billing status, and payer submissions.',
+    description: 'View and manage agency invoices, billing status, and payment information.',
   },
   'finance': {
     title: 'Finance',
-    description: 'Platform revenue, payouts, collections, and financial health.',
+    description: 'Review and manage all invoices, payments and financial records.',
   },
   'payments': {
     title: 'Payments',

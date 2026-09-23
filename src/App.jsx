@@ -26,6 +26,8 @@ import AdminClients from './pages/admin/Clients';
 import AdminCaregivers from './pages/admin/Caregivers';
 import AdminSchedules from './pages/admin/Schedules';
 import AdminEvvCompliance from './pages/admin/EvvCompliance';
+import BillingClaims from './pages/admin/BillingClaims';
+import Finance from './pages/admin/Finance';
 import Reports from './pages/admin/Reports';
 import AuditLogs from './pages/admin/AuditLogs';
 import Settings from './pages/admin/Settings';
@@ -204,8 +206,8 @@ export default function App() {
               <Route path={ROUTES.ADMIN_SCHEDULES} element={<AdminSchedules />} />
               <Route path={ROUTES.ADMIN_EVV_COMPLIANCE} element={<AdminEvvCompliance />} />
               <Route path={ROUTES.ADMIN_MEDICAID} element={<AdminModulePage />} />
-              <Route path={ROUTES.ADMIN_BILLING_CLAIMS} element={<AdminModulePage />} />
-              <Route path={ROUTES.ADMIN_FINANCE} element={<AdminModulePage />} />
+              <Route path={ROUTES.ADMIN_BILLING_CLAIMS} element={<BillingClaims />} />
+              <Route path={ROUTES.ADMIN_FINANCE} element={<Finance />} />
               <Route path={ROUTES.ADMIN_PAYMENTS} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_SOCIAL} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_MARKETING} element={<AdminModulePage />} />
