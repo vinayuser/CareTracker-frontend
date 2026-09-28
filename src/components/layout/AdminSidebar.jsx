@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   LayoutDashboard,
   Building2,
@@ -26,14 +27,15 @@ import {
   Settings,
   Archive,
   LogOut,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleCheck,
 } from 'lucide-react';
 import CareTrackerLogo from '../brand/CareTrackerLogo';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { ADMIN_NAV_GROUPS, ROUTES } from '../../routes/routes';
+import { ROUTES } from '../../routes/routes';
 import { logout as reduxLogout } from '../../redux/slices/authSlice';
 import { logout, getUserRole } from '../../utils/auth';
 import { filterAdminNavGroups } from '../../utils/adminModuleAccess';
@@ -66,6 +68,62 @@ const iconMap = {
   Settings,
   Archive,
 };
+
+function NavGroup({ item, collapsed }) {
+  const location = useLocation();
+  const childPaths = (item.children || []).map((child) => ROUTES[child.key]).filter(Boolean);
+  const active = childPaths.some((path) => location.pathname === path || location.pathname.startsWith(`${path}/`));
+  const [opened, setOpened] = useState(false);
+  const open = active || opened;
+  const Icon = iconMap[item.icon] || LayoutDashboard;
+
+  if (collapsed) {
+    return (
+      <NavLink
+        to={childPaths[0] || ROUTES[item.key]}
+        title={item.label}
+        className={`flex items-center justify-center rounded-lg px-0 py-2 text-[13px] font-medium ${
+          active ? 'bg-primary text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+        }`}
+      >
+        <Icon size={17} />
+      </NavLink>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpened((value) => !value)}
+        className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium ${
+          active ? 'bg-primary/10 text-primary' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+        }`}
+      >
+        <Icon size={17} className="shrink-0" />
+        <span className="flex-1 truncate">{item.label}</span>
+        <ChevronDown size={15} className={`shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open ? (
+        <div className="ml-3 mt-0.5 space-y-0.5 border-l border-gray-200 pl-2">
+          {item.children.map((child) => (
+            <NavLink
+              key={child.key}
+              to={ROUTES[child.key]}
+              className={({ isActive }) =>
+                `block rounded-lg px-3 py-2 text-[12px] font-medium ${
+                  isActive ? 'bg-primary text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`
+              }
+            >
+              {child.label}
+            </NavLink>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function NavItem({ item, collapsed }) {
   const Icon = iconMap[item.icon] || LayoutDashboard;
@@ -130,7 +188,9 @@ export default function AdminSidebar({ collapsed, onToggle }) {
             {collapsed && idx > 0 ? <div className="mx-2 mb-2 border-t border-gray-100" /> : null}
             <div className="space-y-0.5">
               {group.items.map((item) => (
-                <NavItem key={item.key} item={item} collapsed={collapsed} />
+                item.children?.length
+                  ? <NavGroup key={item.key} item={item} collapsed={collapsed} />
+                  : <NavItem key={item.key} item={item} collapsed={collapsed} />
               ))}
             </div>
           </div>

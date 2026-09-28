@@ -35,7 +35,17 @@ export const ADMIN_NAV_GROUPS = [
     title: 'Growth',
     items: [
       { key: 'ADMIN_SOCIAL', label: 'Social & Community', icon: 'MessagesSquare' },
-      { key: 'ADMIN_MARKETING', label: 'Marketing', icon: 'Megaphone' },
+      {
+        key: 'ADMIN_MARKETING',
+        label: 'Marketing',
+        icon: 'Megaphone',
+        children: [
+          { key: 'ADMIN_EMAIL_CAMPAIGNS', label: 'Email Campaigns' },
+          { key: 'ADMIN_EMAIL_TEMPLATES', label: 'Email Templates' },
+          { key: 'ADMIN_EMAIL_LISTS', label: 'Lists & Segments' },
+          { key: 'ADMIN_EMAIL_IMPORT', label: 'Import Contacts' },
+        ],
+      },
       { key: 'ADMIN_REFERRALS', label: 'Referrals', icon: 'Share2' },
       { key: 'ADMIN_CRM', label: 'CRM', icon: 'Contact' },
     ],
@@ -53,7 +63,9 @@ export const ADMIN_NAV_GROUPS = [
   },
 ];
 
-export const ADMIN_NAV_ITEMS = ADMIN_NAV_GROUPS.flatMap((group) => group.items);
+export const ADMIN_NAV_ITEMS = ADMIN_NAV_GROUPS.flatMap((group) => (
+  group.items.flatMap((item) => [item, ...(item.children || [])])
+));
 
 export const ADMIN_MODULE_META = {
   'roles': {

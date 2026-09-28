@@ -77,6 +77,17 @@ const API_ROUTES = {
       LIST: '/admin/finance',
       DETAIL: (id) => `/admin/finance/${id}`,
     },
+    EMAIL_MARKETING: {
+      CAMPAIGNS: '/admin/marketing/campaigns',
+      CAMPAIGN: (id) => `/admin/marketing/campaigns/${id}`,
+      TEMPLATES: '/admin/marketing/templates',
+      TEMPLATE: (id) => `/admin/marketing/templates/${id}`,
+      LISTS: '/admin/marketing/lists',
+      SEGMENTS: '/admin/marketing/segments',
+      CONTACTS: '/admin/marketing/contacts',
+      IMPORT: '/admin/marketing/contacts/import',
+      SETTINGS: '/admin/marketing/settings',
+    },
     TEAM: {
       STATS: '/admin/team/stats',
       LIST: '/admin/team',

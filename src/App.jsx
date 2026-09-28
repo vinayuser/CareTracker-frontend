@@ -28,6 +28,14 @@ import AdminSchedules from './pages/admin/Schedules';
 import AdminEvvCompliance from './pages/admin/EvvCompliance';
 import BillingClaims from './pages/admin/BillingClaims';
 import Finance from './pages/admin/Finance';
+import EmailCampaigns from './pages/admin/email/EmailCampaigns';
+import CampaignWizard from './pages/admin/email/CampaignWizard';
+import CampaignDetail from './pages/admin/email/CampaignDetail';
+import EmailTemplates from './pages/admin/email/EmailTemplates';
+import TemplateBuilder from './pages/admin/email/TemplateBuilder';
+import ListsSegments from './pages/admin/email/ListsSegments';
+import ImportContacts from './pages/admin/email/ImportContacts';
+import MarketingSettings from './pages/admin/email/MarketingSettings';
 import Reports from './pages/admin/Reports';
 import AuditLogs from './pages/admin/AuditLogs';
 import Settings from './pages/admin/Settings';
@@ -210,7 +218,17 @@ export default function App() {
               <Route path={ROUTES.ADMIN_FINANCE} element={<Finance />} />
               <Route path={ROUTES.ADMIN_PAYMENTS} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_SOCIAL} element={<AdminModulePage />} />
-              <Route path={ROUTES.ADMIN_MARKETING} element={<AdminModulePage />} />
+              <Route path={ROUTES.ADMIN_MARKETING} element={<Navigate to={ROUTES.ADMIN_EMAIL_CAMPAIGNS} replace />} />
+              <Route path={ROUTES.ADMIN_EMAIL_CAMPAIGN_NEW} element={<CampaignWizard />} />
+              <Route path={ROUTES.ADMIN_EMAIL_CAMPAIGN_EDIT} element={<CampaignWizard />} />
+              <Route path={ROUTES.ADMIN_EMAIL_CAMPAIGNS} element={<EmailCampaigns />} />
+              <Route path={ROUTES.ADMIN_EMAIL_CAMPAIGN_DETAIL} element={<CampaignDetail />} />
+              <Route path={ROUTES.ADMIN_EMAIL_TEMPLATE_NEW} element={<TemplateBuilder />} />
+              <Route path={ROUTES.ADMIN_EMAIL_TEMPLATE_EDIT} element={<TemplateBuilder />} />
+              <Route path={ROUTES.ADMIN_EMAIL_TEMPLATES} element={<EmailTemplates />} />
+              <Route path={ROUTES.ADMIN_EMAIL_LISTS} element={<ListsSegments />} />
+              <Route path={ROUTES.ADMIN_EMAIL_IMPORT} element={<ImportContacts />} />
+              <Route path={ROUTES.ADMIN_EMAIL_SETTINGS} element={<MarketingSettings />} />
               <Route path={ROUTES.ADMIN_REFERRALS} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_CRM} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_REPORTS} element={<Reports />} />
