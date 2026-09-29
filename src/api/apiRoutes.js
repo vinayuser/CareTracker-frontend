@@ -79,6 +79,7 @@ const API_ROUTES = {
     },
     EMAIL_MARKETING: {
       CAMPAIGNS: '/admin/marketing/campaigns',
+      SEND: '/admin/marketing/campaigns/send',
       CAMPAIGN: (id) => `/admin/marketing/campaigns/${id}`,
       TEMPLATES: '/admin/marketing/templates',
       TEMPLATE: (id) => `/admin/marketing/templates/${id}`,
@@ -87,6 +88,8 @@ const API_ROUTES = {
       CONTACTS: '/admin/marketing/contacts',
       IMPORT: '/admin/marketing/contacts/import',
       SETTINGS: '/admin/marketing/settings',
+      MAILCHIMP: '/admin/marketing/mailchimp',
+      MAILCHIMP_LISTS: '/admin/marketing/mailchimp/lists',
     },
     TEAM: {
       STATS: '/admin/team/stats',

@@ -1,7 +1,9 @@
+import { useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { ROUTES } from '../../../routes/routes';
 import { EmailPreview, StatusPill } from '../../../components/admin/email/EmailMarketingUi';
-import { getCampaign } from '../../../services/emailMarketingStore';
+import { deliverAndSaveCampaign, getCampaign } from '../../../services/emailMarketingStore';
 
 function Metric({ label, value }) {
   return (
@@ -14,12 +16,33 @@ function Metric({ label, value }) {
 
 export default function CampaignDetail() {
   const { id } = useParams();
+  const [version, setVersion] = useState(0);
+  const [sending, setSending] = useState(false);
+  const sendingRef = useRef(false);
   const campaign = getCampaign(id);
+  void version;
   if (!campaign) {
     return <p className="text-sm text-gray-500">Campaign not found.</p>;
   }
-  const stats = campaign.analytics || { delivered: 0, opened: 0, clicked: 0, bounced: 0, unsubscribed: 0, activity: [] };
-  const deliveredBase = Math.max(stats.delivered, 1);
+  const real = campaign.analytics?.tracked === true;
+  const stats = real
+    ? campaign.analytics
+    : { delivered: '—', opened: null, clicked: null, bounced: '—', unsubscribed: '—', activity: [] };
+  const sendNow = async () => {
+    if (sendingRef.current) return;
+    sendingRef.current = true;
+    setSending(true);
+    try {
+      await deliverAndSaveCampaign(campaign);
+      toast.success('Campaign emails sent');
+      setVersion((n) => n + 1);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error.message || 'Could not send the campaign');
+    } finally {
+      sendingRef.current = false;
+      setSending(false);
+    }
+  };
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -28,17 +51,23 @@ export default function CampaignDetail() {
           <h1 className="mt-2 text-2xl font-bold text-gray-900">{campaign.name}</h1>
           <p className="mt-1 text-sm text-gray-500">{campaign.type} · {campaign.audienceLabel}</p>
         </div>
-        <StatusPill status={campaign.status} />
+        <div className="flex items-center gap-2">
+          <button type="button" disabled={sending} onClick={sendNow} className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">
+            {sending ? 'Sending…' : 'Send emails'}
+          </button>
+          <StatusPill status={campaign.status} />
+        </div>
       </div>
+      {!real ? <p className="text-sm text-amber-700">This page was showing sample figures. Send emails to deliver this campaign and replace them with the real result.</p> : null}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Metric label="Recipients" value={campaign.recipients} />
         <Metric label="Delivered" value={stats.delivered} />
-        <Metric label="Opened" value={`${stats.opened} · ${campaign.openRate == null ? '—' : `${campaign.openRate}%`}`} />
-        <Metric label="Clicked" value={`${stats.clicked} · ${campaign.clickRate == null ? '—' : `${campaign.clickRate}%`}`} />
-        <Metric label="Bounced" value={stats.bounced} />
-        <Metric label="Unsubscribed" value={stats.unsubscribed} />
-        <Metric label="Open rate" value={campaign.openRate == null ? '—' : `${Math.round((stats.opened / deliveredBase) * 100)}%`} />
-        <Metric label="Click rate" value={campaign.clickRate == null ? '—' : `${campaign.clickRate}%`} />
+        <Metric label="Opened" value="—" />
+        <Metric label="Clicked" value="—" />
+        <Metric label="Failed" value={stats.bounced} />
+        <Metric label="Unsubscribed" value={real ? stats.unsubscribed : '—'} />
+        <Metric label="Open rate" value="—" />
+        <Metric label="Click rate" value="—" />
       </div>
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">

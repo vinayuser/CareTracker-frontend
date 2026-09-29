@@ -1,3 +1,6 @@
+import axiosInstance from '../api/axiosInstance';
+import API_ROUTES from '../api/apiRoutes';
+
 /**
  * Local email-marketing store.
  * Swap these functions for the admin API routes in apiRoutes.ADMIN.EMAIL_MARKETING
@@ -507,37 +510,45 @@ function audienceSummary(audience) {
   return `${roles} · ${agency}`;
 }
 
-function buildAnalytics(people) {
-  const delivered = people.length;
-  const bounced = Math.min(people.length, Math.round(delivered * 0.05));
-  const deliveredOk = delivered - bounced;
-  const unsubscribed = Math.min(deliveredOk, Math.round(deliveredOk * 0.04));
-  const opened = Math.round(deliveredOk * 0.48);
-  const clicked = Math.round(opened * 0.3);
-  const activity = people.slice(0, 8).map((person, index) => {
-    let status = 'Delivered';
-    if (index < bounced) status = 'Bounced';
-    else if (index < bounced + unsubscribed) status = 'Unsubscribed';
-    else if (index < bounced + unsubscribed + clicked) status = 'Clicked';
-    else if (index % 2 === 0) status = 'Opened';
-    return {
-      name: person.name || `${person.firstName || ''} ${person.lastName || ''}`.trim(),
-      email: person.email,
-      status,
-      at: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-    };
-  });
-  return {
-    delivered: deliveredOk,
-    opened,
-    clicked,
-    bounced,
-    unsubscribed,
-    activity,
-  };
+const escapeHtml = (value) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;');
+
+export function audienceRecipients(audience) {
+  const preview = audience?.kind === 'leads'
+    ? previewLeadAudience(audience)
+    : previewPlatformAudience(audience);
+  return preview.recipients || [];
 }
 
-export function saveCampaign(input, mode = 'draft') {
+export function campaignHtml(content = {}) {
+  const settings = getSettings();
+  const blocks = content.blocks || [];
+  const body = blocks.map((block) => {
+    const color = block.color || '#0f172a';
+    const align = block.align || 'left';
+    if (block.type === 'heading') {
+      return `<h1 style="margin:0 0 12px;font-size:24px;color:${color};text-align:${align}">${escapeHtml(block.text)}</h1>`;
+    }
+    if (block.type === 'text' || block.type === 'footer') {
+      return `<p style="margin:0 0 12px;color:${color};text-align:${align}">${escapeHtml(block.text)}</p>`;
+    }
+    if (block.type === 'image' && block.url && !String(block.url).startsWith('data:')) {
+      return `<p style="text-align:${align}"><img src="${escapeHtml(block.url)}" alt="" style="max-width:100%;border-radius:8px" /></p>`;
+    }
+    if (block.type === 'divider') return '<hr style="border:none;border-top:1px solid #e2e8f0;margin:16px 0" />';
+    if (block.type === 'button' || block.type === 'cta') {
+      return `<p style="text-align:${align}"><a href="${escapeHtml(block.url || '#')}" style="display:inline-block;padding:12px 18px;background:${block.buttonColor || '#2563eb'};color:${block.color || '#ffffff'};text-decoration:none;border-radius:8px;font-weight:600">${escapeHtml(block.text || 'Open')}</a></p>`;
+    }
+    return '';
+  }).join('');
+  const footer = `<p style="margin-top:28px;font-size:12px;color:#94a3b8">${escapeHtml(settings.footer || '')}<br/><a href="${escapeHtml(settings.unsubscribeUrl || '#')}">Unsubscribe</a> · <a href="${escapeHtml(settings.preferencesUrl || '#')}">Manage preferences</a></p>`;
+  return `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:${content.backgroundColor || '#ffffff'};font-family:Arial,sans-serif">${body}${footer}</body></html>`;
+}
+
+export function saveCampaign(input, mode = 'draft', delivery = null) {
   const data = load();
   const preview = input.audience?.kind === 'leads'
     ? previewLeadAudience(input.audience)
@@ -557,7 +568,15 @@ export function saveCampaign(input, mode = 'draft') {
     status = 'Sent';
     sentAt = new Date().toISOString().slice(0, 10);
     scheduledAt = '';
-    analytics = buildAnalytics(input.audience?.kind === 'leads' ? preview.recipients : preview.recipients);
+    analytics = {
+      tracked: true,
+      delivered: Number(delivery?.sent || 0),
+      opened: null,
+      clicked: null,
+      bounced: Number(delivery?.failed || 0),
+      unsubscribed: 0,
+      activity: delivery?.activity || [],
+    };
   }
   const row = {
     id: input.id || uid('cmp'),
@@ -565,9 +584,9 @@ export function saveCampaign(input, mode = 'draft') {
     type: input.audience?.kind === 'leads' ? 'Leads & Contacts' : 'Platform Users',
     audienceLabel: audienceSummary(input.audience),
     status,
-    recipients: count || 0,
-    openRate: analytics ? Math.round((analytics.opened / Math.max(1, analytics.delivered)) * 100) : null,
-    clickRate: analytics ? Math.round((analytics.clicked / Math.max(1, analytics.opened || 1)) * 100) : null,
+    recipients: mode === 'send' ? Number(delivery?.sent || 0) + Number(delivery?.failed || 0) : (count || 0),
+    openRate: null,
+    clickRate: null,
     sentAt,
     scheduledAt,
     audience: input.audience,
@@ -578,6 +597,24 @@ export function saveCampaign(input, mode = 'draft') {
   else data.campaigns.unshift(row);
   save(data);
   return row;
+}
+
+export async function deliverAndSaveCampaign(input) {
+  const people = audienceRecipients(input.audience).map((person) => ({
+    name: person.name || `${person.firstName || ''} ${person.lastName || ''}`.trim(),
+    email: person.email,
+  })).filter((person) => person.email && !/\.example$/i.test(person.email));
+  if (!people.length) {
+    throw new Error('These recipients are sample addresses and cannot receive mail. Use a leads list with real emails.');
+  }
+  const response = await axiosInstance.post(API_ROUTES.ADMIN.EMAIL_MARKETING.SEND, {
+    subject: input.content?.subject,
+    fromName: input.content?.fromName,
+    fromEmail: input.content?.fromEmail || input.content?.replyTo,
+    html: campaignHtml(input.content || {}),
+    recipients: people,
+  });
+  return saveCampaign(input, 'send', response.data?.data || {});
 }
 
 export function duplicateCampaign(id) {

@@ -1,11 +1,27 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
+import axiosInstance from '../../../api/axiosInstance';
+import API_ROUTES from '../../../api/apiRoutes';
 import { MarketingTabs, PageHeader, StatusPill, fieldClass, labelClass } from '../../../components/admin/email/EmailMarketingUi';
 import { getSettings, saveSettings } from '../../../services/emailMarketingStore';
 
 export default function MarketingSettings() {
   const [form, setForm] = useState(getSettings());
   const [suppressionText, setSuppressionText] = useState((form.suppression || []).join('\n'));
+  const [mailchimp, setMailchimp] = useState({ connected: false, health: 'Not checked' });
+
+  useEffect(() => {
+    let cancelled = false;
+    axiosInstance.get(API_ROUTES.ADMIN.EMAIL_MARKETING.MAILCHIMP)
+      .then((response) => {
+        if (!cancelled) setMailchimp(response.data?.data || { connected: true, health: 'Connected' });
+      })
+      .catch((error) => {
+        const health = error?.response?.data?.message || 'Not connected';
+        if (!cancelled) setMailchimp({ connected: false, health });
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
 
@@ -33,6 +49,11 @@ export default function MarketingSettings() {
             <span className="text-sm text-gray-600">Domain verification</span>
             <StatusPill status={form.domainStatus} />
           </div>
+          <div className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2">
+            <span className="text-sm text-gray-600">Mailchimp {mailchimp.server ? `(${mailchimp.server})` : ''}</span>
+            <StatusPill status={mailchimp.connected ? 'Verified' : 'Pending'} />
+          </div>
+          {mailchimp.health ? <p className="text-xs text-gray-500">{mailchimp.health}</p> : null}
           <button type="button" className="text-sm font-semibold text-primary" onClick={() => { setForm({ ...form, domainStatus: 'Pending' }); toast.info('Verification stays pending until a mail provider is connected.'); }}>
             Recheck DNS
           </button>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { ROUTES } from '../../../routes/routes';
@@ -15,6 +15,7 @@ import {
   listTemplates,
   previewLeadAudience,
   previewPlatformAudience,
+  deliverAndSaveCampaign,
   saveCampaign,
 } from '../../../services/emailMarketingStore';
 
@@ -71,6 +72,8 @@ function CampaignWizardForm({ campaignId }) {
   const [content, setContent] = useState(initial.content);
   const [selectedBlockId, setSelectedBlockId] = useState(initial.content.blocks?.[0]?.id || '');
   const [scheduledAt, setScheduledAt] = useState(initial.scheduledAt);
+  const [sending, setSending] = useState(false);
+  const sendingRef = useRef(false);
 
   const templates = listTemplates().filter((t) => t.status === 'Published' || t.id === content.templateId);
   const lists = listLists();
@@ -97,7 +100,8 @@ function CampaignWizardForm({ campaignId }) {
   ];
   const ready = checklist.every((item) => item.ok);
 
-  const persist = (mode) => {
+  const persist = async (mode) => {
+    if (mode === 'send' && sendingRef.current) return;
     if ((mode === 'send' || mode === 'schedule') && !ready) {
       toast.error('Complete the checklist before sending');
       return;
@@ -106,9 +110,25 @@ function CampaignWizardForm({ campaignId }) {
       toast.error('Choose a date to schedule');
       return;
     }
-    const row = saveCampaign({ id: existing?.id, audience, content, scheduledAt }, mode);
-    toast.success(mode === 'send' ? 'Campaign sent' : mode === 'schedule' ? 'Campaign scheduled' : 'Draft saved');
-    navigate(mode === 'draft' ? ROUTES.ADMIN_EMAIL_CAMPAIGNS : ROUTES.ADMIN_EMAIL_CAMPAIGN_DETAIL.replace(':id', row.id));
+    if (mode === 'send') {
+      sendingRef.current = true;
+      setSending(true);
+    }
+    try {
+      const payload = { id: existing?.id, audience, content, scheduledAt };
+      const row = mode === 'send'
+        ? await deliverAndSaveCampaign(payload)
+        : saveCampaign(payload, mode);
+      toast.success(mode === 'send' ? 'Campaign emails sent' : mode === 'schedule' ? 'Campaign scheduled' : 'Draft saved');
+      navigate(mode === 'draft' ? ROUTES.ADMIN_EMAIL_CAMPAIGNS : ROUTES.ADMIN_EMAIL_CAMPAIGN_DETAIL.replace(':id', row.id));
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error.message || 'Could not send the campaign');
+    } finally {
+      if (mode === 'send') {
+        sendingRef.current = false;
+        setSending(false);
+      }
+    }
   };
 
   return (
@@ -277,9 +297,9 @@ function CampaignWizardForm({ campaignId }) {
                 <input type="date" className={fieldClass} value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} />
               </label>
               <div className="mt-4 flex flex-wrap gap-2">
-                <button type="button" onClick={() => persist('draft')} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700">Save Draft</button>
-                <button type="button" onClick={() => persist('schedule')} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700">Schedule for Later</button>
-                <button type="button" onClick={() => persist('send')} className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white">Send Now</button>
+                <button type="button" disabled={sending} onClick={() => persist('draft')} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 disabled:opacity-50">Save Draft</button>
+                <button type="button" disabled={sending} onClick={() => persist('schedule')} className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 disabled:opacity-50">Schedule for Later</button>
+                <button type="button" disabled={sending} onClick={() => persist('send')} className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">{sending ? 'Sending…' : 'Send Now'}</button>
               </div>
             </div>
           </div>
