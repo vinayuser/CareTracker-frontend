@@ -1,4 +1,7 @@
+import { useRef, useState } from 'react';
+import { toast } from 'react-toastify';
 import DigitalSignaturePad from '../../../ui/DigitalSignaturePad';
+import { uploadAssessmentSignature } from '../../../../utils/assessmentSignatures';
 
 export const inputClass =
   'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
@@ -78,6 +81,30 @@ export function SignatureBlock({
   showRelationship = false,
 }) {
   const patch = (p) => onChange({ ...value, ...p });
+  const [uploading, setUploading] = useState(false);
+  const uploadToken = useRef(0);
+
+  const onSignature = async (signature) => {
+    const token = uploadToken.current + 1;
+    uploadToken.current = token;
+    if (!signature?.startsWith?.('data:image')) {
+      patch({ signature: signature || '' });
+      return;
+    }
+    setUploading(true);
+    try {
+      const url = await uploadAssessmentSignature(signature);
+      if (uploadToken.current !== token) return;
+      patch({ signature: url });
+    } catch {
+      if (uploadToken.current !== token) return;
+      toast.error('Could not upload signature. Try again before saving.');
+      patch({ signature });
+    } finally {
+      if (uploadToken.current === token) setUploading(false);
+    }
+  };
+
   return (
     <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-3">
       <p className="mb-2 text-sm font-semibold text-gray-800">{title}</p>
@@ -86,8 +113,9 @@ export function SignatureBlock({
           <DigitalSignaturePad
             label="Signature"
             value={value.signature || ''}
-            onChange={(signature) => patch({ signature })}
+            onChange={onSignature}
           />
+          {uploading ? <p className="mt-1 text-xs text-gray-500">Uploading signature…</p> : null}
         </div>
         <Field label="Print Name">
           <input className={inputClass} value={value.printedName || ''} onChange={(e) => patch({ printedName: e.target.value })} />

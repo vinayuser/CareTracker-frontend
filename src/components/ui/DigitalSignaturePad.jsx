@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { signatureImageSrc } from '../../utils/assessmentSignatures';
 
 const labelClass = 'mb-1.5 block text-sm font-medium text-gray-700';
 const CANVAS_HEIGHT = 140;
@@ -11,14 +12,15 @@ export default function DigitalSignaturePad({ label, value = '', onChange, readO
 
   const restoreImage = useCallback((dataUrl) => {
     const canvas = canvasRef.current;
-    if (!canvas || !dataUrl?.startsWith('data:image')) return;
+    const src = signatureImageSrc(dataUrl);
+    if (!canvas || !src) return;
     const ctx = canvas.getContext('2d');
     const img = new Image();
     img.onload = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, sizeRef.current.width, sizeRef.current.height);
     };
-    img.src = dataUrl;
+    img.src = src;
   }, []);
 
   const initCanvas = useCallback(() => {
@@ -37,7 +39,7 @@ export default function DigitalSignaturePad({ label, value = '', onChange, readO
     ctx.lineWidth = 2;
     ctx.strokeStyle = '#111827';
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (value?.startsWith('data:image')) restoreImage(value);
+    if (signatureImageSrc(value)) restoreImage(value);
   }, [restoreImage, value]);
 
   useEffect(() => {

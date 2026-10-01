@@ -20,8 +20,10 @@ import {
   getPacketProgress,
   isPacketFormEditable,
   mergePacketForms,
+  prefillPacketFormFromClient,
   syncClinicalFromPacket,
 } from '../../../utils/assessmentPacket';
+import { externalizeDataImages } from '../../../utils/assessmentSignatures';
 import { ROUTES } from '../../../routes/routes';
 import useSubmitLock from '../../../hooks/useSubmitLock';
 import useScrollToTopOnChange from '../../../hooks/useScrollToTopOnChange';
@@ -205,6 +207,15 @@ export default function ClientAssessmentForm() {
     };
     // Keep clinical sync after marking status
     nextForm.formData = syncClinicalFromPacket(nextForm.formData);
+    try {
+      nextForm.formData = await externalizeDataImages(nextForm.formData);
+      if (typeof nextForm.assessorPhoto === 'string' && nextForm.assessorPhoto.startsWith('data:image/')) {
+        nextForm.assessorPhoto = await externalizeDataImages(nextForm.assessorPhoto);
+      }
+    } catch {
+      toast.error('Could not upload signatures. Save again once the signature upload finishes.');
+      return;
+    }
     setForm(nextForm);
 
     const payload = buildPayload(nextForm);
@@ -380,6 +391,21 @@ export default function ClientAssessmentForm() {
             return;
           }
           setErrors({});
+          setForm((prev) => {
+            const forms = prev.formData?.forms || {};
+            const filled = prefillPacketFormFromClient(code, forms, {
+              formData: prev.formData,
+              assessmentDate: prev.assessmentDate,
+              assessorName: prev.assessorName,
+            });
+            return {
+              ...prev,
+              formData: syncClinicalFromPacket({
+                ...prev.formData,
+                forms: { ...forms, [code]: filled },
+              }),
+            };
+          });
           setActiveCode(code);
         }}
       />

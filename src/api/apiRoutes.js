@@ -169,6 +169,7 @@ const API_ROUTES = {
       OPTIONS: '/agency/assessments/options',
       STATS: '/agency/assessments/stats',
       LIST: '/agency/assessments',
+      SIGNATURE: '/agency/assessments/signatures',
     },
     CARE_PLANS: {
       OPTIONS: '/agency/care-plans/options',

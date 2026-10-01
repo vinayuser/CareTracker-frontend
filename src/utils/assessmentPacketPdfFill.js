@@ -12,6 +12,7 @@ import {
 } from './assessmentPacket';
 import { isAgencyTextForm } from './assessmentPacketAgencyCopy';
 import { fillAgencyTextFormPdf } from './assessmentPacketLegalPdf';
+import { toApiUploadUrl } from './appUrl';
 
 export const ASSESSMENT_PACKET_PDF_FILES = {
   '110': '110-Physical-Assessment-Info_TX.pdf',
@@ -140,10 +141,27 @@ function formatPdfTime(value) {
   return `${hour}:${minute} ${ampm}`;
 }
 
+function signatureSource(value) {
+  if (!value) return '';
+  const raw = String(value);
+  if (raw.startsWith('data:')) return raw;
+  if (raw.startsWith('http') || raw.startsWith('/')) {
+    return toApiUploadUrl(raw);
+  }
+  return '';
+}
+
+function isJpegSignature(value) {
+  const raw = String(value || '').toLowerCase();
+  return raw.includes('image/jpeg') || raw.includes('image/jpg') || raw.endsWith('.jpg') || raw.endsWith('.jpeg');
+}
+
 async function dataUrlToBytes(dataUrl) {
-  if (!dataUrl || !String(dataUrl).startsWith('data:')) return null;
+  const src = signatureSource(dataUrl);
+  if (!src) return null;
   try {
-    const res = await fetch(dataUrl);
+    const res = await fetch(src);
+    if (!res.ok) return null;
     return new Uint8Array(await res.arrayBuffer());
   } catch {
     return null;
@@ -511,7 +529,7 @@ async function embedSignatureOnField(pdfDoc, form, fieldName, signatureDataUrl, 
   }
   let image;
   try {
-    image = signatureDataUrl.includes('image/jpeg') || signatureDataUrl.includes('image/jpg')
+    image = isJpegSignature(signatureDataUrl)
       ? await pdfDoc.embedJpg(bytes)
       : await pdfDoc.embedPng(bytes);
   } catch {
@@ -627,7 +645,7 @@ async function stampOverlay(pdfDoc, {
     const bytes = await dataUrlToBytes(signatureDataUrl);
     if (bytes) {
       try {
-        const image = signatureDataUrl.includes('image/jpeg')
+        const image = isJpegSignature(signatureDataUrl)
           ? await pdfDoc.embedJpg(bytes)
           : await pdfDoc.embedPng(bytes);
         page.drawText(signatureLabel, {

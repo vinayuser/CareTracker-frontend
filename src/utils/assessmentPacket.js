@@ -466,6 +466,84 @@ export function syncClinicalFromPacket(formData = {}) {
   };
 }
 
+function clientIdentityFromForms(forms = {}, formData = {}) {
+  const f110 = forms['110'] || {};
+  const ci = formData.clientInfo || {};
+  const contact = formData.contactInfo || {};
+  const emergency = formData.emergencyInfo || {};
+  const physician = formData.physicianInfo || {};
+  const firstName = String(f110.firstName || ci.firstName || '').trim();
+  const lastName = String(f110.lastName || ci.lastName || '').trim();
+  const clientName = [firstName, lastName].filter(Boolean).join(' ')
+    || String(f110.clientName || ci.clientName || '').trim();
+  const nameParts = clientName.split(/\s+/).filter(Boolean);
+  return {
+    firstName: firstName || nameParts[0] || '',
+    lastName: lastName || nameParts.slice(1).join(' ') || '',
+    clientName,
+    dob: f110.dob || ci.dob || '',
+    address: f110.address || contact.homeAddress || '',
+    phone: f110.phone || contact.homePhone || '',
+    cellPhone: f110.cellPhone || contact.mobile || '',
+    email: f110.email || contact.email || '',
+    emergencyContact: f110.emergencyContact || emergency.primaryName || '',
+    emergencyPhone: f110.emergencyPhone || emergency.primaryPhone || '',
+    emergencyRelationship: f110.emergencyRelationship || emergency.primaryRelationship || '',
+    physician: f110.primaryCarePhysician || physician.primaryPhysician || '',
+    physicianPhone: f110.pcpPhone || physician.primaryPhysicianPhone || '',
+    pharmacy: f110.pharmacy || physician.pharmacy || '',
+  };
+}
+
+function fillBlank(target, key, value) {
+  if (!value || !isBlank(target[key])) return;
+  target[key] = value;
+}
+
+/** Copy client identity from form 110 into blank fields on another packet form. */
+export function prefillPacketFormFromClient(code, forms = {}, extras = {}) {
+  const empty = buildEmptyPacketForm(code);
+  const current = { ...empty, ...(forms[code] || {}) };
+  const src = clientIdentityFromForms(forms, extras.formData || {});
+  const shared = {
+    clientName: src.clientName,
+    firstName: src.firstName,
+    lastName: src.lastName,
+    dob: src.dob,
+    clientDob: src.dob,
+    address: src.address,
+    phone: src.phone,
+    telephone: src.phone,
+    cell: src.cellPhone,
+    cellPhone: src.cellPhone,
+    email: src.email,
+    emergencyContact: src.emergencyContact,
+    emergencyPhone: src.emergencyPhone,
+    emergencyRelationship: src.emergencyRelationship,
+    printName: src.clientName,
+  };
+  Object.entries(shared).forEach(([key, value]) => {
+    if (Object.prototype.hasOwnProperty.call(empty, key)) fillBlank(current, key, value);
+  });
+  if (code === '7050') {
+    fillBlank(current, 'date', extras.assessmentDate || '');
+    fillBlank(current, 'performedBy', extras.assessorName || '');
+  }
+  if (code === '7000') {
+    fillBlank(current, 'date', extras.assessmentDate || '');
+    const physicians = Array.from({ length: 3 }, (_, i) => ({
+      name: '',
+      phone: '',
+      ...(current.physicians?.[i] || {}),
+    }));
+    if (!physicians[0].name && src.physician) physicians[0].name = src.physician;
+    if (!physicians[0].phone && src.physicianPhone) physicians[0].phone = src.physicianPhone;
+    current.physicians = physicians;
+    fillBlank(current, 'pharmacy', src.pharmacy);
+  }
+  return current;
+}
+
 export function getPacketFormMeta(code) {
   return ASSESSMENT_PACKET_FORMS.find((f) => f.code === code) || null;
 }

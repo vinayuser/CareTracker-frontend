@@ -1,4 +1,5 @@
 import { formatAgencyStreetLine } from '../../../../utils/agencyBranding';
+import { isSignatureImage, signatureImageSrc } from '../../../../utils/assessmentSignatures';
 import {
   agencyDisplayName,
   getForm324Copy,
@@ -50,12 +51,16 @@ function wrapAddressToLines(value, maxLines = 3, maxChars = 36) {
   return lines;
 }
 
+function SignatureImg({ value }) {
+  if (!isSignatureImage(value)) return null;
+  return <img src={signatureImageSrc(value)} alt="" />;
+}
+
 function Sig({ label, sig = {} }) {
-  const isImage = sig.signature?.startsWith?.('data:image');
   return (
     <div className="al-sig">
       <div className="al-sig-line">
-        {isImage ? <img src={sig.signature} alt="" /> : null}
+        <SignatureImg value={sig.signature} />
       </div>
       <div className="al-sig-label">{label}</div>
       {sig.printedName || sig.date ? (
@@ -445,9 +450,7 @@ function Form1081Print({ data = {}, agencyBranding = {} }) {
         <div className="al-sig-split">
           <div className="al-sig-split-main">
             <div className="al-sig-line">
-              {d.client?.signature?.startsWith?.('data:image')
-                ? <img src={d.client.signature} alt="" />
-                : null}
+              <SignatureImg value={d.client?.signature} />
             </div>
             <div className="al-sig-split-labels">
               <span>Signature of Person Giving Consent</span>
@@ -603,9 +606,7 @@ function Form1083Print({ data = {}, agencyBranding = {} }) {
         <div className="al-sig-split">
           <div className="al-sig-split-main">
             <div className="al-sig-line">
-              {d.client?.signature?.startsWith?.('data:image')
-                ? <img src={d.client.signature} alt="" />
-                : null}
+              <SignatureImg value={d.client?.signature} />
             </div>
             <div className="al-sig-split-labels">
               <span>Signature of Client or Legal Representative</span>
@@ -629,9 +630,7 @@ function Form1083Print({ data = {}, agencyBranding = {} }) {
         <div className="al-sig-split">
           <div className="al-sig-split-main">
             <div className="al-sig-line">
-              {d.agency?.signature?.startsWith?.('data:image')
-                ? <img src={d.agency.signature} alt="" />
-                : null}
+              <SignatureImg value={d.agency?.signature} />
             </div>
             <div className="al-sig-split-labels">
               <span>Signature of {name} Representative</span>
@@ -781,9 +780,7 @@ export function AssessmentLegalFormPrintView({
           <div className="al-sigs al-sigs-610">
             <div className="al-sig">
               <div className="al-sig-line">
-                {client.signature?.startsWith?.('data:image')
-                  ? <img src={client.signature} alt="" />
-                  : null}
+                <SignatureImg value={client.signature} />
               </div>
               <div className="al-sig-label">Client/Legal Representative Signature</div>
             </div>

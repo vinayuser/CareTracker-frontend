@@ -4,6 +4,7 @@ import {
   SAFETY_ITEMS,
 } from '../../../../utils/assessmentPacket';
 import { formatAgencyStreetLine } from '../../../../utils/agencyBranding';
+import { isSignatureImage, signatureImageSrc } from '../../../../utils/assessmentSignatures';
 import '../assessmentPrint.css';
 
 const CARE_GROUP_TITLES = {
@@ -72,12 +73,12 @@ function Section({ title, children }) {
 }
 
 function SigBlock({ label, sig = {} }) {
-  const isImage = sig.signature?.startsWith?.('data:image');
+  const isImage = isSignatureImage(sig.signature);
   return (
     <div className="ap-sig-block">
       <div className="ap-sig-label">{label}</div>
       {isImage ? (
-        <div className="ap-sig-img"><img src={sig.signature} alt={label} /></div>
+        <div className="ap-sig-img"><img src={signatureImageSrc(sig.signature)} alt={label} /></div>
       ) : (
         <div className="ap-sig-line" />
       )}
