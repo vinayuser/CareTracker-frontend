@@ -53,6 +53,7 @@ export const ADMIN_NAV_GROUPS = [
   {
     title: 'Platform',
     items: [
+      { key: 'ADMIN_TIME_CARD', label: 'Time Card', icon: 'Clock' },
       { key: 'ADMIN_REPORTS', label: 'Reports', icon: 'BarChart3' },
       { key: 'ADMIN_AUDIT_LOGS', label: 'Audit Logs', icon: 'FileText' },
       { key: 'ADMIN_INTEGRATIONS', label: 'Integrations', icon: 'Puzzle' },
@@ -119,6 +120,10 @@ export const ADMIN_MODULE_META = {
   'crm': {
     title: 'CRM',
     description: 'Leads, agency prospects, and relationship management.',
+  },
+  'time-card': {
+    title: 'Time Card',
+    description: 'View and manage caregiver time logs and pay rates by agency.',
   },
   'integrations': {
     title: 'Integrations',

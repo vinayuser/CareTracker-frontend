@@ -72,6 +72,16 @@ const API_ROUTES = {
       LIST: '/admin/billing-claims',
       DETAIL: (id) => `/admin/billing-claims/${id}`,
     },
+    REPORTS: {
+      EVV_SUMMARY: '/admin/reports/evv-summary',
+      EVV_SUMMARY_EXPORT: '/admin/reports/evv-summary/export',
+    },
+    TIME_CARD: {
+      OPTIONS: '/admin/time-cards/options',
+      LIST: '/admin/time-cards',
+      EXPORT: '/admin/time-cards/export',
+      DETAIL: (id) => `/admin/time-cards/${id}`,
+    },
     FINANCE: {
       STATS: '/admin/finance/stats',
       LIST: '/admin/finance',

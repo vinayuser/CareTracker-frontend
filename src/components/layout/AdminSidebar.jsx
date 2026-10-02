@@ -31,6 +31,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleCheck,
+  Clock,
 } from 'lucide-react';
 import CareTrackerLogo from '../brand/CareTrackerLogo';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
@@ -67,6 +68,7 @@ const iconMap = {
   Newspaper,
   Settings,
   Archive,
+  Clock,
 };
 
 function NavGroup({ item, collapsed }) {

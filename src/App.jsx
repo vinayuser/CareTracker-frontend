@@ -28,6 +28,7 @@ import AdminSchedules from './pages/admin/Schedules';
 import AdminEvvCompliance from './pages/admin/EvvCompliance';
 import BillingClaims from './pages/admin/BillingClaims';
 import Finance from './pages/admin/Finance';
+import TimeCard from './pages/admin/TimeCard';
 import EmailCampaigns from './pages/admin/email/EmailCampaigns';
 import CampaignWizard from './pages/admin/email/CampaignWizard';
 import CampaignDetail from './pages/admin/email/CampaignDetail';
@@ -216,6 +217,7 @@ export default function App() {
               <Route path={ROUTES.ADMIN_MEDICAID} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_BILLING_CLAIMS} element={<BillingClaims />} />
               <Route path={ROUTES.ADMIN_FINANCE} element={<Finance />} />
+              <Route path={ROUTES.ADMIN_TIME_CARD} element={<TimeCard />} />
               <Route path={ROUTES.ADMIN_PAYMENTS} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_SOCIAL} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_MARKETING} element={<Navigate to={ROUTES.ADMIN_EMAIL_CAMPAIGNS} replace />} />

@@ -51,6 +51,7 @@ export const ROUTES = {
   ADMIN_EMAIL_SETTINGS: '/admin/marketing/settings',
   ADMIN_REFERRALS: '/admin/referrals',
   ADMIN_CRM: '/admin/crm',
+  ADMIN_TIME_CARD: '/admin/time-card',
   ADMIN_REPORTS: '/admin/reports',
   ADMIN_AUDIT_LOGS: '/admin/audit-logs',
   ADMIN_INTEGRATIONS: '/admin/integrations',
