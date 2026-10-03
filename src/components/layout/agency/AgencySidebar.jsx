@@ -70,10 +70,10 @@ const iconMap = {
   ShieldCheck,
 };
 
-function canShowEvvGroup(item, role) {
+function canShowNavGroup(item, role) {
   if (isAgencyOwner(role)) return true;
   const allowed = new Set(getHrModuleAccess());
-  return (item.moduleKeys || []).some((key) => allowed.has(key));
+  return (item.moduleKeys || item.children?.map((c) => c.key) || []).some((key) => allowed.has(key));
 }
 
 function canShowChild(key, role) {
@@ -82,10 +82,12 @@ function canShowChild(key, role) {
 }
 
 function NavItem({ item, collapsed }) {
+  const path = ROUTES[item.key];
+  if (!path) return null;
   const Icon = iconMap[item.icon] ?? Home;
   return (
     <NavLink
-      to={ROUTES[item.key]}
+      to={path}
       end={item.key === 'AGENCY_DASHBOARD'}
       title={collapsed ? item.label : undefined}
       className={({ isActive }) =>
@@ -108,31 +110,33 @@ function NavItem({ item, collapsed }) {
   );
 }
 
-function EvvNavGroup({ item, collapsed }) {
+function NestedNavGroup({ item, collapsed }) {
   const location = useLocation();
   const role = getUserRole();
-  const childRoutes = (item.children || [])
-    .filter((child) => canShowChild(child.key, role))
-    .map((child) => ROUTES[child.key]);
-  const isEvvActive = childRoutes.some((path) => {
+  const visibleChildren = (item.children || []).filter((child) => canShowChild(child.key, role));
+  const childRoutes = visibleChildren.map((child) => ROUTES[child.key]).filter(Boolean);
+  const fallbackPath = childRoutes[0] || ROUTES.AGENCY_DASHBOARD;
+  const isGroupActive = childRoutes.some((path) => {
     const base = path.split('/:')[0];
     return location.pathname === base || location.pathname.startsWith(`${base}/`);
   });
-  const [open, setOpen] = useState(isEvvActive);
+  const [open, setOpen] = useState(isGroupActive);
   const Icon = iconMap[item.icon] ?? ShieldCheck;
 
   useEffect(() => {
-    if (isEvvActive) setOpen(true);
-  }, [isEvvActive]);
+    if (isGroupActive) setOpen(true);
+  }, [isGroupActive]);
+
+  if (!visibleChildren.length) return null;
 
   if (collapsed) {
     return (
       <NavLink
-        to={ROUTES.AGENCY_EVV_DASHBOARD}
+        to={fallbackPath}
         title={item.label}
         className={({ isActive }) =>
           `flex items-center justify-center rounded-lg px-0 py-2 text-[13px] font-medium transition-colors ${
-            isActive || isEvvActive ? 'bg-[#0055d4] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'
+            isActive || isGroupActive ? 'bg-[#0055d4] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'
           }`
         }
       >
@@ -147,7 +151,7 @@ function EvvNavGroup({ item, collapsed }) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors ${
-          isEvvActive ? 'bg-[#0055d4]/10 text-[#0055d4]' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+          isGroupActive ? 'bg-[#0055d4]/10 text-[#0055d4]' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
         }`}
       >
         <Icon size={17} className="shrink-0" />
@@ -161,12 +165,13 @@ function EvvNavGroup({ item, collapsed }) {
       </button>
       {open && (
         <div className="ml-3 mt-0.5 space-y-0.5 border-l border-gray-200 pl-2">
-          {(item.children || [])
-            .filter((child) => canShowChild(child.key, role))
-            .map((child) => (
+          {visibleChildren.map((child) => {
+            const path = ROUTES[child.key];
+            if (!path) return null;
+            return (
               <NavLink
                 key={child.key}
-                to={ROUTES[child.key]}
+                to={path}
                 className={({ isActive }) =>
                   `block rounded-lg px-3 py-2 text-[12px] font-medium transition-colors ${
                     isActive
@@ -177,7 +182,8 @@ function EvvNavGroup({ item, collapsed }) {
               >
                 {child.label}
               </NavLink>
-            ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -223,8 +229,8 @@ export default function AgencySidebar({ collapsed }) {
             <div className={`space-y-0.5 ${collapsed ? 'px-1.5' : 'px-2'}`}>
               {group.items.map((item) => {
                 if (item.children?.length) {
-                  if (!canShowEvvGroup(item, role)) return null;
-                  return <EvvNavGroup key={item.key} item={item} collapsed={collapsed} />;
+                  if (!canShowNavGroup(item, role)) return null;
+                  return <NestedNavGroup key={item.key} item={item} collapsed={collapsed} />;
                 }
                 return <NavItem key={item.key} item={item} collapsed={collapsed} />;
               })}

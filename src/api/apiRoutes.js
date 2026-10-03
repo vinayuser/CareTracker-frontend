@@ -225,6 +225,17 @@ const API_ROUTES = {
       PAID: '/agency/invoices',
       VOID: '/agency/invoices',
     },
+    REPORTS: {
+      EVV_SUMMARY: '/agency/reports/evv-summary',
+      EVV_SUMMARY_EXPORT: '/agency/reports/evv-summary/export',
+      EVV_SUMMARY_OPTIONS: '/agency/reports/evv-summary/options',
+    },
+    TIME_CARD: {
+      OPTIONS: '/agency/time-cards/options',
+      LIST: '/agency/time-cards',
+      EXPORT: '/agency/time-cards/export',
+      DETAIL: (id) => `/agency/time-cards/${id}`,
+    },
   },
   CAREGIVER: {
     DASHBOARD: '/caregiver/dashboard',

@@ -41,9 +41,19 @@ export const AGENCY_NAV_GROUPS = [
     ],
   },
   {
-    title: 'Billing',
+    title: 'Billing & Reports',
     items: [
       { key: 'AGENCY_BILLING', label: 'Invoices', icon: 'Receipt' },
+      {
+        key: 'AGENCY_REPORTS_GROUP',
+        label: 'Reports',
+        icon: 'BarChart3',
+        moduleKeys: ['AGENCY_REPORTS', 'AGENCY_TIME_CARD'],
+        children: [
+          { key: 'AGENCY_REPORTS', label: 'EVV Summary' },
+          { key: 'AGENCY_TIME_CARD', label: 'Time Card' },
+        ],
+      },
     ],
   },
   {

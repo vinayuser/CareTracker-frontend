@@ -109,6 +109,7 @@ export const ROUTES = {
   AGENCY_TASKS: '/agency/tasks',
   AGENCY_INCIDENTS: '/agency/incidents',
   AGENCY_REPORTS: '/agency/reports',
+  AGENCY_TIME_CARD: '/agency/time-card',
   AGENCY_USERS: '/agency/users',
   AGENCY_ROLES: '/agency/roles',
   AGENCY_SETTINGS: '/agency/settings',

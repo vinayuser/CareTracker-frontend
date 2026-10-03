@@ -81,6 +81,8 @@ import EvvExceptions from './pages/agency/evv/EvvExceptions';
 import EvvUnverified from './pages/agency/evv/EvvUnverified';
 import EvvSettings from './pages/agency/evv/EvvSettings';
 import ClientInvoices from './pages/agency/billing/ClientInvoices';
+import AgencyEvvSummaryReport from './pages/agency/reports/EvvSummaryReport';
+import AgencyTimeCard from './pages/agency/reports/TimeCard';
 import CaregiverDashboard from './pages/caregiver/Dashboard';
 import CaregiverJobs from './pages/caregiver/Jobs';
 import CaregiverVisitLogs from './pages/caregiver/VisitLogs';
@@ -298,7 +300,8 @@ export default function App() {
               <Route path={ROUTES.AGENCY_CAREGIVER_MATCHING} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_TASKS} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_INCIDENTS} element={<AgencyModulePage />} />
-              <Route path={ROUTES.AGENCY_REPORTS} element={<AgencyModulePage />} />
+              <Route path={ROUTES.AGENCY_REPORTS} element={<AgencyEvvSummaryReport />} />
+              <Route path={ROUTES.AGENCY_TIME_CARD} element={<AgencyTimeCard />} />
               <Route path={ROUTES.AGENCY_USERS} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_ROLES} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_SETTINGS} element={<AgencySettings />} />
