@@ -43,9 +43,12 @@ export default function Invitations() {
   };
 
   const handleDelete = async (invitation) => {
+    const isAccepted = invitation.status === 'Accepted';
     const confirmed = await confirmAlert({
       title: 'Delete invitation?',
-      text: `Remove the invite for ${invitation.agencyName} (${invitation.email})? The link will no longer work.`,
+      text: isAccepted
+        ? `Remove the invitation record for ${invitation.agencyName} (${invitation.email})? The agency account is not deleted — only this invite row is removed.`
+        : `Remove the invite for ${invitation.agencyName} (${invitation.email})? The link will no longer work.`,
       confirmText: 'Delete',
       danger: true,
     });
@@ -157,17 +160,15 @@ export default function Invitations() {
                         {inv.status === 'Accepted' && (
                           <span className="text-sm text-success">Registered</span>
                         )}
-                        {inv.status !== 'Accepted' && (
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(inv)}
-                            className="flex items-center gap-1 text-sm font-medium text-danger hover:underline"
-                            title="Delete invitation"
-                          >
-                            <Trash2 size={14} />
-                            Delete
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(inv)}
+                          className="flex items-center gap-1 text-sm font-medium text-danger hover:underline"
+                          title="Delete invitation"
+                        >
+                          <Trash2 size={14} />
+                          Delete
+                        </button>
                       </div>
                     </td>
                   </tr>

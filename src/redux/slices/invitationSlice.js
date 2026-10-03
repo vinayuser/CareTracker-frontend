@@ -63,7 +63,7 @@ export const deleteInvitation = createAsyncThunk(
     try {
       const response = await axiosInstance.delete(`${API_ROUTES.ADMIN.INVITATION.DELETE}/${id}`);
       toast.success('Invitation deleted successfully');
-      return response.data.data;
+      return { id: String(id), ...(response.data?.data || {}) };
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to delete invitation');
       return rejectWithValue(error.response?.data || error.message);
