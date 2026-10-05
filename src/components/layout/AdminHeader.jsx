@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Bell,
   CheckSquare,
   ChevronDown,
   MessageSquare,
@@ -11,6 +10,7 @@ import {
   Shield,
 } from 'lucide-react';
 import UserMenuDropdown from './UserMenuDropdown';
+import NotificationBell from '../notifications/NotificationBell';
 import { ADMIN_NAV_ITEMS } from '../../routes/adminNav';
 import { ROUTES } from '../../routes/routes';
 
@@ -153,12 +153,7 @@ export default function AdminHeader({ collapsed, onToggleSidebar }) {
           )}
         </div>
 
-        <button type="button" className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800" title="Notifications">
-          <Bell size={18} />
-          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
-            12
-          </span>
-        </button>
+        <NotificationBell />
         <button type="button" className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800" title="Messages">
           <MessageSquare size={18} />
           <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-white">

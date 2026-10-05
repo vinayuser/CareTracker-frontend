@@ -6,6 +6,13 @@ const API_ROUTES = {
   UPDATE_PROFILE: '/auth/me',
   CHANGE_PASSWORD: '/auth/password',
 
+  NOTIFICATIONS: {
+    LIST: '/notifications',
+    UNREAD_COUNT: '/notifications/unread-count',
+    MARK_READ: (id) => `/notifications/${id}/read`,
+    MARK_ALL_READ: '/notifications/read-all',
+  },
+
   ADMIN: {
     DASHBOARD: '/admin/dashboard',
     AGENCY: {

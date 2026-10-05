@@ -1,4 +1,5 @@
-import { Menu, Bell, Mail } from 'lucide-react';
+import { Menu, Mail } from 'lucide-react';
+import NotificationBell from '../../notifications/NotificationBell';
 import { Link, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { ROUTES } from '../../../routes/routes';
@@ -17,7 +18,6 @@ export default function ClientHeader({ title, onMenuClick }) {
   const dashboard = useSelector((s) => s.clientPortal.dashboard);
   const name = dashboard?.client?.preferredName || dashboard?.client?.fullName || 'Client';
   const messages = Number(dashboard?.unreadMessages || 0);
-  const alerts = Number(dashboard?.unreadAlerts || 0);
 
   return (
     <header className="flex min-h-[72px] shrink-0 items-center gap-3 border-b border-gray-200 bg-white px-4 lg:px-6">
@@ -45,14 +45,7 @@ export default function ClientHeader({ title, onMenuClick }) {
             </span>
           )}
         </Link>
-        <button type="button" className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100">
-          <Bell size={18} strokeWidth={1.75} />
-          {alerts > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-              {alerts}
-            </span>
-          )}
-        </button>
+        <NotificationBell />
         <UserMenuDropdown subtitle="Client Portal" showName />
       </div>
     </header>

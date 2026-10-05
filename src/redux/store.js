@@ -20,6 +20,7 @@ import invoicesReducer from './slices/invoicesSlice';
 import dashboardsReducer from './slices/dashboardsSlice';
 import adminTeamReducer from './slices/adminTeamSlice';
 import clientPortalReducer from './slices/clientPortalSlice';
+import notificationsReducer from './slices/notificationsSlice';
 
 const store = configureStore({
   reducer: {
@@ -44,6 +45,7 @@ const store = configureStore({
     dashboards: dashboardsReducer,
     adminTeam: adminTeamReducer,
     clientPortal: clientPortalReducer,
+    notifications: notificationsReducer,
   },
 });
 

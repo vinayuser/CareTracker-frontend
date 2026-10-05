@@ -1,4 +1,5 @@
-import { Menu, Search, Mail, Bell } from 'lucide-react';
+import { Menu, Search, Mail } from 'lucide-react';
+import NotificationBell from '../../notifications/NotificationBell';
 import { useSelector } from 'react-redux';
 import { getAuthUser } from '../../../utils/auth';
 import { ROLE_LABELS, normalizeRole } from '../../../constants/roles';
@@ -39,12 +40,7 @@ export default function AgencyHeader({ onToggleSidebar, title = 'Dashboard' }) {
             6
           </span>
         </button>
-        <button type="button" className="relative rounded-lg p-2.5 text-gray-500 hover:bg-gray-100">
-          <Bell size={18} />
-          <span className="absolute right-1.5 top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-            12
-          </span>
-        </button>
+        <NotificationBell className="[&_button]:p-2.5" />
 
         <div className="ml-1 border-l border-gray-200 pl-3 sm:ml-2 sm:pl-4">
           <UserMenuDropdown subtitle={`${agencyName} · ${roleLabel}`} />

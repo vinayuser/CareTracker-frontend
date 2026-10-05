@@ -1,7 +1,8 @@
-import { Menu, Bell, MessageSquare } from 'lucide-react';
+import { Menu, MessageSquare } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { ROUTES } from '../../../routes/routes';
 import UserMenuDropdown from '../UserMenuDropdown';
+import NotificationBell from '../../notifications/NotificationBell';
 
 export default function CaregiverHeader({ title, onMenuClick }) {
   const { pathname } = useLocation();
@@ -18,10 +19,7 @@ export default function CaregiverHeader({ title, onMenuClick }) {
           <MessageSquare size={18} />
           <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
         </button>
-        <button type="button" className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100">
-          <Bell size={18} />
-          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-500" />
-        </button>
+        <NotificationBell />
         <UserMenuDropdown subtitle="Caregiver" />
       </div>
     </header>
