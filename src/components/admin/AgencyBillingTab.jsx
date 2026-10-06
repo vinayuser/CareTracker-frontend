@@ -11,10 +11,12 @@ import {
   Settings,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import axiosInstance from '../../api/axiosInstance';
 import API_ROUTES from '../../api/apiRoutes';
 import { formatPrice, formatBillingCycle, isUnlimited } from '../../utils/subscriptionStore';
 import { ROUTES } from '../../routes/routes';
+import { downloadSubscriptionInvoicePdf } from '../../utils/subscriptionInvoicePdf';
 
 function formatLongDate(value) {
   if (!value) return '—';
@@ -143,6 +145,7 @@ export default function AgencyBillingTab({ agencyId, onManageSubscription }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [billing, setBilling] = useState(EMPTY_BILLING);
+  const [downloadingId, setDownloadingId] = useState('');
 
   useEffect(() => {
     if (!agencyId) return undefined;
@@ -185,6 +188,27 @@ export default function AgencyBillingTab({ agencyId, onManageSubscription }) {
   const usage = billing.usage;
   const taxPercent = Number(summary.taxRate || 0) * 100;
   const taxLabel = taxPercent > 0 ? `Tax (${taxPercent.toFixed(2).replace(/\.00$/, '')}%)` : 'Tax';
+  const nextDueDate = subscription.nextDueDate || subscription.nextRenewalDate || summary.nextDueDate;
+
+  const handleDownloadInvoice = async (invoice) => {
+    setDownloadingId(invoice.id);
+    try {
+      await downloadSubscriptionInvoicePdf({
+        ...invoice,
+        agencyName: invoice.agencyName || billing.agency?.name,
+        agencyEmail: invoice.agencyEmail || billing.agency?.email,
+        agencyPhone: invoice.agencyPhone || billing.agency?.phone,
+        agencyAddress: invoice.agencyAddress || billing.agency?.address,
+        agencyCity: invoice.agencyCity || billing.agency?.city,
+        agencyState: invoice.agencyState || billing.agency?.state,
+      });
+      toast.success(`Downloaded ${invoice.invoiceCode}.pdf`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to download invoice PDF');
+    } finally {
+      setDownloadingId('');
+    }
+  };
 
   if (loading) {
     return (
@@ -260,11 +284,11 @@ export default function AgencyBillingTab({ agencyId, onManageSubscription }) {
                 <p className="mt-1 text-sm font-bold text-slate-900">{formatLongDate(subscription.startDate)}</p>
               </div>
               <div>
-                <p className="text-[11px] font-medium text-slate-400">Next Renewal Date</p>
+                <p className="text-[11px] font-medium text-slate-400">Next Due Date</p>
                 <p className="mt-1 text-sm font-bold text-slate-900">
-                  {subscription.nextRenewalDate ? formatLongDate(subscription.nextRenewalDate) : '—'}
+                  {nextDueDate ? formatLongDate(nextDueDate) : '—'}
                 </p>
-                {subscription.daysLeft != null && subscription.nextRenewalDate ? (
+                {subscription.daysLeft != null && nextDueDate ? (
                   <p className="mt-0.5 text-[11px] font-semibold text-emerald-600">
                     {subscription.daysLeft} day{subscription.daysLeft === 1 ? '' : 's'} left
                   </p>
@@ -347,6 +371,12 @@ export default function AgencyBillingTab({ agencyId, onManageSubscription }) {
               <p className="mt-1 text-3xl font-bold text-primary">
                 {plan ? formatPrice(summary.total) : '—'}
               </p>
+              <p className="mt-2 text-xs text-slate-500">
+                Next due date:{' '}
+                <span className="font-semibold text-slate-800">
+                  {nextDueDate ? formatLongDate(nextDueDate) : '—'}
+                </span>
+              </p>
             </div>
 
             <button
@@ -413,9 +443,16 @@ export default function AgencyBillingTab({ agencyId, onManageSubscription }) {
                       <td className="px-4 py-3"><StatusPill status={invoice.status} /></td>
                       <td className="px-4 py-3 text-slate-600">{formatLongDate(invoice.dueDate)}</td>
                       <td className="px-4 py-3 text-right">
-                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400">
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadInvoice(invoice)}
+                          disabled={downloadingId === invoice.id}
+                          className="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-primary hover:bg-primary/5 disabled:opacity-50"
+                          title="Download PDF invoice"
+                        >
                           <Download size={15} />
-                        </span>
+                          {downloadingId === invoice.id ? '…' : 'PDF'}
+                        </button>
                       </td>
                     </tr>
                   ))}

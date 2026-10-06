@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
@@ -17,49 +17,123 @@ import {
 } from '../../utils/invitationStore';
 import { clearRegistrationData, getRegistrationData } from '../../utils/registrationStore';
 import PlanLimitsDisplay from '../../components/ui/PlanLimitsDisplay';
+import {
+  formatCardNumber,
+  formatCvv,
+  formatExpiry,
+  validatePaymentCard,
+} from '../../utils/cardValidation';
 
 const inputClass =
   'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
-
+const inputErrorClass =
+  'w-full rounded-lg border border-red-400 px-3 py-2 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200';
 const labelClass = 'mb-1.5 block text-sm font-medium text-gray-700';
+const errorClass = 'mt-1 text-xs text-red-600';
+
+const fieldClass = (hasError) => (hasError ? inputErrorClass : inputClass);
 
 export default function RegistrationConfirmation() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const inviteSession = getInviteSession();
-  const registrationData = getRegistrationData();
+  const plansFetchedRef = useRef(false);
+
+  const inviteSession = useMemo(() => getInviteSession(), []);
+  const registrationData = useMemo(() => getRegistrationData(), []);
+  const inviteToken = inviteSession?.token || '';
+  const invitePlanId = inviteSession?.subscriptionPlanId || '';
 
   const [plan, setPlan] = useState(null);
   const [paymentData, setPaymentData] = useState({
     cardNumber: '',
     expiry: '',
     cvv: '',
-    nameOnCard: registrationData.fullName,
+    nameOnCard: registrationData.fullName || '',
   });
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
   const [loading, setLoading] = useState(false);
   const [completed, setCompleted] = useState(false);
 
   useEffect(() => {
-    if (!inviteSession) {
+    if (!inviteToken) {
       navigate(ROUTES.LOGIN, { replace: true });
       return;
     }
 
+    if (plansFetchedRef.current) return;
+    plansFetchedRef.current = true;
+
     const invitePlan = getInvitePlan();
     if (invitePlan) {
       setPlan(invitePlan);
-    } else {
-      dispatch(fetchActivePlans()).then((action) => {
-        const plans = action.payload;
-        if (Array.isArray(plans) && plans.length > 0) setPlan(plans[0]);
-      });
+      return;
     }
-  }, [dispatch, inviteSession, navigate]);
+
+    dispatch(fetchActivePlans()).then((action) => {
+      const plans = action.payload;
+      if (!Array.isArray(plans) || plans.length === 0) return;
+      const matched = invitePlanId
+        ? plans.find((p) => String(p.id) === String(invitePlanId))
+        : null;
+      setPlan(matched || plans[0]);
+    });
+  }, [dispatch, inviteToken, invitePlanId, navigate]);
+
+  const updateField = (field, value) => {
+    setPaymentData((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const markTouched = (field) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
+  const validateField = (field, data = paymentData) => {
+    const result = validatePaymentCard(data);
+    return result.errors[field] || '';
+  };
+
+  const handleBlur = (field) => {
+    markTouched(field);
+    const message = validateField(field);
+    setErrors((prev) => {
+      if (!message) {
+        if (!prev[field]) return prev;
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      }
+      return { ...prev, [field]: message };
+    });
+  };
 
   const handlePayment = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    if (!plan?.id) {
+      toast.error('Subscription plan is still loading. Please wait.');
+      return;
+    }
 
+    const result = validatePaymentCard(paymentData);
+    setTouched({
+      nameOnCard: true,
+      cardNumber: true,
+      expiry: true,
+      cvv: true,
+    });
+    setErrors(result.errors);
+    if (!result.valid) {
+      toast.error('Please fix the payment details before continuing.');
+      return;
+    }
+
+    setLoading(true);
     try {
       const payment = await dispatch(
         processRegistrationPayment({
@@ -71,7 +145,7 @@ export default function RegistrationConfirmation() {
       await dispatch(
         submitRegistration({
           planId: plan.id,
-          invitationToken: inviteSession?.token,
+          invitationToken: inviteToken,
           transactionId: payment?.transactionId,
           amount: payment?.amount ?? plan.price,
           paymentMethod: payment?.paymentMethod || undefined,
@@ -79,8 +153,8 @@ export default function RegistrationConfirmation() {
         }),
       ).unwrap();
 
-      if (inviteSession?.token) {
-        markInvitationAccepted(inviteSession.token);
+      if (inviteToken) {
+        markInvitationAccepted(inviteToken);
       }
 
       clearInviteSession();
@@ -143,7 +217,7 @@ export default function RegistrationConfirmation() {
                 <p className="mt-3 text-sm text-gray-600">{plan.description}</p>
                 <PlanLimitsDisplay limits={plan.limits} />
                 <ul className="mt-4 space-y-2">
-                  {plan.features.map((feature) => (
+                  {(plan.features || []).map((feature) => (
                     <li key={feature} className="flex items-center gap-2 text-sm text-gray-600">
                       <CheckCircle2 size={14} className="text-success" />
                       {feature}
@@ -159,6 +233,9 @@ export default function RegistrationConfirmation() {
           <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
             <p className="font-medium text-gray-900">{registrationData.agencyName}</p>
             <p className="mt-1">{registrationData.email}</p>
+            {registrationData.userId ? (
+              <p className="mt-1">Username: {registrationData.userId}</p>
+            ) : null}
             <p className="mt-1">{registrationData.fullName}</p>
           </div>
         </div>
@@ -167,6 +244,7 @@ export default function RegistrationConfirmation() {
           <form
             onSubmit={handlePayment}
             className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+            noValidate
           >
             <div className="mb-4 flex items-center gap-2">
               <CreditCard size={18} className="text-gray-500" />
@@ -176,52 +254,77 @@ export default function RegistrationConfirmation() {
 
             <div className="space-y-4">
               <div>
-                <label className={labelClass}>Name on Card *</label>
+                <label className={labelClass} htmlFor="nameOnCard">Name on Card *</label>
                 <input
+                  id="nameOnCard"
                   type="text"
-                  required
+                  autoComplete="cc-name"
                   value={paymentData.nameOnCard}
-                  onChange={(e) => setPaymentData({ ...paymentData, nameOnCard: e.target.value })}
+                  onChange={(e) => updateField('nameOnCard', e.target.value)}
+                  onBlur={() => handleBlur('nameOnCard')}
                   placeholder="John Doe"
-                  className={inputClass}
+                  className={fieldClass(touched.nameOnCard && errors.nameOnCard)}
                 />
+                {touched.nameOnCard && errors.nameOnCard ? (
+                  <p className={errorClass}>{errors.nameOnCard}</p>
+                ) : null}
               </div>
               <div>
-                <label className={labelClass}>Card Number *</label>
+                <label className={labelClass} htmlFor="cardNumber">Card Number *</label>
                 <input
+                  id="cardNumber"
                   type="text"
-                  required
+                  inputMode="numeric"
+                  autoComplete="cc-number"
                   maxLength={19}
                   value={paymentData.cardNumber}
-                  onChange={(e) => setPaymentData({ ...paymentData, cardNumber: e.target.value })}
+                  onChange={(e) => updateField('cardNumber', formatCardNumber(e.target.value))}
+                  onBlur={() => handleBlur('cardNumber')}
                   placeholder="1234 5678 9012 3456"
-                  className={inputClass}
+                  className={fieldClass(touched.cardNumber && errors.cardNumber)}
                 />
+                {touched.cardNumber && errors.cardNumber ? (
+                  <p className={errorClass}>{errors.cardNumber}</p>
+                ) : (
+                  <p className="mt-1 text-xs text-gray-400">13–16 digits. Test: 4242 4242 4242 4242</p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={labelClass}>Expiry Date *</label>
+                  <label className={labelClass} htmlFor="expiry">Expiry Date *</label>
                   <input
+                    id="expiry"
                     type="text"
-                    required
+                    inputMode="numeric"
+                    autoComplete="cc-exp"
                     maxLength={5}
                     value={paymentData.expiry}
-                    onChange={(e) => setPaymentData({ ...paymentData, expiry: e.target.value })}
+                    onChange={(e) => updateField('expiry', formatExpiry(e.target.value))}
+                    onBlur={() => handleBlur('expiry')}
                     placeholder="MM/YY"
-                    className={inputClass}
+                    className={fieldClass(touched.expiry && errors.expiry)}
                   />
+                  {touched.expiry && errors.expiry ? (
+                    <p className={errorClass}>{errors.expiry}</p>
+                  ) : null}
                 </div>
                 <div>
-                  <label className={labelClass}>CVV *</label>
+                  <label className={labelClass} htmlFor="cvv">CVV *</label>
                   <input
+                    id="cvv"
                     type="password"
-                    required
+                    inputMode="numeric"
+                    autoComplete="cc-csc"
                     maxLength={4}
                     value={paymentData.cvv}
-                    onChange={(e) => setPaymentData({ ...paymentData, cvv: e.target.value })}
+                    onChange={(e) => updateField('cvv', formatCvv(e.target.value))}
+                    onBlur={() => handleBlur('cvv')}
                     placeholder="123"
-                    className={inputClass}
+                    className={fieldClass(touched.cvv && errors.cvv)}
                   />
+                  {touched.cvv && errors.cvv ? (
+                    <p className={errorClass}>{errors.cvv}</p>
+                  ) : null}
                 </div>
               </div>
             </div>

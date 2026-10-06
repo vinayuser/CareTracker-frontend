@@ -22,8 +22,10 @@ import {
 } from '../../../redux/slices/leadsSlice';
 import { ROUTES } from '../../../routes/routes';
 import { formToPayload, joinLeadName, leadToForm } from '../../../utils/leadForm';
+import { validateLeadForm } from '../../../utils/leadFormValidation';
 import { formatDateTimeUS } from '../../../utils/dateFormat';
 import useSubmitLock from '../../../hooks/useSubmitLock';
+import { toast } from 'react-toastify';
 
 function assignedInitials(name = '') {
   return name
@@ -52,6 +54,7 @@ export default function LeadFormPage() {
   const [saving, runLocked] = useSubmitLock();
   const [moreOpen, setMoreOpen] = useState(false);
   const [activeView, setActiveView] = useState('New Lead');
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (isCreate) {
@@ -88,7 +91,7 @@ export default function LeadFormPage() {
     if (key === 'stage') setActiveView(value);
   };
 
-  const onFormDataChange = (section, value) => {
+  const onFormDataChange = (section, value, fieldPath) => {
     setForm((prev) => ({
       ...prev,
       formData: {
@@ -96,37 +99,29 @@ export default function LeadFormPage() {
         [section]: value,
       },
     }));
+    if (fieldPath) {
+      setErrors((prev) => {
+        if (!prev[fieldPath]) return prev;
+        const next = { ...prev };
+        delete next[fieldPath];
+        return next;
+      });
+    } else if (section) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        Object.keys(next).forEach((key) => {
+          if (key.startsWith(`${section}.`)) delete next[key];
+        });
+        return next;
+      });
+    }
   };
 
   const validate = () => {
-    const basic = form.formData?.basicInfo || {};
-    const recipient = form.formData?.careRecipient || {};
-    if (!String(basic.firstName || '').trim()) {
-      window.alert('Contact first name is required.');
-      return false;
-    }
-    if (!String(basic.lastName || '').trim()) {
-      window.alert('Contact last name is required.');
-      return false;
-    }
-    if (!String(recipient.firstName || '').trim()) {
-      window.alert('Care recipient first name is required.');
-      return false;
-    }
-    if (!String(recipient.lastName || '').trim()) {
-      window.alert('Care recipient last name is required.');
-      return false;
-    }
-    if (!String(basic.phone || '').trim()) {
-      window.alert('Phone Number is required.');
-      return false;
-    }
-    if (!String(basic.inquiryDate || '').trim()) {
-      window.alert('Inquiry Date is required.');
-      return false;
-    }
-    if (!String(basic.zipLocation || '').trim()) {
-      window.alert('Zip / Location is required.');
+    const { valid, errors: nextErrors } = validateLeadForm(form);
+    setErrors(nextErrors);
+    if (!valid) {
+      toast.error('Please fix the highlighted fields before saving.');
       return false;
     }
     return true;
@@ -311,7 +306,13 @@ export default function LeadFormPage() {
           readOnly={readOnly}
           onSaveNote={handleSave}
           saving={saving}
+          errors={errors}
         />
+        {Object.keys(errors).length > 0 && !readOnly ? (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            Please fix the highlighted fields before saving.
+          </div>
+        ) : null}
         {!readOnly ? (
           <div className="flex justify-end gap-2">
             <Link to={ROUTES.AGENCY_LEADS} className={btnGhost}>

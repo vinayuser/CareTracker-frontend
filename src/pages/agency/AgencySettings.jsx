@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Navigate } from 'react-router-dom';
-import { Building2, Save } from 'lucide-react';
+import { Building2, CheckCircle2, Save, XCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axiosInstance from '../../api/axiosInstance';
 import API_ROUTES from '../../api/apiRoutes';
@@ -10,7 +10,12 @@ import SubmitButton from '../../components/ui/SubmitButton';
 import useSubmitLock from '../../hooks/useSubmitLock';
 import { ROUTES } from '../../routes/routes';
 import { ROLES, normalizeRole } from '../../constants/roles';
-import { loginSuccess } from '../../redux/slices/authSlice';
+import {
+  checkLoginIdAvailability,
+  loginSuccess,
+  updateProfile,
+} from '../../redux/slices/authSlice';
+import { normalizeUsername, usernameTakenMessage, validateUsername } from '../../utils/usernameValidation';
 
 const inputClass =
   'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15';
@@ -25,6 +30,7 @@ const EMPTY_FORM = {
   city: '',
   state: '',
   logo: '',
+  userId: '',
 };
 
 export default function AgencySettings() {
@@ -35,6 +41,9 @@ export default function AgencySettings() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [loading, setLoading] = useState(true);
   const [saving, runLocked] = useSubmitLock();
+  const [usernameError, setUsernameError] = useState('');
+  const [usernameAvailable, setUsernameAvailable] = useState(null);
+  const [checkingUsername, setCheckingUsername] = useState(false);
 
   useEffect(() => {
     if (role !== ROLES.AGENCY_OWNER) return undefined;
@@ -54,6 +63,7 @@ export default function AgencySettings() {
             city: data.city || '',
             state: data.state || '',
             logo: data.logoUrl || '',
+            userId: authUser?.userId || '',
           });
         }
       } catch (error) {
@@ -63,7 +73,44 @@ export default function AgencySettings() {
       }
     })();
     return () => { cancelled = true; };
-  }, [role]);
+  }, [role, authUser?.userId]);
+
+  useEffect(() => {
+    if (role !== ROLES.AGENCY_OWNER) return undefined;
+
+    const normalized = normalizeUsername(form.userId);
+    const current = normalizeUsername(authUser?.userId || '');
+    if (!normalized || normalized === current) {
+      setUsernameAvailable(null);
+      setCheckingUsername(false);
+      setUsernameError('');
+      return undefined;
+    }
+
+    const validation = validateUsername(normalized);
+    if (!validation.valid) {
+      setUsernameAvailable(null);
+      setCheckingUsername(false);
+      setUsernameError(validation.error);
+      return undefined;
+    }
+
+    setUsernameError('');
+    setCheckingUsername(true);
+    const timer = setTimeout(async () => {
+      try {
+        await dispatch(checkLoginIdAvailability(validation.username)).unwrap();
+        setUsernameAvailable(true);
+      } catch (err) {
+        setUsernameAvailable(false);
+        setUsernameError(usernameTakenMessage(err));
+      } finally {
+        setCheckingUsername(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [form.userId, authUser?.userId, role, dispatch]);
 
   if (role !== ROLES.AGENCY_OWNER) {
     return <Navigate to={ROUTES.AGENCY_DASHBOARD} replace />;
@@ -71,12 +118,58 @@ export default function AgencySettings() {
 
   const setField = (key) => (e) => {
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
+    if (key === 'userId') {
+      setUsernameAvailable(null);
+      setUsernameError('');
+    }
+  };
+
+  const validateUsernameField = () => {
+    if (!form.userId.trim()) {
+      setUsernameError('Username is required');
+      return false;
+    }
+    const validation = validateUsername(form.userId);
+    if (!validation.valid) {
+      setUsernameError(validation.error);
+      return false;
+    }
+    const current = normalizeUsername(authUser?.userId || '');
+    if (validation.username !== current) {
+      if (checkingUsername) {
+        setUsernameError('Checking username availability…');
+        return false;
+      }
+      if (usernameAvailable === false) {
+        setUsernameError(usernameTakenMessage());
+        return false;
+      }
+      if (usernameAvailable !== true) {
+        setUsernameError('Confirm username availability before saving');
+        return false;
+      }
+    }
+    setUsernameError('');
+    return true;
   };
 
   const handleSave = (e) => {
     e.preventDefault();
+    if (!validateUsernameField()) return;
+
     return runLocked(async () => {
       try {
+        const nextUsername = normalizeUsername(form.userId);
+        const usernameChanged = nextUsername !== normalizeUsername(authUser?.userId || '');
+
+        if (usernameChanged) {
+          await dispatch(updateProfile({
+            name: authUser?.name || authUser?.fullName || '',
+            email: authUser?.email || '',
+            userId: nextUsername,
+          })).unwrap();
+        }
+
         const response = await axiosInstance.put(API_ROUTES.AGENCY.SETTINGS, {
           logo: form.logo || '',
           email: form.email.trim(),
@@ -99,10 +192,12 @@ export default function AgencySettings() {
             city: data.city || '',
             state: data.state || '',
             logo: data.logoUrl || '',
+            userId: nextUsername,
           }));
           dispatch(loginSuccess({
             user: {
               ...authUser,
+              userId: nextUsername,
               agencyLogo: data.logoUrl || '',
               agencyEmail: data.email || '',
               agencyPhone: data.phone || '',
@@ -115,8 +210,14 @@ export default function AgencySettings() {
             token: localStorage.getItem('token'),
           }));
         }
-        toast.success(response.data?.message || 'Agency settings saved');
+        if (!usernameChanged) {
+          toast.success(response.data?.message || 'Agency settings saved');
+        }
       } catch (error) {
+        if (typeof error === 'string' || error?.message) {
+          // updateProfile already toasts on failure
+          if (!error?.response) return;
+        }
         toast.error(error.response?.data?.message || 'Failed to save agency settings');
       }
     });
@@ -189,9 +290,42 @@ export default function AgencySettings() {
             <span className="mb-1.5 block text-sm font-medium text-gray-700">Fax</span>
             <input className={inputClass} value={form.fax} onChange={setField('fax')} />
           </label>
-          <label className="block sm:col-span-2">
+          <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-gray-700">Email</span>
             <input type="email" className={inputClass} value={form.email} onChange={setField('email')} required />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-gray-700">Username</span>
+            <input
+              className={usernameError ? `${inputClass} border-red-400` : inputClass}
+              value={form.userId}
+              onChange={setField('userId')}
+              autoComplete="username"
+              placeholder="Choose a unique username"
+            />
+            {checkingUsername && (
+              <p className="mt-1 text-xs text-gray-400">Checking availability…</p>
+            )}
+            {!checkingUsername && usernameAvailable === true && !usernameError && (
+              <p className="mt-1 flex items-center gap-1 text-xs text-success">
+                <CheckCircle2 size={12} />
+                Username is available
+              </p>
+            )}
+            {!checkingUsername && usernameAvailable === false && (
+              <p className="mt-1 flex items-center gap-1 text-xs text-red-600">
+                <XCircle size={12} />
+                {usernameTakenMessage(usernameError)}
+              </p>
+            )}
+            {usernameError && usernameAvailable !== false ? (
+              <p className="mt-1 text-xs text-red-600">{usernameError}</p>
+            ) : null}
+            {!checkingUsername && !usernameError && usernameAvailable !== true && usernameAvailable !== false ? (
+              <p className="mt-1 text-xs text-gray-400">
+                Sign in with email or this username.
+              </p>
+            ) : null}
           </label>
           <label className="block sm:col-span-2">
             <span className="mb-1.5 block text-sm font-medium text-gray-700">Website</span>
@@ -202,7 +336,7 @@ export default function AgencySettings() {
         <div className="flex justify-end border-t border-gray-100 pt-4">
           <SubmitButton
             type="submit"
-            loading={saving}
+            loading={saving || checkingUsername}
             icon={Save}
             className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover"
           >

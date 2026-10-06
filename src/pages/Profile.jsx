@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { KeyRound, UserRound } from 'lucide-react';
+import { CheckCircle2, KeyRound, UserRound, XCircle } from 'lucide-react';
 import {
   changePassword,
+  checkLoginIdAvailability,
   updateProfile,
 } from '../redux/slices/authSlice';
 import { ROLE_LABELS, ROLES, normalizeRole } from '../constants/roles';
+import { normalizeUsername, usernameTakenMessage, validateUsername } from '../utils/usernameValidation';
 
 const inputClass =
   'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15';
@@ -36,6 +38,8 @@ export default function Profile() {
     department: '',
   });
   const [profileErrors, setProfileErrors] = useState({});
+  const [usernameAvailable, setUsernameAvailable] = useState(null);
+  const [checkingUsername, setCheckingUsername] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
@@ -75,7 +79,63 @@ export default function Profile() {
 
   const setProfileField = (key) => (e) => {
     setProfile((prev) => ({ ...prev, [key]: e.target.value }));
+    if (key === 'userId') {
+      setUsernameAvailable(null);
+      setProfileErrors((prev) => {
+        if (!prev.userId) return prev;
+        const next = { ...prev };
+        delete next.userId;
+        return next;
+      });
+    }
   };
+
+  useEffect(() => {
+    if (isAdmin) return undefined;
+
+    const normalized = normalizeUsername(profile.userId);
+    const current = normalizeUsername(user?.userId || '');
+    if (!normalized || normalized === current) {
+      setUsernameAvailable(null);
+      setCheckingUsername(false);
+      setProfileErrors((prev) => {
+        if (!prev.userId) return prev;
+        const next = { ...prev };
+        delete next.userId;
+        return next;
+      });
+      return undefined;
+    }
+
+    const validation = validateUsername(normalized);
+    if (!validation.valid) {
+      setUsernameAvailable(null);
+      setCheckingUsername(false);
+      setProfileErrors((prev) => ({ ...prev, userId: validation.error }));
+      return undefined;
+    }
+
+    setCheckingUsername(true);
+    const timer = setTimeout(async () => {
+      try {
+        await dispatch(checkLoginIdAvailability(validation.username)).unwrap();
+        setUsernameAvailable(true);
+        setProfileErrors((prev) => {
+          if (!prev.userId) return prev;
+          const next = { ...prev };
+          delete next.userId;
+          return next;
+        });
+      } catch (err) {
+        setUsernameAvailable(false);
+        setProfileErrors((prev) => ({ ...prev, userId: usernameTakenMessage(err) }));
+      } finally {
+        setCheckingUsername(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [profile.userId, user?.userId, isAdmin, dispatch]);
 
   const validateProfile = () => {
     const next = {};
@@ -84,8 +144,25 @@ export default function Profile() {
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email.trim())) {
       next.email = 'Enter a valid email';
     }
-    if (!isAdmin && profile.userId.trim() && profile.userId.trim().length < 3) {
-      next.userId = 'Login ID must be at least 3 characters';
+    if (!isAdmin && profile.userId.trim()) {
+      const validation = validateUsername(profile.userId);
+      if (!validation.valid) next.userId = validation.error;
+      else if (
+        validation.username !== normalizeUsername(user?.userId || '')
+        && checkingUsername
+      ) {
+        next.userId = 'Checking username availability…';
+      } else if (
+        validation.username !== normalizeUsername(user?.userId || '')
+        && usernameAvailable === false
+      ) {
+        next.userId = usernameTakenMessage();
+      } else if (
+        validation.username !== normalizeUsername(user?.userId || '')
+        && usernameAvailable !== true
+      ) {
+        next.userId = 'Confirm username availability before saving';
+      }
     }
     setProfileErrors(next);
     return Object.keys(next).length === 0;
@@ -104,7 +181,7 @@ export default function Profile() {
       payload.phone = profile.phone.trim();
       payload.dateOfBirth = profile.dateOfBirth.trim();
       payload.employeeId = profile.employeeId.trim();
-      if (profile.userId.trim()) payload.userId = profile.userId.trim();
+      if (profile.userId.trim()) payload.userId = normalizeUsername(profile.userId);
     }
     if (isHr) {
       payload.jobTitle = profile.jobTitle.trim();
@@ -208,18 +285,37 @@ export default function Profile() {
 
             {!isAdmin && (
               <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-gray-700">Login ID</span>
+                <span className="mb-1.5 block text-sm font-medium text-gray-700">Username</span>
                 <input
                   value={profile.userId}
                   onChange={setProfileField('userId')}
-                  className={inputClass}
+                  className={profileErrors.userId ? `${inputClass} border-red-400` : inputClass}
                   autoComplete="username"
+                  placeholder="Choose a unique username"
                 />
-                {profileErrors.userId ? (
-                  <p className="mt-1 text-xs text-red-600">{profileErrors.userId}</p>
-                ) : (
-                  <p className="mt-1 text-xs text-gray-400">Used to sign in (email or this ID).</p>
+                {checkingUsername && (
+                  <p className="mt-1 text-xs text-gray-400">Checking availability…</p>
                 )}
+                {!checkingUsername && usernameAvailable === true && !profileErrors.userId && (
+                  <p className="mt-1 flex items-center gap-1 text-xs text-success">
+                    <CheckCircle2 size={12} />
+                    Username is available
+                  </p>
+                )}
+                {!checkingUsername && usernameAvailable === false && (
+                  <p className="mt-1 flex items-center gap-1 text-xs text-red-600">
+                    <XCircle size={12} />
+                    {usernameTakenMessage(profileErrors.userId)}
+                  </p>
+                )}
+                {profileErrors.userId && usernameAvailable !== false ? (
+                  <p className="mt-1 text-xs text-red-600">{profileErrors.userId}</p>
+                ) : null}
+                {!checkingUsername && !profileErrors.userId && usernameAvailable !== false && usernameAvailable !== true ? (
+                  <p className="mt-1 text-xs text-gray-400">
+                    Sign in with your email or this username.
+                  </p>
+                ) : null}
               </label>
             )}
 

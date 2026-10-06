@@ -24,6 +24,7 @@ import {
   syncClinicalFromPacket,
 } from '../../../utils/assessmentPacket';
 import { externalizeDataImages } from '../../../utils/assessmentSignatures';
+import { validateForm110 } from '../../../utils/form110Validation';
 import { ROUTES } from '../../../routes/routes';
 import useSubmitLock from '../../../hooks/useSubmitLock';
 import useScrollToTopOnChange from '../../../hooks/useScrollToTopOnChange';
@@ -167,23 +168,22 @@ export default function ClientAssessmentForm() {
     if (activeCode === '110') {
       setErrors((e) => {
         const n = { ...e };
+        Object.keys(patch || {}).forEach((key) => {
+          if (n[key]) delete n[key];
+        });
         if (patch?.firstName !== undefined || patch?.clientName !== undefined) delete n.firstName;
-        if (patch?.lastName !== undefined) delete n.lastName;
+        if (patch?.lastName !== undefined || patch?.clientName !== undefined) delete n.lastName;
+        if (patch?.allergicReactions === 'NO') delete n.allergies;
+        if (patch?.allergies !== undefined) delete n.allergies;
         return n;
       });
     }
   };
 
-  const validateForm110 = () => {
-    const f110 = form.formData.forms?.['110'] || {};
-    const first = String(f110.firstName || '').trim() || String(f110.clientName || '').trim().split(/\s+/)[0];
-    const last = String(f110.lastName || '').trim()
-      || String(f110.clientName || '').trim().split(/\s+/).slice(1).join(' ');
-    const e = {};
-    if (!first) e.firstName = 'Client first name is required on Physical Assessment';
-    if (!last && !f110.clientName) e.lastName = 'Client last name is required on Physical Assessment';
-    setErrors(e);
-    return !Object.keys(e).length;
+  const runValidateForm110 = () => {
+    const { valid, errors: next } = validateForm110(form.formData.forms?.['110'] || {});
+    setErrors(next);
+    return valid;
   };
 
   const handleSaveForm = () => runLocked(async () => {
@@ -192,7 +192,7 @@ export default function ClientAssessmentForm() {
       toast.info('This form is not available yet');
       return;
     }
-    if (activeCode === '110' && !validateForm110()) return;
+    if (activeCode === '110' && !runValidateForm110()) return;
 
     const now = new Date().toISOString();
     const nextForm = {
@@ -289,9 +289,9 @@ export default function ClientAssessmentForm() {
           </button>
         </div>
 
-        {(errors.firstName || errors.lastName) ? (
+        {Object.keys(errors).length > 0 ? (
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            {errors.firstName || errors.lastName}
+            Please fix the highlighted fields before saving.
           </div>
         ) : null}
 
@@ -300,6 +300,7 @@ export default function ClientAssessmentForm() {
             code={activeCode}
             data={form.formData.forms?.[activeCode] || {}}
             onChange={onPacketChange}
+            errors={errors}
             shared={{
               assessmentDate: form.assessmentDate,
               assessorName: form.assessorName,

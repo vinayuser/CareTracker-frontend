@@ -48,6 +48,21 @@ export const fetchCurrentUser = createAsyncThunk(
   },
 );
 
+export const checkLoginIdAvailability = createAsyncThunk(
+  'auth/checkLoginId',
+  async (userId, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(API_ROUTES.CHECK_LOGIN_ID, {
+        params: { userId },
+        skipErrorToast: true,
+      });
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  },
+);
+
 export const updateProfile = createAsyncThunk(
   'auth/updateProfile',
   async (payload, { rejectWithValue }) => {
@@ -114,7 +129,11 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchCurrentUser.fulfilled, (state, action) => {
-        persistUser(state, action.payload);
+        const next = { ...action.payload };
+        if (state.user?.isFirstLogin && state.user?.id && next?.id === state.user.id) {
+          next.isFirstLogin = true;
+        }
+        persistUser(state, next);
       })
       .addCase(fetchCurrentUser.rejected, (state) => {
         state.isAuthenticated = false;
@@ -128,7 +147,11 @@ const authSlice = createSlice({
       .addCase(updateProfile.pending, (state) => { state.profileSaving = true; })
       .addCase(updateProfile.fulfilled, (state, action) => {
         state.profileSaving = false;
-        persistUser(state, action.payload);
+        const next = { ...action.payload };
+        if (state.user?.isFirstLogin && state.user?.id && next?.id === state.user.id) {
+          next.isFirstLogin = true;
+        }
+        persistUser(state, next);
       })
       .addCase(updateProfile.rejected, (state) => { state.profileSaving = false; })
       .addCase(changePassword.pending, (state) => { state.passwordSaving = true; })

@@ -205,9 +205,11 @@ function Print110({ d }) {
           </tbody>
         </table>
         <div className="ap-row"><Field label="Allergic Reactions:" value={d.allergicReactions} className="w50" /></div>
-        {(d.allergies || []).filter((a) => a.allergy).map((a, i) => (
-          <div key={i}>{a.allergy}{a.reaction ? ` — ${a.reaction}` : ''}</div>
-        ))}
+        {d.allergicReactions === 'YES'
+          ? (d.allergies || []).filter((a) => a.allergy).map((a, i) => (
+            <div key={i}>{a.allergy}{a.reaction ? ` — ${a.reaction}` : ''}</div>
+          ))
+          : null}
         <div className="ap-row"><Field label="Pertinent info:" value={d.pertinentInfoYesNo} className="w33" /></div>
         {d.pertinentInfoDetails ? <div>{d.pertinentInfoDetails}</div> : null}
       </Section>

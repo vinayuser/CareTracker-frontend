@@ -39,7 +39,9 @@ export default function ForgotPassword() {
           <LoginHeroBackground />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-50 via-sidebar/60 to-sidebar/80" />
           <div className="absolute bottom-4 left-6">
-            <CareTrackerLogo size="md" tagline="Home Care Platform" light />
+            <Link to={ROUTES.HOME} className="inline-flex w-fit">
+              <CareTrackerLogo size="md" tagline="Home Care Platform" light />
+            </Link>
           </div>
         </div>
 

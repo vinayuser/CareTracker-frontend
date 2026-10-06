@@ -4,6 +4,7 @@ const API_ROUTES = {
   RESET_PASSWORD: '/auth/reset-password',
   ME: '/auth/me',
   UPDATE_PROFILE: '/auth/me',
+  CHECK_LOGIN_ID: '/auth/check-login-id',
   CHANGE_PASSWORD: '/auth/password',
 
   NOTIFICATIONS: {
@@ -78,6 +79,11 @@ const API_ROUTES = {
       STATS: '/admin/billing-claims/stats',
       LIST: '/admin/billing-claims',
       DETAIL: (id) => `/admin/billing-claims/${id}`,
+    },
+    PAYMENTS: {
+      STATS: '/admin/payments/stats',
+      LIST: '/admin/payments',
+      DETAIL: (id) => `/admin/payments/${id}`,
     },
     REPORTS: {
       EVV_SUMMARY: '/admin/reports/evv-summary',

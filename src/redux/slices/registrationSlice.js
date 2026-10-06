@@ -8,9 +8,11 @@ export const checkUserIdAvailability = createAsyncThunk(
     try {
       const userId = typeof payload === 'string' ? payload : payload?.userId;
       const invitationToken = typeof payload === 'string' ? undefined : payload?.invitationToken;
+      const email = typeof payload === 'string' ? undefined : payload?.email;
       const response = await axiosInstance.get(API_ROUTES.REGISTRATION.CHECK_USER_ID, {
         params: {
-          email: userId,
+          userId,
+          ...(email ? { email } : {}),
           ...(invitationToken ? { invitationToken } : {}),
         },
       });

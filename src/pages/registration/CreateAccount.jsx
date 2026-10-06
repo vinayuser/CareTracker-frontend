@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { toast } from 'react-toastify';
-import { Eye, EyeOff, Copy, CheckCircle2, Lightbulb } from 'lucide-react';
+import { Eye, EyeOff, Copy, CheckCircle2, Lightbulb, XCircle } from 'lucide-react';
 import { ROUTES } from '../../routes/routes';
 import {
   checkUserIdAvailability,
@@ -10,10 +10,12 @@ import {
 } from '../../redux/slices/registrationSlice';
 import { getInviteSession } from '../../utils/invitationStore';
 import { getRegistrationData, updateRegistrationData } from '../../utils/registrationStore';
+import { normalizeUsername, usernameTakenMessage, validateUsername } from '../../utils/usernameValidation';
 
 const inputClass =
   'w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
-
+const inputErrorClass =
+  'w-full rounded-lg border border-red-400 px-3 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200';
 const labelClass = 'mb-1.5 block text-sm font-medium text-gray-700';
 
 function getPasswordStrength(password) {
@@ -29,11 +31,25 @@ export default function CreateAccount() {
   const inviteSession = getInviteSession();
   const saved = getRegistrationData();
 
+  const accountEmail = useMemo(
+    () => saved.email || inviteSession?.email || '',
+    [saved.email, inviteSession?.email],
+  );
+
+  const initialUsername = useMemo(() => {
+    const savedUserId = saved.userId || '';
+    if (!savedUserId) return '';
+    if (savedUserId.toLowerCase() === accountEmail.toLowerCase()) return '';
+    return savedUserId;
+  }, [saved.userId, accountEmail]);
+
   const [fullName, setFullName] = useState(saved.fullName);
-  const [userId, setUserId] = useState(saved.userId || saved.email);
+  const [username, setUsername] = useState(initialUsername);
   const [password, setPassword] = useState(saved.password);
   const [showPassword, setShowPassword] = useState(false);
-  const [userIdAvailable, setUserIdAvailable] = useState(null);
+  const [usernameError, setUsernameError] = useState('');
+  const [usernameAvailable, setUsernameAvailable] = useState(null);
+  const [checkingUsername, setCheckingUsername] = useState(false);
   const [credentialsReady, setCredentialsReady] = useState(false);
 
   const strength = getPasswordStrength(password);
@@ -44,31 +60,66 @@ export default function CreateAccount() {
     }
   }, [inviteSession, navigate]);
 
-  const checkAvailability = async (value) => {
-    setUserId(value);
-    if (value.length >= 3) {
+  useEffect(() => {
+    if (!accountEmail) {
+      navigate(ROUTES.REGISTRATION_AGENCY_INFO, { replace: true });
+    }
+  }, [accountEmail, navigate]);
+
+  useEffect(() => {
+    const normalized = normalizeUsername(username);
+    const validation = validateUsername(normalized);
+    if (!validation.valid) {
+      setUsernameError(validation.error);
+      setUsernameAvailable(null);
+      return undefined;
+    }
+
+    setUsernameError('');
+    setCheckingUsername(true);
+    const timer = setTimeout(async () => {
       try {
         await dispatch(
           checkUserIdAvailability({
-            userId: value,
+            userId: validation.username,
+            email: accountEmail,
             invitationToken: inviteSession?.token,
           }),
         ).unwrap();
-        setUserIdAvailable(true);
-      } catch {
-        setUserIdAvailable(false);
+        setUsernameAvailable(true);
+      } catch (err) {
+        setUsernameAvailable(false);
+        setUsernameError(usernameTakenMessage(err));
+      } finally {
+        setCheckingUsername(false);
       }
-    } else {
-      setUserIdAvailable(null);
-    }
-  };
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [username, accountEmail, dispatch, inviteSession?.token]);
 
   const handleGenerate = async (e) => {
     e.preventDefault();
+
+    const validation = validateUsername(username);
+    if (!validation.valid) {
+      setUsernameError(validation.error);
+      return;
+    }
+    if (!usernameAvailable) {
+      toast.error('Choose an available username before continuing.');
+      return;
+    }
+    if (!accountEmail) {
+      toast.error('Agency email is required. Go back and complete agency information.');
+      return;
+    }
+
     try {
       await dispatch(
         createRegistrationAccount({
-          email: userId,
+          email: accountEmail.trim().toLowerCase(),
+          userId: validation.username,
           password,
           fullName,
           invitationToken: inviteSession?.token,
@@ -79,7 +130,13 @@ export default function CreateAccount() {
       toast.error(message);
       return;
     }
-    updateRegistrationData({ fullName, userId, password });
+
+    updateRegistrationData({
+      fullName,
+      email: accountEmail.trim().toLowerCase(),
+      userId: validation.username,
+      password,
+    });
     setCredentialsReady(true);
   };
 
@@ -91,7 +148,7 @@ export default function CreateAccount() {
     <div className="mx-auto max-w-3xl">
       <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
       <p className="mt-1 text-sm text-gray-500">
-        Set login credentials for your agency owner account.
+        Set login credentials for your agency owner account. You can sign in with your email or username.
       </p>
 
       <form onSubmit={handleGenerate} className="mt-8 space-y-5">
@@ -108,22 +165,54 @@ export default function CreateAccount() {
         </div>
 
         <div>
-          <label className={labelClass}>User ID *</label>
+          <label className={labelClass}>Email *</label>
+          <input
+            type="email"
+            required
+            value={accountEmail}
+            readOnly
+            className={`${inputClass} bg-gray-50 text-gray-600`}
+          />
+          <p className="mt-1 text-xs text-gray-400">From agency information. Used for login and notifications.</p>
+        </div>
+
+        <div>
+          <label className={labelClass}>Username *</label>
           <input
             type="text"
             required
-            value={userId}
-            onChange={(e) => checkAvailability(e.target.value)}
-            placeholder="Choose a unique user ID"
-            className={inputClass}
-            readOnly={Boolean(inviteSession?.email)}
+            value={username}
+            onChange={(e) => {
+              setUsername(e.target.value);
+              setUsernameAvailable(null);
+            }}
+            placeholder="Choose a unique username"
+            className={usernameError ? inputErrorClass : inputClass}
+            autoComplete="username"
           />
-          {userIdAvailable && (
+          {checkingUsername && (
+            <p className="mt-1 text-xs text-gray-400">Checking availability…</p>
+          )}
+          {!checkingUsername && usernameAvailable === true && !usernameError && (
             <p className="mt-1 flex items-center gap-1 text-xs text-success">
               <CheckCircle2 size={12} />
-              User ID is available
+              Username is available
             </p>
           )}
+          {!checkingUsername && usernameAvailable === false && (
+            <p className="mt-1 flex items-center gap-1 text-xs text-red-600">
+              <XCircle size={12} />
+              {usernameTakenMessage(usernameError)}
+            </p>
+          )}
+          {usernameError && usernameAvailable !== false ? (
+            <p className="mt-1 text-xs text-red-600">{usernameError}</p>
+          ) : null}
+          {!checkingUsername && !usernameError && usernameAvailable !== true && usernameAvailable !== false ? (
+            <p className="mt-1 text-xs text-gray-400">
+              3–30 characters. Letters, numbers, dots, hyphens, and underscores.
+            </p>
+          ) : null}
         </div>
 
         <div>
@@ -161,8 +250,7 @@ export default function CreateAccount() {
         <div className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
           <Lightbulb size={18} className="mt-0.5 shrink-0 text-success" />
           <p className="text-sm text-green-800">
-            Please save your User ID and Password securely. You will need them to log in after
-            registration.
+            Save your email, username, and password securely. You can log in with either your email or username.
           </p>
         </div>
 
@@ -172,12 +260,25 @@ export default function CreateAccount() {
             <div className="space-y-3">
               <div className="flex items-center justify-between rounded-lg bg-white px-4 py-3">
                 <div>
-                  <p className="text-xs text-gray-500">User ID</p>
-                  <p className="text-sm font-medium text-gray-900">{userId}</p>
+                  <p className="text-xs text-gray-500">Email</p>
+                  <p className="text-sm font-medium text-gray-900">{accountEmail}</p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => copyToClipboard(userId)}
+                  onClick={() => copyToClipboard(accountEmail)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <Copy size={16} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between rounded-lg bg-white px-4 py-3">
+                <div>
+                  <p className="text-xs text-gray-500">Username</p>
+                  <p className="text-sm font-medium text-gray-900">{normalizeUsername(username)}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(normalizeUsername(username))}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <Copy size={16} />
@@ -211,7 +312,8 @@ export default function CreateAccount() {
           {!credentialsReady ? (
             <button
               type="submit"
-              className="rounded-lg bg-primary px-8 py-2.5 text-sm font-medium text-white hover:bg-primary-hover"
+              disabled={checkingUsername || !usernameAvailable}
+              className="rounded-lg bg-primary px-8 py-2.5 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-50"
             >
               Generate &amp; Continue
             </button>

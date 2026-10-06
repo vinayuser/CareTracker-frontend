@@ -47,7 +47,7 @@ export default function Login() {
         setError('Login failed. Please try again.');
       }
     } catch {
-      setError('Invalid email or password.');
+      setError('Invalid email, username, or password.');
     }
 
     setLoading(false);
@@ -62,7 +62,9 @@ export default function Login() {
           <LoginHeroBackground />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-50 via-sidebar/60 to-sidebar/80" />
           <div className="absolute bottom-4 left-6">
-            <CareTrackerLogo size="md" tagline="Home Care Platform" light />
+            <Link to={ROUTES.HOME} className="inline-flex w-fit">
+              <CareTrackerLogo size="md" tagline="Home Care Platform" light />
+            </Link>
           </div>
         </div>
 
@@ -92,7 +94,7 @@ export default function Login() {
 
                 <div>
                   <label htmlFor="email" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                    Email or Login ID
+                    Email or Username
                   </label>
                   <div className="relative">
                     <Mail

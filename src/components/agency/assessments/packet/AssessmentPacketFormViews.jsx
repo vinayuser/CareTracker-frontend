@@ -23,6 +23,15 @@ import {
   inputClass,
 } from './PacketFields';
 import AssessmentFormBrandingHeader from './AssessmentFormBrandingHeader';
+import {
+  applyForm110PhoneFormat,
+  clearAllergiesWhenNo,
+} from '../../../../utils/form110Validation';
+
+const inputErrorClass =
+  'w-full rounded-lg border border-red-400 px-3 py-2 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200';
+
+const fieldInputClass = (hasError) => (hasError ? inputErrorClass : inputClass);
 
 const QUOTE_SERVICES = [
   'Personal Care', 'Companionship', 'Homemaking', 'Medication Reminders',
@@ -166,13 +175,16 @@ function HipaaNoticeBody({ agencyName = '', agencyBranding = {} }) {
   );
 }
 
-function Form110({ data, onChange, shared }) {
+function Form110({ data, onChange, shared, errors = {} }) {
   const d = data || {};
   const neuro = d.neuro || {};
   const skin = d.skin || {};
   const setNeuro = nest(onChange, 'neuro', neuro);
   const setSkin = nest(onChange, 'skin', skin);
   const setVitals = nest(onChange, 'vitals', d.vitals || {});
+  const setPhone = (key) => (e) => {
+    onChange({ [key]: applyForm110PhoneFormat(key, e.target.value) });
+  };
   const setMed = (i, field, val) => {
     const meds = Array.from({ length: 10 }, (_, idx) => ({ name: '', dose: '', frequency: '', ...(d.medications?.[idx] || {}) }));
     meds[i] = { ...meds[i], [field]: val };
@@ -188,6 +200,7 @@ function Form110({ data, onChange, shared }) {
     allergies[i] = { ...allergies[i], [field]: val };
     onChange({ allergies });
   };
+  const showAllergies = d.allergicReactions === 'YES';
 
   return (
     <div className="space-y-4">
@@ -200,9 +213,9 @@ function Form110({ data, onChange, shared }) {
 
       <SectionCard title="Client Information">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="First Name">
+          <Field label="First Name" error={errors.firstName}>
             <input
-              className={inputClass}
+              className={fieldInputClass(errors.firstName)}
               value={d.firstName || ''}
               onChange={(e) => {
                 const firstName = e.target.value;
@@ -213,9 +226,9 @@ function Form110({ data, onChange, shared }) {
               }}
             />
           </Field>
-          <Field label="Last Name">
+          <Field label="Last Name" error={errors.lastName}>
             <input
-              className={inputClass}
+              className={fieldInputClass(errors.lastName)}
               value={d.lastName || ''}
               onChange={(e) => {
                 const lastName = e.target.value;
@@ -231,28 +244,98 @@ function Form110({ data, onChange, shared }) {
           <Field label="Code Status"><input className={inputClass} value={d.codeStatus || ''} onChange={(e) => onChange({ codeStatus: e.target.value })} /></Field>
           <Field label="Sex"><RadioRow name="sex" options={['Male', 'Female']} value={d.sex || ''} onChange={(sex) => onChange({ sex })} /></Field>
           <Field label="Address" className="sm:col-span-2 lg:col-span-3"><input className={inputClass} value={d.address || ''} onChange={(e) => onChange({ address: e.target.value })} /></Field>
-          <Field label="Phone"><input className={inputClass} value={d.phone || ''} onChange={(e) => onChange({ phone: e.target.value })} /></Field>
-          <Field label="Cell Phone"><input className={inputClass} value={d.cellPhone || ''} onChange={(e) => onChange({ cellPhone: e.target.value })} /></Field>
-          <Field label="Email"><input className={inputClass} value={d.email || ''} onChange={(e) => onChange({ email: e.target.value })} /></Field>
+          <Field label="Phone" error={errors.phone}>
+            <input
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              placeholder="(555) 123-4567"
+              className={fieldInputClass(errors.phone)}
+              value={d.phone || ''}
+              onChange={setPhone('phone')}
+            />
+          </Field>
+          <Field label="Cell Phone" error={errors.cellPhone}>
+            <input
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              placeholder="(555) 123-4567"
+              className={fieldInputClass(errors.cellPhone)}
+              value={d.cellPhone || ''}
+              onChange={setPhone('cellPhone')}
+            />
+          </Field>
+          <Field label="Email" error={errors.email}>
+            <input
+              type="email"
+              className={fieldInputClass(errors.email)}
+              value={d.email || ''}
+              onChange={(e) => onChange({ email: e.target.value })}
+            />
+          </Field>
           <Field label="City"><input className={inputClass} value={d.city || ''} onChange={(e) => onChange({ city: e.target.value })} /></Field>
           <Field label="State"><input className={inputClass} value={d.state || ''} onChange={(e) => onChange({ state: e.target.value })} /></Field>
-          <Field label="ZIP"><input className={inputClass} value={d.zip || ''} onChange={(e) => onChange({ zip: e.target.value })} /></Field>
+          <Field label="ZIP" error={errors.zip}>
+            <input
+              className={fieldInputClass(errors.zip)}
+              value={d.zip || ''}
+              onChange={(e) => onChange({ zip: e.target.value.replace(/[^\d-]/g, '').slice(0, 10) })}
+              placeholder="78701"
+            />
+          </Field>
         </div>
       </SectionCard>
 
       <SectionCard title="Emergency & Care Team">
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label="Emergency Contact"><input className={inputClass} value={d.emergencyContact || ''} onChange={(e) => onChange({ emergencyContact: e.target.value })} /></Field>
-          <Field label="Phone"><input className={inputClass} value={d.emergencyPhone || ''} onChange={(e) => onChange({ emergencyPhone: e.target.value })} /></Field>
+          <Field label="Phone" error={errors.emergencyPhone}>
+            <input
+              type="tel"
+              inputMode="tel"
+              placeholder="(555) 123-4567"
+              className={fieldInputClass(errors.emergencyPhone)}
+              value={d.emergencyPhone || ''}
+              onChange={setPhone('emergencyPhone')}
+            />
+          </Field>
           <Field label="Relationship"><input className={inputClass} value={d.emergencyRelationship || ''} onChange={(e) => onChange({ emergencyRelationship: e.target.value })} /></Field>
           <Field label="Primary Caregiver"><input className={inputClass} value={d.primaryCaregiver || ''} onChange={(e) => onChange({ primaryCaregiver: e.target.value })} /></Field>
-          <Field label="Phone"><input className={inputClass} value={d.primaryCaregiverPhone || ''} onChange={(e) => onChange({ primaryCaregiverPhone: e.target.value })} /></Field>
+          <Field label="Phone" error={errors.primaryCaregiverPhone}>
+            <input
+              type="tel"
+              inputMode="tel"
+              placeholder="(555) 123-4567"
+              className={fieldInputClass(errors.primaryCaregiverPhone)}
+              value={d.primaryCaregiverPhone || ''}
+              onChange={setPhone('primaryCaregiverPhone')}
+            />
+          </Field>
           <Field label="Relationship"><input className={inputClass} value={d.primaryCaregiverRelationship || ''} onChange={(e) => onChange({ primaryCaregiverRelationship: e.target.value })} /></Field>
           <Field label="Primary Care Physician"><input className={inputClass} value={d.primaryCarePhysician || ''} onChange={(e) => onChange({ primaryCarePhysician: e.target.value })} /></Field>
-          <Field label="PCP Phone"><input className={inputClass} value={d.pcpPhone || ''} onChange={(e) => onChange({ pcpPhone: e.target.value })} /></Field>
+          <Field label="PCP Phone" error={errors.pcpPhone}>
+            <input
+              type="tel"
+              inputMode="tel"
+              placeholder="(555) 123-4567"
+              className={fieldInputClass(errors.pcpPhone)}
+              value={d.pcpPhone || ''}
+              onChange={setPhone('pcpPhone')}
+            />
+          </Field>
           <Field label="PCP Address"><input className={inputClass} value={d.pcpAddress || ''} onChange={(e) => onChange({ pcpAddress: e.target.value })} /></Field>
           <Field label="Pharmacy"><input className={inputClass} value={d.pharmacy || ''} onChange={(e) => onChange({ pharmacy: e.target.value })} /></Field>
-          <Field label="Pharmacy Phone"><input className={inputClass} value={d.pharmacyPhone || ''} onChange={(e) => onChange({ pharmacyPhone: e.target.value })} /></Field>
+          <Field label="Pharmacy Phone" error={errors.pharmacyPhone}>
+            <input
+              type="tel"
+              inputMode="tel"
+              placeholder="(555) 123-4567"
+              className={fieldInputClass(errors.pharmacyPhone)}
+              value={d.pharmacyPhone || ''}
+              onChange={setPhone('pharmacyPhone')}
+            />
+          </Field>
           <Field label="Pharmacy Address"><input className={inputClass} value={d.pharmacyAddress || ''} onChange={(e) => onChange({ pharmacyAddress: e.target.value })} /></Field>
         </div>
         <div className="mt-3">
@@ -296,15 +379,27 @@ function Form110({ data, onChange, shared }) {
         </div>
         <div className="mt-4">
           <p className="mb-1 text-xs font-medium text-gray-600">Allergic Reactions?</p>
-          <RadioRow name="allergic" options={['YES', 'NO']} value={d.allergicReactions || ''} onChange={(allergicReactions) => onChange({ allergicReactions })} />
-          <div className="mt-2 space-y-2">
-            {Array.from({ length: 3 }, (_, i) => (
-              <div key={i} className="grid gap-2 sm:grid-cols-2">
-                <input className={inputClass} placeholder={`Allergy ${i + 1}`} value={d.allergies?.[i]?.allergy || ''} onChange={(e) => setAllergy(i, 'allergy', e.target.value)} />
-                <input className={inputClass} placeholder="Reaction" value={d.allergies?.[i]?.reaction || ''} onChange={(e) => setAllergy(i, 'reaction', e.target.value)} />
-              </div>
-            ))}
-          </div>
+          <RadioRow
+            name="allergic"
+            options={['YES', 'NO']}
+            value={d.allergicReactions || ''}
+            onChange={(allergicReactions) => {
+              const cleared = clearAllergiesWhenNo(allergicReactions);
+              if (cleared) onChange(cleared);
+              else onChange({ allergicReactions });
+            }}
+          />
+          {showAllergies ? (
+            <div className="mt-2 space-y-2">
+              {Array.from({ length: 3 }, (_, i) => (
+                <div key={i} className="grid gap-2 sm:grid-cols-2">
+                  <input className={inputClass} placeholder={`Allergy ${i + 1}`} value={d.allergies?.[i]?.allergy || ''} onChange={(e) => setAllergy(i, 'allergy', e.target.value)} />
+                  <input className={inputClass} placeholder="Reaction" value={d.allergies?.[i]?.reaction || ''} onChange={(e) => setAllergy(i, 'reaction', e.target.value)} />
+                </div>
+              ))}
+              {errors.allergies ? <p className="text-xs text-red-600">{errors.allergies}</p> : null}
+            </div>
+          ) : null}
         </div>
         <div className="mt-4">
           <p className="mb-1 text-xs font-medium text-gray-600">Pertinent information for care / employee welfare?</p>
@@ -1039,7 +1134,7 @@ const FORM_MAP = {
   '7050': Form7050,
 };
 
-export function AssessmentPacketFormView({ code, data, onChange, shared }) {
+export function AssessmentPacketFormView({ code, data, onChange, shared, errors }) {
   const Comp = FORM_MAP[code];
   const meta = ASSESSMENT_PACKET_FORMS.find((f) => f.code === code);
   if (!Comp) {
@@ -1058,7 +1153,7 @@ export function AssessmentPacketFormView({ code, data, onChange, shared }) {
         formCode={code}
         formTitle={meta?.title}
       />
-      <Comp data={data} onChange={onChange} shared={shared} />
+      <Comp data={data} onChange={onChange} shared={shared} errors={errors} />
     </div>
   );
 }

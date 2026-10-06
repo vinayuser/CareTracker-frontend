@@ -1,6 +1,8 @@
+import { Link } from 'react-router-dom';
 import { Building2, HeartHandshake, ShieldCheck, Users } from 'lucide-react';
 import LoginHeroBackground from './LoginHeroBackground';
 import CareTrackerLogo from '../brand/CareTrackerLogo';
+import { ROUTES } from '../../routes/routes';
 
 const features = [
   { icon: Building2, label: 'Agency management & onboarding' },
@@ -16,7 +18,9 @@ export default function LoginHeroPanel() {
       <div className="absolute inset-0 bg-gradient-to-br from-sidebar/95 via-sidebar/85 to-primary/80" />
 
       <div className="relative z-10 flex w-full flex-col justify-between p-10 xl:p-14">
-        <CareTrackerLogo size="lg" tagline="Home Care Platform · Super Admin" light />
+        <Link to={ROUTES.HOME} className="inline-flex w-fit">
+          <CareTrackerLogo size="lg" tagline="Home Care Platform · Super Admin" light />
+        </Link>
 
         <div className="max-w-lg">
           <span className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white/90 ring-1 ring-white/20">

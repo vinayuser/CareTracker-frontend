@@ -16,12 +16,20 @@ import {
   PREFERRED_TIMES,
   buildEmptyLeadFormData,
 } from '../../../utils/leadForm';
+import { formatLeadPhone } from '../../../utils/leadFormValidation';
 
 const inputClass =
   'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:cursor-default disabled:bg-slate-50';
+const inputErrorClass =
+  'w-full rounded-lg border border-red-400 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-red-500 focus:ring-2 focus:ring-red-200 disabled:cursor-default disabled:bg-slate-50';
 const labelClass = 'mb-1.5 block text-[13px] font-medium text-slate-600';
+const errorClass = 'mt-1 text-xs text-red-600';
 
-function Field({ label, required, children, className = '' }) {
+function fieldClass(hasError) {
+  return hasError ? inputErrorClass : inputClass;
+}
+
+function Field({ label, required, children, className = '', error }) {
   return (
     <div className={className}>
       <label className={labelClass}>
@@ -29,15 +37,16 @@ function Field({ label, required, children, className = '' }) {
         {required ? <span className="text-red-500"> *</span> : null}
       </label>
       {children}
+      {error ? <p className={errorClass}>{error}</p> : null}
     </div>
   );
 }
 
-function IconInput({ icon: Icon, className = '', ...props }) {
+function IconInput({ icon: Icon, className = '', error, ...props }) {
   return (
     <div className="relative">
       <Icon size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-      <input {...props} className={`${inputClass} pl-9 ${className}`} />
+      <input {...props} className={`${fieldClass(error)} pl-9 ${className}`} />
     </div>
   );
 }
@@ -95,6 +104,7 @@ export default function LeadFormSections({
   readOnly = false,
   onSaveNote,
   saving = false,
+  errors = {},
 }) {
   const empty = buildEmptyLeadFormData();
   const d = form?.formData || empty;
@@ -103,8 +113,14 @@ export default function LeadFormSections({
   const family = d.familyRep || empty.familyRep;
   const care = d.careSummary || empty.careSummary;
 
+  const err = (path) => errors[path] || '';
+
   const patch = (section, key, value) => {
-    onFormDataChange(section, { ...d[section], [key]: value });
+    onFormDataChange(section, { ...d[section], [key]: value }, `${section}.${key}`);
+  };
+
+  const patchPhone = (section, key, value) => {
+    patch(section, key, formatLeadPhone(value));
   };
 
   const toggleChip = (section, key, opt) => {
@@ -116,11 +132,23 @@ export default function LeadFormSections({
   const basicCard = (
     <SectionCard title="Basic Information">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="First Name" required>
-          <input disabled={readOnly} value={basic.firstName || ''} onChange={(e) => patch('basicInfo', 'firstName', e.target.value)} className={inputClass} placeholder="Robert" />
+        <Field label="First Name" required error={err('basicInfo.firstName')}>
+          <input
+            disabled={readOnly}
+            value={basic.firstName || ''}
+            onChange={(e) => patch('basicInfo', 'firstName', e.target.value)}
+            className={fieldClass(err('basicInfo.firstName'))}
+            placeholder="Robert"
+          />
         </Field>
-        <Field label="Last Name" required>
-          <input disabled={readOnly} value={basic.lastName || ''} onChange={(e) => patch('basicInfo', 'lastName', e.target.value)} className={inputClass} placeholder="Johnson" />
+        <Field label="Last Name" required error={err('basicInfo.lastName')}>
+          <input
+            disabled={readOnly}
+            value={basic.lastName || ''}
+            onChange={(e) => patch('basicInfo', 'lastName', e.target.value)}
+            className={fieldClass(err('basicInfo.lastName'))}
+            placeholder="Johnson"
+          />
         </Field>
         <Field label="Relationship">
           <select disabled={readOnly} value={basic.relationship} onChange={(e) => patch('basicInfo', 'relationship', e.target.value)} className={inputClass}>
@@ -128,14 +156,40 @@ export default function LeadFormSections({
             {RELATIONSHIPS.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
         </Field>
-        <Field label="Phone Number" required>
-          <IconInput icon={Phone} disabled={readOnly} value={basic.phone} onChange={(e) => patch('basicInfo', 'phone', e.target.value)} placeholder="+1 (415) 555-7890" />
+        <Field label="Phone Number" required error={err('basicInfo.phone')}>
+          <IconInput
+            icon={Phone}
+            type="tel"
+            inputMode="tel"
+            disabled={readOnly}
+            error={err('basicInfo.phone')}
+            value={basic.phone}
+            onChange={(e) => patchPhone('basicInfo', 'phone', e.target.value)}
+            placeholder="(555) 123-4567"
+          />
         </Field>
-        <Field label="Email">
-          <IconInput icon={Mail} type="email" disabled={readOnly} value={basic.email} onChange={(e) => patch('basicInfo', 'email', e.target.value)} placeholder="name@email.com" />
+        <Field label="Email" error={err('basicInfo.email')}>
+          <IconInput
+            icon={Mail}
+            type="email"
+            disabled={readOnly}
+            error={err('basicInfo.email')}
+            value={basic.email}
+            onChange={(e) => patch('basicInfo', 'email', e.target.value)}
+            placeholder="name@email.com"
+          />
         </Field>
-        <Field label="Alternate Number">
-          <IconInput icon={Phone} disabled={readOnly} value={basic.alternateNumber} onChange={(e) => patch('basicInfo', 'alternateNumber', e.target.value)} placeholder="+1 (415) 555-4411" />
+        <Field label="Alternate Number" error={err('basicInfo.alternateNumber')}>
+          <IconInput
+            icon={Phone}
+            type="tel"
+            inputMode="tel"
+            disabled={readOnly}
+            error={err('basicInfo.alternateNumber')}
+            value={basic.alternateNumber}
+            onChange={(e) => patchPhone('basicInfo', 'alternateNumber', e.target.value)}
+            placeholder="(555) 123-4567"
+          />
         </Field>
         <Field label="Preferred Contact Method">
           <select disabled={readOnly} value={basic.preferredContactMethod} onChange={(e) => patch('basicInfo', 'preferredContactMethod', e.target.value)} className={inputClass}>
@@ -152,14 +206,35 @@ export default function LeadFormSections({
             {CAMPAIGNS.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </Field>
-        <Field label="Inquiry Date" required>
-          <IconInput icon={Calendar} type="date" disabled={readOnly} value={basic.inquiryDate} onChange={(e) => patch('basicInfo', 'inquiryDate', e.target.value)} />
+        <Field label="Inquiry Date" required error={err('basicInfo.inquiryDate')}>
+          <IconInput
+            icon={Calendar}
+            type="date"
+            disabled={readOnly}
+            error={err('basicInfo.inquiryDate')}
+            value={basic.inquiryDate}
+            onChange={(e) => patch('basicInfo', 'inquiryDate', e.target.value)}
+          />
         </Field>
-        <Field label="Preferred Start Date">
-          <IconInput icon={Calendar} type="date" disabled={readOnly} value={basic.preferredStartDate} onChange={(e) => patch('basicInfo', 'preferredStartDate', e.target.value)} />
+        <Field label="Preferred Start Date" error={err('basicInfo.preferredStartDate')}>
+          <IconInput
+            icon={Calendar}
+            type="date"
+            disabled={readOnly}
+            error={err('basicInfo.preferredStartDate')}
+            value={basic.preferredStartDate}
+            onChange={(e) => patch('basicInfo', 'preferredStartDate', e.target.value)}
+          />
         </Field>
-        <Field label="Zip / Location" required className="sm:col-span-2">
-          <IconInput icon={MapPin} disabled={readOnly} value={basic.zipLocation} onChange={(e) => patch('basicInfo', 'zipLocation', e.target.value)} placeholder="San Jose, CA 95124, USA" />
+        <Field label="Zip / Location" required className="sm:col-span-2" error={err('basicInfo.zipLocation')}>
+          <IconInput
+            icon={MapPin}
+            disabled={readOnly}
+            error={err('basicInfo.zipLocation')}
+            value={basic.zipLocation}
+            onChange={(e) => patch('basicInfo', 'zipLocation', e.target.value)}
+            placeholder="San Jose, CA 95124"
+          />
         </Field>
       </div>
     </SectionCard>
@@ -168,11 +243,23 @@ export default function LeadFormSections({
   const recipientCard = (
     <SectionCard title="Care Recipient Details">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="First Name" required>
-          <input disabled={readOnly} value={recipient.firstName || ''} onChange={(e) => patch('careRecipient', 'firstName', e.target.value)} className={inputClass} placeholder="Mary" />
+        <Field label="First Name" required error={err('careRecipient.firstName')}>
+          <input
+            disabled={readOnly}
+            value={recipient.firstName || ''}
+            onChange={(e) => patch('careRecipient', 'firstName', e.target.value)}
+            className={fieldClass(err('careRecipient.firstName'))}
+            placeholder="Mary"
+          />
         </Field>
-        <Field label="Last Name" required>
-          <input disabled={readOnly} value={recipient.lastName || ''} onChange={(e) => patch('careRecipient', 'lastName', e.target.value)} className={inputClass} placeholder="Johnson" />
+        <Field label="Last Name" required error={err('careRecipient.lastName')}>
+          <input
+            disabled={readOnly}
+            value={recipient.lastName || ''}
+            onChange={(e) => patch('careRecipient', 'lastName', e.target.value)}
+            className={fieldClass(err('careRecipient.lastName'))}
+            placeholder="Johnson"
+          />
         </Field>
         <Field label="Age / DOB">
           <input disabled={readOnly} value={recipient.ageOrDob} onChange={(e) => patch('careRecipient', 'ageOrDob', e.target.value)} className={inputClass} placeholder="82 Years (12 May 1944)" />
@@ -226,14 +313,29 @@ export default function LeadFormSections({
               {RELATIONSHIPS.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </Field>
-          <Field label="Phone">
-            <IconInput icon={Phone} value={family.phone} onChange={(e) => patch('familyRep', 'phone', e.target.value)} />
+          <Field label="Phone" error={err('familyRep.phone')}>
+            <IconInput
+              icon={Phone}
+              type="tel"
+              inputMode="tel"
+              error={err('familyRep.phone')}
+              value={family.phone}
+              onChange={(e) => patchPhone('familyRep', 'phone', e.target.value)}
+              placeholder="(555) 123-4567"
+            />
           </Field>
-          <Field label="Email">
-            <IconInput icon={Mail} type="email" value={family.email} onChange={(e) => patch('familyRep', 'email', e.target.value)} />
+          <Field label="Email" error={err('familyRep.email')}>
+            <IconInput
+              icon={Mail}
+              type="email"
+              error={err('familyRep.email')}
+              value={family.email}
+              onChange={(e) => patch('familyRep', 'email', e.target.value)}
+              placeholder="name@email.com"
+            />
           </Field>
           <Field label="Address" className="sm:col-span-2">
-            <IconInput icon={MapPin} value={family.address} onChange={(e) => patch('familyRep', 'address', e.target.value)} placeholder="2458 Willow Road, San Jose, CA 95124, USA" />
+            <IconInput icon={MapPin} value={family.address} onChange={(e) => patch('familyRep', 'address', e.target.value)} placeholder="2458 Willow Road, San Jose, CA 95124" />
           </Field>
           <label className="flex items-center gap-2 text-sm text-slate-600 sm:col-span-2">
             <input

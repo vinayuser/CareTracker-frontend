@@ -28,6 +28,7 @@ import AdminSchedules from './pages/admin/Schedules';
 import AdminEvvCompliance from './pages/admin/EvvCompliance';
 import BillingClaims from './pages/admin/BillingClaims';
 import Finance from './pages/admin/Finance';
+import Payments from './pages/admin/Payments';
 import TimeCard from './pages/admin/TimeCard';
 import EmailCampaigns from './pages/admin/email/EmailCampaigns';
 import CampaignWizard from './pages/admin/email/CampaignWizard';
@@ -101,7 +102,6 @@ import ClientCaregivers from './pages/client/Caregivers';
 import ClientEvvVisits from './pages/client/EvvVisits';
 import ClientEvvEnrollments from './pages/client/EvvEnrollments';
 import ClientEvvEnrollmentDetail from './pages/client/EvvEnrollmentDetail';
-import ClientProfile from './pages/client/Profile';
 import ClientModulePage from './pages/client/ModulePage';
 import RegisterEntry from './pages/registration/RegisterEntry';
 import CandidateFormPortal from './pages/candidate/CandidateFormPortal';
@@ -220,7 +220,7 @@ export default function App() {
               <Route path={ROUTES.ADMIN_BILLING_CLAIMS} element={<BillingClaims />} />
               <Route path={ROUTES.ADMIN_FINANCE} element={<Finance />} />
               <Route path={ROUTES.ADMIN_TIME_CARD} element={<TimeCard />} />
-              <Route path={ROUTES.ADMIN_PAYMENTS} element={<AdminModulePage />} />
+              <Route path={ROUTES.ADMIN_PAYMENTS} element={<Payments />} />
               <Route path={ROUTES.ADMIN_SOCIAL} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_MARKETING} element={<Navigate to={ROUTES.ADMIN_EMAIL_CAMPAIGNS} replace />} />
               <Route path={ROUTES.ADMIN_EMAIL_CAMPAIGN_NEW} element={<CampaignWizard />} />
@@ -360,7 +360,7 @@ export default function App() {
               <Route path={ROUTES.CLIENT_DOCUMENTS} element={<ClientModulePage />} />
               <Route path={ROUTES.CLIENT_MEDICATIONS} element={<ClientModulePage />} />
               <Route path={ROUTES.CLIENT_INVOICES} element={<ClientModulePage />} />
-              <Route path={ROUTES.CLIENT_PROFILE} element={<ClientProfile />} />
+              <Route path={ROUTES.CLIENT_PROFILE} element={<Profile />} />
               <Route path={ROUTES.CLIENT_HELP} element={<ClientModulePage />} />
             </Route>
           </Route>

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { ROUTES } from '../../routes/routes';
 import { getAuthUser } from '../../utils/auth';
+import { formatDisplayName } from '../../utils/formatDisplayName';
 import VisitOverviewChart from '../../components/agency/dashboard/VisitOverviewChart';
 import ClientsStatusDonut from '../../components/agency/dashboard/ClientsStatusDonut';
 import WelcomeIllustration from '../../components/agency/dashboard/WelcomeIllustration';
@@ -68,9 +69,11 @@ function AlertIcon({ type }) {
 
 export default function AgencyDashboard() {
   const dispatch = useDispatch();
-  const authUser = getAuthUser();
+  const authUser = useSelector((state) => state.auth.user) || getAuthUser();
   const { agency: data, agencyLoading } = useSelector((state) => state.dashboards);
-  const agencyName = authUser?.agencyName || 'your agency';
+  const displayName = formatDisplayName(authUser?.name || authUser?.fullName) || 'there';
+  const agencyName = formatDisplayName(authUser?.agencyName) || 'your agency';
+  const greeting = authUser?.isFirstLogin ? 'Welcome' : 'Welcome back';
   const k = data?.kpis || {};
 
   useEffect(() => {
@@ -137,7 +140,7 @@ export default function AgencyDashboard() {
         <div className="flex items-center justify-between gap-6">
           <div>
             <h2 className="text-[1.35rem] font-bold text-[#1e3a8a]">
-              Welcome back, {authUser?.name || authUser?.fullName || 'there'}!
+              {greeting}, {displayName}!
             </h2>
             <p className="mt-1 text-sm text-gray-600">
               Here&apos;s what&apos;s happening with <span className="font-semibold text-gray-800">{agencyName}</span> today.

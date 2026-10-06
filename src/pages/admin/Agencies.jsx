@@ -703,8 +703,20 @@ export default function Agencies() {
                         </p>
                       </div>
                       <div>
-                        <p className="text-[11px] text-slate-400">Next Billing Date</p>
-                        <p className="mt-1 text-sm font-bold text-slate-900">—</p>
+                        <p className="text-[11px] text-slate-400">Next Due Date</p>
+                        <p className="mt-1 text-sm font-bold text-slate-900">
+                          {formatLongDate(
+                            agency.subscription?.nextDueDate
+                            || agency.subscription?.nextBillingDate
+                            || agency.subscription?.nextRenewalDate,
+                          )}
+                        </p>
+                        {agency.subscription?.daysLeft != null
+                          && (agency.subscription?.nextDueDate || agency.subscription?.nextRenewalDate) ? (
+                          <p className="mt-0.5 text-[11px] font-semibold text-emerald-600">
+                            {agency.subscription.daysLeft} day{agency.subscription.daysLeft === 1 ? '' : 's'} left
+                          </p>
+                        ) : null}
                       </div>
                     </div>
 
@@ -712,16 +724,27 @@ export default function Agencies() {
                       <div>
                         <p className="text-[11px] text-slate-400">Subscription Start Date</p>
                         <p className="mt-1 text-[13px] font-semibold text-slate-900">
-                          {formatLongDate(agency.registeredAt || agency.createdAt)}
+                          {formatLongDate(
+                            agency.subscription?.startDate
+                            || agency.registeredAt
+                            || agency.createdAt,
+                          )}
                         </p>
                       </div>
                       <div>
                         <p className="text-[11px] text-slate-400">Next Renewal Date</p>
-                        <p className="mt-1 text-[13px] font-semibold text-slate-900">—</p>
+                        <p className="mt-1 text-[13px] font-semibold text-slate-900">
+                          {formatLongDate(
+                            agency.subscription?.nextRenewalDate
+                            || agency.subscription?.nextDueDate,
+                          )}
+                        </p>
                       </div>
                       <div>
                         <p className="text-[11px] text-slate-400">Auto Renewal</p>
-                        <p className="mt-1 text-[13px] font-semibold text-slate-500">—</p>
+                        <p className="mt-1 text-[13px] font-semibold text-slate-900">
+                          {agency.subscription?.autoRenewal ? 'Enabled' : agency.plan ? 'Disabled' : '—'}
+                        </p>
                       </div>
                     </div>
 
