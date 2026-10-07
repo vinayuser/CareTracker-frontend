@@ -1,8 +1,13 @@
 // components/forms/sections/BackgroundCheck/AddressHistorySection.jsx
 import React from 'react';
+import { fieldInputErr, fieldInputOk } from '../../../../../utils/candidateFormPrefill';
 
-const AddressHistorySection = ({ formData, onInputChange }) => {
-  // Handle years input - only allow numbers
+function FieldError({ message }) {
+  if (!message) return null;
+  return <p className="mt-1 text-xs text-red-600">{message}</p>;
+}
+
+const AddressHistorySection = ({ formData, errors = {}, onInputChange }) => {
   const handleYearsChange = (field, value) => {
     const cleaned = value.replace(/\D/g, '');
     onInputChange(field, cleaned);
@@ -10,36 +15,36 @@ const AddressHistorySection = ({ formData, onInputChange }) => {
 
   const addressFields = [
     {
-      label: "Current Address",
-      streetField: "Street",
-      cityStateZipField: "CityStateZip",
-      yearsField: "Years",
-      required: true
+      label: 'Current Address',
+      streetField: 'Street',
+      cityStateZipField: 'CityStateZip',
+      yearsField: 'Years',
+      required: true,
     },
     {
-      label: "Previous Address (1)",
-      streetField: "Street_2",
-      cityStateZipField: "CityStateZip_2",
-      yearsField: "Years_2",
-      required: true
+      label: 'Previous Address (1)',
+      streetField: 'Street_2',
+      cityStateZipField: 'CityStateZip_2',
+      yearsField: 'Years_2',
+      required: false,
     },
     {
-      label: "Previous Address (2)",
-      streetField: "Street_3",
-      cityStateZipField: "CityStateZip_3",
-      yearsField: "Years_3",
-      required: false
-    }
+      label: 'Previous Address (2)',
+      streetField: 'Street_3',
+      cityStateZipField: 'CityStateZip_3',
+      yearsField: 'Years_3',
+      required: false,
+    },
   ];
 
   return (
     <div className="mb-8">
       <h3 className="text-lg font-semibold mb-4">Address History (Past 5 years required)</h3>
-      
+
       <div className="space-y-6">
         {addressFields.map((addr, index) => (
           <div key={index} className="p-4 border border-gray-200 rounded-lg">
-            <h4 className="font-medium text-gray-700 mb-3">{addr.label}</h4>
+            <h4 className="font-medium text-gray-700 mb-3">{addr.label}{addr.required ? ' *' : ''}</h4>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
@@ -47,10 +52,10 @@ const AddressHistorySection = ({ formData, onInputChange }) => {
                   type="text"
                   value={formData[addr.streetField]}
                   onChange={(e) => onInputChange(addr.streetField, e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required={addr.required}
+                  className={errors[addr.streetField] ? fieldInputErr : fieldInputOk}
                   placeholder="123 Main St, Apt 4B"
                 />
+                <FieldError message={errors[addr.streetField]} />
               </div>
               <div className="md:col-span-1">
                 <label className="block text-sm font-medium text-gray-700 mb-1"># Years</label>
@@ -58,8 +63,7 @@ const AddressHistorySection = ({ formData, onInputChange }) => {
                   type="text"
                   value={formData[addr.yearsField]}
                   onChange={(e) => handleYearsChange(addr.yearsField, e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required={addr.required}
+                  className={fieldInputOk}
                   placeholder="2"
                 />
               </div>
@@ -69,10 +73,10 @@ const AddressHistorySection = ({ formData, onInputChange }) => {
                   type="text"
                   value={formData[addr.cityStateZipField]}
                   onChange={(e) => onInputChange(addr.cityStateZipField, e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required={addr.required}
+                  className={errors[addr.cityStateZipField] ? fieldInputErr : fieldInputOk}
                   placeholder="Houston, TX 77001"
                 />
+                <FieldError message={errors[addr.cityStateZipField]} />
               </div>
             </div>
           </div>

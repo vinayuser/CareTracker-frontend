@@ -23,7 +23,7 @@ import {
   fetchVisitSchedules,
 } from '../../../redux/slices/visitSchedulesSlice';
 import { chooseAlert } from '../../../utils/swal';
-import { formatVisitTime, formatTimezoneAbbr } from '../../../utils/visitTimezone';
+import { formatVisitTimeWithZone } from '../../../utils/visitTimezone';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -46,10 +46,6 @@ function toDateKey(date) {
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
-}
-
-function formatTime(iso, timeZone) {
-  return formatVisitTime(iso, timeZone);
 }
 
 function monthRange(year, month) {
@@ -127,7 +123,7 @@ export default function Schedules() {
         <p class="text-left text-sm text-gray-600">
           <strong>${visit.clientName || 'Client'}</strong>
           · ${visit.scheduledDate || 'this day'}
-          · ${formatTime(visit.scheduledStartAt, visit.timezone)}–${formatTime(visit.scheduledEndAt, visit.timezone)}
+          · ${formatVisitTimeWithZone(visit.scheduledStartAt, visit.scheduledEndAt, visit.timezone)}
         </p>
         <p class="mt-3 text-left text-sm text-gray-600">
           Choose whether to remove only this day, or every matching day in this schedule series
@@ -277,10 +273,7 @@ export default function Schedules() {
                           <div>
                             <p className={`text-sm font-semibold ${alert ? 'text-red-900' : 'text-gray-900'}`}>{visit.clientName}</p>
                             <p className={`mt-0.5 text-xs ${alert ? 'text-red-700' : 'text-gray-500'}`}>
-                              {formatTime(visit.scheduledStartAt, visit.timezone)} – {formatTime(visit.scheduledEndAt, visit.timezone)}
-                              {formatTimezoneAbbr(visit.scheduledStartAt, visit.timezone)
-                                ? ` ${formatTimezoneAbbr(visit.scheduledStartAt, visit.timezone)}`
-                                : ''}
+                              {formatVisitTimeWithZone(visit.scheduledStartAt, visit.scheduledEndAt, visit.timezone)}
                             </p>
                           </div>
                           <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${statusStyles[visit.status] || statusStyles.Scheduled}`}>

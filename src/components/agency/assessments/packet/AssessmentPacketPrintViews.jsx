@@ -565,11 +565,19 @@ function renderFormBody(code, d) {
     case '110': return <Print110 d={d} />;
     case '324':
       return (
-        <PrintAck
-          d={d}
-          showAgency
-          legal="Personal Assistants may not perform tasks outside the Care Plan including invasive procedures, wound care, tube feeding, restraints, financial handling, gifts, driving without approval, and other prohibited acts listed on Form 324. Client acknowledges understanding."
-        />
+        <>
+          <Section title="CLIENT">
+            <div className="ap-row">
+              <Field label="Client:" value={d.clientName || d.client?.printedName} className="w50" />
+              <Field label="DOB:" value={d.dob} className="w50" />
+            </div>
+          </Section>
+          <PrintAck
+            d={d}
+            showAgency
+            legal="Personal Assistants may not perform tasks outside the Care Plan including invasive procedures, wound care, tube feeding, restraints, financial handling, gifts, driving without approval, and other prohibited acts listed on Form 324. Client acknowledges understanding."
+          />
+        </>
       );
     case '325':
       return (

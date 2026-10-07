@@ -144,7 +144,7 @@ const emptySafetyChecks = () => Object.fromEntries(SAFETY_ITEMS.map((k) => [k, '
 const emptyMedRows = (n = 10) => Array.from({ length: n }, () => ({ name: '', dose: '', frequency: '' }));
 const emptyDiagRows = (n = 10) => Array.from({ length: n }, () => '');
 const emptyAllergyRows = (n = 3) => Array.from({ length: n }, () => ({ allergy: '', reaction: '' }));
-const emptyCaseNotes = (n = 8) => Array.from({ length: n }, () => ({ date: '', time: '', notes: '' }));
+const emptyCaseNotes = (n = 5) => Array.from({ length: n }, () => ({ date: '', time: '', notes: '' }));
 
 export function buildEmptyPacketForm(code) {
   switch (code) {
@@ -213,7 +213,13 @@ export function buildEmptyPacketForm(code) {
         zip: '',
       };
     case '324':
-      return { acknowledged: false, client: emptySig(), agency: emptyAgencySig() };
+      return {
+        acknowledged: false,
+        clientName: '',
+        dob: '',
+        client: emptySig(),
+        agency: emptyAgencySig(),
+      };
     case '325':
       return { printName: '', client: emptySig() };
     case '350':
@@ -349,9 +355,10 @@ export function mergePacketForms(saved = {}) {
       }));
     }
     if (code === '790') {
-      out[code].entries = Array.from({ length: Math.max(8, (incoming.entries || []).length) }, (_, i) => ({
+      const incomingEntries = incoming.entries || [];
+      out[code].entries = Array.from({ length: Math.max(5, incomingEntries.length) }, (_, i) => ({
         date: '', time: '', notes: '',
-        ...(incoming.entries?.[i] || {}),
+        ...(incomingEntries[i] || {}),
       }));
     }
   });
@@ -500,6 +507,20 @@ function fillBlank(target, key, value) {
   target[key] = value;
 }
 
+function fillClientSignatureBlock(block = {}, src = {}, extras = {}) {
+  const out = { ...block };
+  fillBlank(out, 'printedName', src.clientName);
+  fillBlank(out, 'date', extras.assessmentDate || '');
+  return out;
+}
+
+function fillAgencySignatureBlock(block = {}, extras = {}) {
+  const out = { ...block };
+  fillBlank(out, 'printedName', extras.assessorName || '');
+  fillBlank(out, 'date', extras.assessmentDate || '');
+  return out;
+}
+
 /** Copy client identity from form 110 into blank fields on another packet form. */
 export function prefillPacketFormFromClient(code, forms = {}, extras = {}) {
   const empty = buildEmptyPacketForm(code);
@@ -525,6 +546,24 @@ export function prefillPacketFormFromClient(code, forms = {}, extras = {}) {
   Object.entries(shared).forEach(([key, value]) => {
     if (Object.prototype.hasOwnProperty.call(empty, key)) fillBlank(current, key, value);
   });
+  if (empty.client && typeof empty.client === 'object') {
+    current.client = fillClientSignatureBlock(
+      { ...empty.client, ...(current.client || {}) },
+      src,
+      extras,
+    );
+  }
+  if (empty.agency && typeof empty.agency === 'object') {
+    current.agency = fillAgencySignatureBlock(
+      { ...empty.agency, ...(current.agency || {}) },
+      extras,
+    );
+  }
+  if (code === '110') {
+    fillBlank(current, 'assessorPrintName', extras.assessorName || '');
+    fillBlank(current, 'assessorDate', extras.assessmentDate || '');
+    fillBlank(current, 'date', extras.assessmentDate || '');
+  }
   if (code === '7050') {
     fillBlank(current, 'date', extras.assessmentDate || '');
     fillBlank(current, 'performedBy', extras.assessorName || '');

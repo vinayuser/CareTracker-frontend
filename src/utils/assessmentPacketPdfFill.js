@@ -804,14 +804,80 @@ function fill110(form, pdfDoc, d) {
   (d.musculoskeletal?.items || []).forEach((x) => tryCheck(form, x, true));
   (d.psychological?.items || []).forEach((x) => tryCheck(form, x, true));
   (d.equipment || []).forEach((x) => tryCheck(form, x, true));
-  if (d.eating) tryCheck(form, d.eating, true);
-  if (d.bathing) tryCheck(form, d.bathing, true);
-  if (d.toileting) tryCheck(form, d.toileting, true);
-  if (d.dressing) tryCheck(form, d.dressing, true);
-  if (d.ambulation) tryCheck(form, d.ambulation, true);
-  if (d.livesWith === 'Alone') tryCheck(form, 'Alone', true);
-  if (d.livesWith === 'With significant others') tryCheck(form, 'With significant others', true);
-  if (d.livesWith === 'With family') tryCheck(form, 'With fami', true);
+  if (d.equipmentOther) tryCheck(form, 'Other_8', true);
+
+  // ADLs — UI labels often differ from truncated / renamed PDF checkbox fields
+  const checkAdl = (uiValue, map) => {
+    const key = String(uiValue || '').trim();
+    if (!key) return;
+    const targets = map[key];
+    if (Array.isArray(targets)) targets.forEach((name) => tryCheck(form, name, true));
+    else if (targets) tryCheck(form, targets, true);
+    else tryCheck(form, key, true);
+  };
+
+  checkAdl(d.eating, {
+    'Independent in food preparation and eating': 'Independent in food preparation and eating',
+    'Independent in eating': 'Independent in eating',
+    'Can prepare and eat meals with supervision': 'Can prepare and eat meals with supervision',
+    'Requires assistance with eating, requires preparation of meals':
+      'Requires assistance with eating requires preparation of meals',
+    'Needs meals prepared and total assistance with eating':
+      'Needs meals prepared and total assistance with eating',
+    'Receives G-tube feeding / TPN': 'Receives Gtube feeding  TPN',
+  });
+
+  // Bathing checkboxes on the template are unnamed (undefined_11 … undefined_14)
+  checkAdl(d.bathing, {
+    Independent: 'undefined_11',
+    'Needs supervision, minimal assistance': 'undefined_12',
+    'Requires substantial amount of assistance': 'undefined_13',
+    'Needs to be bathed or showered, unable to assist': 'undefined_14',
+  });
+
+  checkAdl(d.toileting, {
+    Independent: 'Independent',
+    'Needs some supervision in using bathroom': 'Needs some supervision in using bathroom',
+    'Needs substantial assistance in using bathroom, personal Hygiene': [
+      'Needs substantial assistance in using bathroompersonal',
+      'Hygiene',
+    ],
+    'Unable to use bathroom, uses diapers or briefs': 'Unable to use bathroom uses diapers or briefs',
+  });
+
+  checkAdl(d.dressing, {
+    'Independent, can dress self': 'Independent can dress self',
+    'Needs supervision': 'Needs supervision',
+    'Requires assistance': 'Requires assistance',
+    'Needs to be dressed': 'Needs to be dressed',
+  });
+
+  checkAdl(d.ambulation, {
+    'Walks independently': 'Walks independently',
+    "Can walk with another's assistance": 'Can walk with anothers assistance',
+    'Needs device to ambulate': 'Needs device to ambulate',
+    'Uses wheelchair, cannot ambulate': 'Uses wheelchair cannot ambulate',
+    'Can weight bear for transfers': 'Can weight bear for transfers',
+    Hoyer: 'Hoyer',
+  });
+
+  const dentures = Array.isArray(d.dentures) ? d.dentures : [];
+  if (dentures.length) tryCheck(form, 'Dentures', true);
+  dentures.forEach((x) => tryCheck(form, x, true));
+
+  // Client Lives — UI labels → PDF AcroForm checkbox names
+  const livesWith = String(d.livesWith || '').trim();
+  if (livesWith === 'Alone') tryCheck(form, 'Alone', true);
+  else if (
+    livesWith === 'With significant other(s)'
+    || livesWith === 'With significant others'
+  ) {
+    tryCheck(form, 'With significant others', true);
+  } else if (livesWith === 'With family') {
+    tryCheck(form, 'With fami', true);
+  } else if (livesWith === 'Other') {
+    tryCheck(form, 'Other_9', true);
+  }
 
   return embedSignatureOnField(pdfDoc, form, 'Signature', d.assessorSignature);
 }
@@ -870,7 +936,7 @@ async function applyFormData(code, pdfDoc, data) {
       break;
     case '324':
       trySetText(form, 'Date', d.client?.date);
-      trySetText(form, 'Print Name', d.client?.printedName);
+      trySetText(form, 'Print Name', d.client?.printedName || d.clientName);
       trySetText(form, 'Date_2', d.agency?.date);
       trySetText(form, 'Print Name_2', d.agency?.printedName);
       await embedSignatureOnField(pdfDoc, form, 'Signature10_es_:signer:signature', d.client?.signature);

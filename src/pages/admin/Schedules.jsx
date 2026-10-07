@@ -1,18 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   CalendarDays,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Download,
+  Eye,
   Filter,
+  MoreVertical,
+  Power,
   Search,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axiosInstance from '../../api/axiosInstance';
 import API_ROUTES from '../../api/apiRoutes';
-import { ROUTES } from '../../routes/routes';
+import ActionIconButton from '../../components/ui/ActionIconButton';
+import ViewCaregiverDrawer from '../../components/agency/caregivers/ViewCaregiverDrawer';
+import { confirmAlert } from '../../utils/swal';
+
+const MENU_WIDTH = 192;
 
 const HOUR_START = 6;
 const HOUR_END = 20;
@@ -333,7 +339,6 @@ function MonthGrid({ year, month, visits, colorForClient }) {
 }
 
 export default function AdminSchedules() {
-  const navigate = useNavigate();
   const [options, setOptions] = useState([]);
   const [agencyId, setAgencyId] = useState('');
   const [selectorOpen, setSelectorOpen] = useState(false);
@@ -349,6 +354,12 @@ export default function AdminSchedules() {
   const [anchorDate, setAnchorDate] = useState(() => startOfWeek(new Date()));
   const [schedule, setSchedule] = useState(null);
   const [scheduleLoading, setScheduleLoading] = useState(false);
+
+  const [viewOpen, setViewOpen] = useState(false);
+  const [viewCaregiver, setViewCaregiver] = useState(null);
+  const [menu, setMenu] = useState(null);
+  const [statusUpdatingId, setStatusUpdatingId] = useState('');
+  const menuRef = useRef(null);
 
   const selectedAgency = useMemo(
     () => options.find((o) => o.id === agencyId) || null,
@@ -415,13 +426,24 @@ export default function AdminSchedules() {
   }, []);
 
   useEffect(() => {
-    if (!selectorOpen) return undefined;
+    if (!selectorOpen && !menu) return undefined;
     const onDown = (e) => {
       if (selectorRef.current && !selectorRef.current.contains(e.target)) setSelectorOpen(false);
+      if (e.target.closest?.('[data-schedule-menu-trigger]')) return;
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenu(null);
     };
+    const closeMenu = () => setMenu(null);
     document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [selectorOpen]);
+    if (menu) {
+      window.addEventListener('scroll', closeMenu, true);
+      window.addEventListener('resize', closeMenu);
+    }
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      window.removeEventListener('scroll', closeMenu, true);
+      window.removeEventListener('resize', closeMenu);
+    };
+  }, [selectorOpen, menu]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(caregiverSearch.trim()), 300);
@@ -542,6 +564,91 @@ export default function AdminSchedules() {
 
   const caregiverHeader = selectedCaregiver || schedule?.caregiver;
   const agencyLabel = caregiverHeader?.agencyName || selectedAgency?.name || '';
+
+  const toViewModel = (caregiver, overviewCaregiver = null) => {
+    const src = overviewCaregiver || caregiver || {};
+    return {
+      id: src.id || caregiver?.id,
+      fullName: src.fullName || src.name || caregiver?.name || '',
+      email: src.email || caregiver?.email || '',
+      phone: src.phone || caregiver?.phone || '',
+      userId: src.userId || caregiver?.userId || '',
+      employeeId: src.employeeId || src.caregiverCode || caregiver?.caregiverCode || '',
+      dateOfBirth: src.dateOfBirth || caregiver?.dateOfBirth || '',
+      status: src.status || caregiver?.status || '',
+      profilePic: src.profilePic || caregiver?.profilePic || '',
+      createdAt: src.createdAt || caregiver?.createdAt || null,
+      agencyName: src.agencyName || caregiver?.agencyName || agencyLabel || '',
+      source_job_title: src.source_job_title || '',
+    };
+  };
+
+  const openViewProfile = async (caregiver = caregiverHeader) => {
+    if (!caregiver?.id) return;
+    setMenu(null);
+    setViewCaregiver(toViewModel(caregiver));
+    setViewOpen(true);
+    try {
+      const res = await axiosInstance.get(`${API_ROUTES.ADMIN.CAREGIVERS.OVERVIEW}/${caregiver.id}/overview`);
+      const data = res.data?.data;
+      if (data?.caregiver) setViewCaregiver(toViewModel(caregiver, data.caregiver));
+    } catch {
+      /* keep list/header details */
+    }
+  };
+
+  const openMenu = (e) => {
+    if (!caregiverHeader?.id) return;
+    if (menu) {
+      setMenu(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMenu({
+      top: rect.bottom + 4,
+      left: Math.max(8, rect.right - MENU_WIDTH),
+    });
+  };
+
+  const handleStatusToggle = async () => {
+    const caregiver = caregiverHeader;
+    if (!caregiver?.id) return;
+    setMenu(null);
+    const nextStatus = caregiver.status === 'Active' ? 'Inactive' : 'Active';
+    const confirmed = await confirmAlert({
+      title: nextStatus === 'Inactive' ? 'Deactivate account?' : 'Activate account?',
+      text: nextStatus === 'Inactive'
+        ? `${caregiver.name} will no longer be able to sign in to the caregiver portal.`
+        : `${caregiver.name} will regain access to the caregiver portal.`,
+      confirmText: nextStatus === 'Inactive' ? 'Deactivate' : 'Activate',
+      danger: nextStatus === 'Inactive',
+    });
+    if (!confirmed) return;
+
+    setStatusUpdatingId(caregiver.id);
+    try {
+      const res = await axiosInstance.patch(
+        API_ROUTES.ADMIN.CAREGIVERS.STATUS(caregiver.id),
+        { status: nextStatus },
+        { skipErrorToast: true },
+      );
+      const updatedStatus = res.data?.data?.status || nextStatus;
+      toast.success(`Account marked as ${updatedStatus}`);
+      setCaregivers((rows) => rows.map((row) => (
+        row.id === caregiver.id ? { ...row, status: updatedStatus } : row
+      )));
+      setSchedule((prev) => (prev?.caregiver
+        ? { ...prev, caregiver: { ...prev.caregiver, status: updatedStatus } }
+        : prev));
+      if (viewCaregiver?.id === caregiver.id) {
+        setViewCaregiver((prev) => (prev ? { ...prev, status: updatedStatus } : prev));
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update account status');
+    } finally {
+      setStatusUpdatingId('');
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -683,11 +790,21 @@ export default function AdminSchedules() {
                   <StatusPill status={caregiverHeader?.status || 'Active'} />
                   <button
                     type="button"
-                    onClick={() => navigate(ROUTES.ADMIN_CAREGIVERS)}
+                    onClick={() => openViewProfile(caregiverHeader)}
                     className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-50"
                   >
                     View Profile
                   </button>
+                  <span data-schedule-menu-trigger className="inline-flex">
+                    <ActionIconButton
+                      label="More actions"
+                      className={`text-slate-500 hover:bg-slate-100 ${menu ? 'bg-slate-100' : ''}`}
+                      onClick={openMenu}
+                      disabled={statusUpdatingId === caregiverHeader?.id}
+                    >
+                      <MoreVertical size={15} />
+                    </ActionIconButton>
+                  </span>
                 </div>
               </div>
 
@@ -781,6 +898,42 @@ export default function AdminSchedules() {
           )}
         </section>
       </div>
+
+      {menu && caregiverHeader ? (
+        <div
+          ref={menuRef}
+          style={{ position: 'fixed', top: menu.top, left: menu.left, width: MENU_WIDTH }}
+          className="z-50 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+        >
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+            onClick={() => openViewProfile(caregiverHeader)}
+          >
+            <Eye size={14} /> View details
+          </button>
+          <button
+            type="button"
+            disabled={statusUpdatingId === caregiverHeader.id}
+            className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50 disabled:opacity-50 ${
+              caregiverHeader.status === 'Active' ? 'text-rose-600' : 'text-emerald-700'
+            }`}
+            onClick={handleStatusToggle}
+          >
+            <Power size={14} />
+            {caregiverHeader.status === 'Active' ? 'Deactivate account' : 'Activate account'}
+          </button>
+        </div>
+      ) : null}
+
+      <ViewCaregiverDrawer
+        open={viewOpen}
+        onClose={() => {
+          setViewOpen(false);
+          setViewCaregiver(null);
+        }}
+        caregiver={viewCaregiver}
+      />
     </div>
   );
 }

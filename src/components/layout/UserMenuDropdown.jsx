@@ -40,6 +40,7 @@ export default function UserMenuDropdown({
   const roleLabel = ROLE_LABELS[role] || 'User';
   const secondary = subtitle || (email ? email : roleLabel);
   const initials = initialsFromName(name);
+  const resolvedAvatarUrl = avatarUrl || authUser?.profilePic || null;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -78,9 +79,9 @@ export default function UserMenuDropdown({
         aria-expanded={open}
         className="flex items-center gap-2.5 rounded-lg border border-transparent py-1 pl-1 pr-1.5 transition-colors hover:border-gray-200 hover:bg-gray-50 sm:pr-2"
       >
-        {avatarUrl ? (
+        {resolvedAvatarUrl ? (
           <img
-            src={avatarUrl}
+            src={resolvedAvatarUrl}
             alt=""
             className="h-9 w-9 rounded-full object-cover ring-2 ring-gray-100"
           />

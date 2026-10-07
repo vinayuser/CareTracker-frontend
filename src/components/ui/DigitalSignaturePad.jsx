@@ -9,6 +9,7 @@ export default function DigitalSignaturePad({ label, value = '', onChange, readO
   const drawingRef = useRef(false);
   const lastPointRef = useRef(null);
   const sizeRef = useRef({ width: 0, height: CANVAS_HEIGHT });
+  const lastValueRef = useRef(value);
 
   const restoreImage = useCallback((dataUrl) => {
     const canvas = canvasRef.current;
@@ -17,18 +18,24 @@ export default function DigitalSignaturePad({ label, value = '', onChange, readO
     const ctx = canvas.getContext('2d');
     const img = new Image();
     img.onload = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Use CSS pixel size for drawImage after scale(2,2)
+      ctx.clearRect(0, 0, sizeRef.current.width, sizeRef.current.height);
       ctx.drawImage(img, 0, 0, sizeRef.current.width, sizeRef.current.height);
     };
     img.src = src;
   }, []);
 
-  const initCanvas = useCallback(() => {
+  const setupCanvasSize = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const width = Math.max(rect.width, 320);
+    const prevWidth = sizeRef.current.width;
     sizeRef.current = { width, height: CANVAS_HEIGHT };
+    // Avoid wiping the pad when size hasn't actually changed
+    if (prevWidth === width && canvas.width > 0) return false;
+
+    const existing = signatureImageSrc(lastValueRef.current);
     canvas.width = width * 2;
     canvas.height = CANVAS_HEIGHT * 2;
     const ctx = canvas.getContext('2d');
@@ -38,15 +45,31 @@ export default function DigitalSignaturePad({ label, value = '', onChange, readO
     ctx.lineJoin = 'round';
     ctx.lineWidth = 2;
     ctx.strokeStyle = '#111827';
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (signatureImageSrc(value)) restoreImage(value);
-  }, [restoreImage, value]);
+    ctx.clearRect(0, 0, width, CANVAS_HEIGHT);
+    if (existing) restoreImage(existing);
+    return true;
+  }, [restoreImage]);
 
+  // Size canvas once + on resize (not on every value change)
   useEffect(() => {
-    initCanvas();
-    window.addEventListener('resize', initCanvas);
-    return () => window.removeEventListener('resize', initCanvas);
-  }, [initCanvas]);
+    setupCanvasSize();
+    const onResize = () => setupCanvasSize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [setupCanvasSize]);
+
+  // Restore when parent value changes (e.g. loaded from server / upload URL),
+  // but never while the user is actively drawing.
+  useEffect(() => {
+    if (drawingRef.current) return;
+    if (value === lastValueRef.current) return;
+    lastValueRef.current = value;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, sizeRef.current.width, sizeRef.current.height);
+    if (signatureImageSrc(value)) restoreImage(value);
+  }, [value, restoreImage]);
 
   const getPoint = (e) => {
     const canvas = canvasRef.current;
@@ -71,7 +94,9 @@ export default function DigitalSignaturePad({ label, value = '', onChange, readO
     const ctx = canvas.getContext('2d');
     const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
     const hasInk = pixels.some((p, i) => i % 4 === 3 && p > 0);
-    onChange(hasInk ? canvas.toDataURL('image/png') : '');
+    const next = hasInk ? canvas.toDataURL('image/png') : '';
+    lastValueRef.current = next;
+    onChange(next);
   };
 
   const startDraw = (e) => {
@@ -102,7 +127,8 @@ export default function DigitalSignaturePad({ label, value = '', onChange, readO
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, sizeRef.current.width, sizeRef.current.height);
+    lastValueRef.current = '';
     onChange('');
   };
 

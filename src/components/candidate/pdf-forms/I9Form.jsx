@@ -2,15 +2,28 @@ import React, { useState, useRef, useEffect } from 'react';
 import { fetchPdfTemplateBytes } from './pdfTemplateFetch';
 import { submitFilledPdfForm } from './pdfFormSubmit';
 import { PDFDocument } from 'pdf-lib';
-import axios from 'axios';
 import StatusModal from '../../ui/StatusModal';
+import {
+  validateHiringPdfForm,
+  formatHiringValidationMessage,
+  sanitizeSsn,
+  formatUsPhone,
+  sanitizeZip,
+  HIRING_MAX,
+  clampText,
+} from '../../../utils/hiringPdfFormValidation';
+import {
+  getCandidatePrefill,
+  mergeFormWithCandidate,
+  parseUsLocation,
+  isoToMmDdYyyy,
+} from '../../../utils/candidateFormPrefill';
 import EmployeeInfo from './sections/I9/EmployeeInfo';
 import EmployerVerification from './sections/I9/EmployerVerification';
 import SupplementAPreparer from './sections/I9/SupplementAPreparer';
 import SupplementBRehire from './sections/I9/SupplementBRehire';
 
-const I9Form = ({ document, token, onClose, onSuccess }) => {
-    const [formData, setFormData] = useState({
+const EMPTY_I9 = {
         // Section 1: Employee Information
         "Last Name (Family Name)": "", // 98
         "First Name (Given Name)": "", // 5
@@ -187,7 +200,109 @@ const I9Form = ({ document, token, onClose, onSuccess }) => {
 
         // Additional field from list
         "Expiration Date if any": "", // 124
-    });
+};
+
+const I9_NAME_SYNC = {
+  'Last Name (Family Name)': [
+    'Last Name Family Name from Section 1',
+    'Last Name Family Name from Section 1-2',
+  ],
+  'First Name (Given Name)': [
+    'First Name Given Name from Section 1',
+    'First Name Given Name from Section 1-2',
+  ],
+  'Employee Middle Initial (if any)': [
+    'Middle initial if any from Section 1',
+    'Middle initial if any from Section 1-2',
+  ],
+};
+
+const I9_SIGNATURE_FIELDS = new Set([
+  'Signature of Employee',
+  'Signature of Employer or AR',
+  'Signature of Preparer or Translator 0',
+  'Signature of Preparer or Translator 1',
+  'Signature of Preparer or Translator 2',
+  'Signature of Preparer or Translator 3',
+  'Signature of Emp Rep 0',
+  'Signature of Emp Rep 1',
+  'Signature of Emp Rep 2',
+]);
+
+const I9_DATE_FIELDS = new Set([
+  'Date of Birth mmddyyyy',
+  "Today's Date mmddyyy",
+  'Exp Date mmddyyyy',
+  'FirstDayEmployed mmddyyyy',
+  'S2 Todays Date mmddyyyy',
+  'Sig Date mmddyyyy 0',
+  'Sig Date mmddyyyy 1',
+  'Sig Date mmddyyyy 2',
+  'Sig Date mmddyyyy 3',
+  'Date of Rehire 0',
+  'Date of Rehire 1',
+  'Date of Rehire 2',
+  'Expiration Date 0',
+  'Expiration Date 1',
+  'Expiration Date 2',
+  'List A. Document 2. Expiration Date (if any)',
+  'List B Expiration Date 1',
+  'List C Expiration Date 1',
+  'Expiration Date if any',
+  'Todays Date 0',
+  'Todays Date 1',
+  'Todays Date 2',
+]);
+
+function sanitizeI9Field(fieldName, value) {
+  if (fieldName === 'US Social Security Number') return sanitizeSsn(value);
+  if (fieldName === 'Telephone Number') return formatUsPhone(value);
+  if (fieldName === 'ZIP Code') return sanitizeZip(value);
+  if (fieldName === 'Employee Middle Initial (if any)') {
+    return String(value ?? '').slice(0, 1).toUpperCase();
+  }
+  if (fieldName.includes('ZIP') || fieldName.startsWith('Zip Code')) {
+    return sanitizeZip(value);
+  }
+  if (
+    fieldName.includes('Name')
+    || fieldName.includes('City')
+    || fieldName.includes('State')
+    || fieldName.includes('Title')
+  ) {
+    return clampText(value, HIRING_MAX.short);
+  }
+  if (fieldName.includes('Address') || fieldName.includes('E-mail')) {
+    return clampText(value, HIRING_MAX.medium);
+  }
+  return value;
+}
+
+function buildInitialI9(candidate, savedFormData) {
+  const p = getCandidatePrefill(candidate);
+  const addr = parseUsLocation(p.location);
+  return mergeFormWithCandidate(EMPTY_I9, savedFormData, {
+    'Last Name (Family Name)': p.lastName,
+    'First Name (Given Name)': p.firstName,
+    'Address Street Number and Name': addr.street || p.location,
+    'City or Town': addr.city,
+    State: addr.state,
+    'ZIP Code': addr.zip,
+    'Date of Birth mmddyyyy': p.dateOfBirth,
+    'Employees E-mail Address': p.email,
+    'Telephone Number': p.phone,
+    "Today's Date mmddyyy": p.today,
+    'Last Name Family Name from Section 1': p.lastName,
+    'First Name Given Name from Section 1': p.firstName,
+    'Last Name Family Name from Section 1-2': p.lastName,
+    'First Name Given Name from Section 1-2': p.firstName,
+  });
+}
+
+const I9Form = ({ document, candidate = null, token, onClose, onSuccess }) => {
+    const [formData, setFormData] = useState(() =>
+        buildInitialI9(candidate || document?.candidate, document?.form_data),
+    );
 
     const [generatingPreview, setGeneratingPreview] = useState(false);
     const [submitting, setSubmitting] = useState(false);
@@ -197,9 +312,9 @@ const I9Form = ({ document, token, onClose, onSuccess }) => {
     const [activeSection, setActiveSection] = useState('section1');
     const [preparerCount, setPreparerCount] = useState(0);
     const [rehireCount, setRehireCount] = useState(0);
+    const [errors, setErrors] = useState({});
 
-    // Signature refs
-    const employeeSigCanvasRef = useRef();
+    // Signature refs (employer / preparer / rehire stay on SignatureCanvas)
     const employerSigCanvasRef = useRef();
     const preparerSigCanvasRefs = [useRef(), useRef(), useRef(), useRef()];
     const rehireSigCanvasRefs = [useRef(), useRef(), useRef()];
@@ -242,40 +357,75 @@ const I9Form = ({ document, token, onClose, onSuccess }) => {
         setStatusModal(prev => ({ ...prev, isOpen: false }));
     };
 
+    const clearFieldError = (...fields) => {
+        setErrors((prev) => {
+            if (!fields.some((f) => prev[f])) return prev;
+            const next = { ...prev };
+            fields.forEach((f) => { delete next[f]; });
+            return next;
+        });
+    };
+
     const handleInputChange = (fieldName, value) => {
-        setFormData(prev => ({
-            ...prev,
-            [fieldName]: value
-        }));
+        const nextValue = sanitizeI9Field(fieldName, value);
+        setFormData((prev) => {
+            const next = { ...prev, [fieldName]: nextValue };
+            const syncTargets = I9_NAME_SYNC[fieldName];
+            if (syncTargets) {
+                syncTargets.forEach((target) => {
+                    next[target] = nextValue;
+                });
+            }
+            return next;
+        });
+        clearFieldError(fieldName);
+        if (fieldName === '3 A lawful permanent resident Enter USCIS or ANumber') {
+            clearFieldError('3 A lawful permanent resident Enter USCIS or ANumber');
+        }
+        if (['USCIS ANumber', 'Form I94 Admission Number', 'Foreign Passport Number and Country of IssuanceRow1', 'Exp Date mmddyyyy'].includes(fieldName)) {
+            clearFieldError(fieldName);
+            clearFieldError('USCIS ANumber');
+        }
     };
 
     const handleCheckboxChange = (fieldName, checked) => {
+        // Handle mutual exclusivity for citizenship status checkboxes
+        if (['CB_1', 'CB_2', 'CB_3', 'CB_4'].includes(fieldName)) {
+            setFormData((prev) => {
+                const next = { ...prev, [fieldName]: checked };
+                if (checked) {
+                    ['CB_1', 'CB_2', 'CB_3', 'CB_4'].forEach((cb) => {
+                        if (cb !== fieldName) next[cb] = false;
+                    });
+                }
+                return next;
+            });
+            clearFieldError('citizenship');
+            return;
+        }
+
         setFormData(prev => ({
             ...prev,
             [fieldName]: checked
         }));
-
-        // Handle mutual exclusivity for citizenship status checkboxes
-        if (['CB_1', 'CB_2', 'CB_3', 'CB_4'].includes(fieldName) && checked) {
-            ['CB_1', 'CB_2', 'CB_3', 'CB_4'].forEach(cb => {
-                if (cb !== fieldName) {
-                    setFormData(prev => ({ ...prev, [cb]: false }));
-                }
-            });
-        }
+        clearFieldError(fieldName);
     };
 
-    // Handle signatures
-    // Handle signatures - store the actual signature data URL in formData
+    const handleEmployeeSignatureChange = (dataUrl) => {
+        setSignatureDataUrl(dataUrl || '');
+        setFormData((prev) => ({
+            ...prev,
+            'Signature of Employee': dataUrl || '',
+        }));
+        clearFieldError('Signature of Employee');
+    };
+
+    // Agency-side SignatureCanvas handlers (employer / preparer / rehire)
     const handleSignatureEnd = (signerType, index = null) => {
         let canvasRef;
         let fieldName;
 
         switch (signerType) {
-            case 'employee':
-                canvasRef = employeeSigCanvasRef;
-                fieldName = 'Signature of Employee';
-                break;
             case 'employer':
                 canvasRef = employerSigCanvasRef;
                 fieldName = 'Signature of Employer or AR';
@@ -294,12 +444,7 @@ const I9Form = ({ document, token, onClose, onSuccess }) => {
 
         if (canvasRef.current && !canvasRef.current.isEmpty()) {
             const signatureDataURL = canvasRef.current.toDataURL();
-
-            // Store the actual signature data URL in formData
             handleInputChange(fieldName, signatureDataURL);
-
-            // Also update the visual signature URL for the current active section
-            setSignatureDataUrl(signatureDataURL);
         }
     };
 
@@ -308,10 +453,6 @@ const I9Form = ({ document, token, onClose, onSuccess }) => {
         let fieldName;
 
         switch (signerType) {
-            case 'employee':
-                canvasRef = employeeSigCanvasRef;
-                fieldName = 'Signature of Employee';
-                break;
             case 'employer':
                 canvasRef = employerSigCanvasRef;
                 fieldName = 'Signature of Employer or AR';
@@ -330,12 +471,7 @@ const I9Form = ({ document, token, onClose, onSuccess }) => {
 
         if (canvasRef.current) {
             canvasRef.current.clear();
-
-            // Clear the signature from formData
-            handleInputChange(fieldName, "");
-
-            // Clear the visual signature URL
-            setSignatureDataUrl('');
+            handleInputChange(fieldName, '');
         }
     };
 
@@ -379,8 +515,8 @@ const I9Form = ({ document, token, onClose, onSuccess }) => {
             console.log('📋 All available PDF fields:', form.getFields().map(f => f.getName()));
 
             // Fill text fields
-            const textFields = Object.keys(formData).filter(key =>
-                key.startsWith('CB_') === false
+            const textFields = Object.keys(formData).filter((key) =>
+                !key.startsWith('CB_') && !I9_SIGNATURE_FIELDS.has(key),
             );
 
             textFields.forEach(fieldName => {
@@ -390,15 +526,12 @@ const I9Form = ({ document, token, onClose, onSuccess }) => {
                     if (field) {
                         const value = formData[fieldName];
                         if (value !== undefined && value !== null) {
-                            // Check if this is a signature field with a data URL
-                            if (value.startsWith('data:image/')) {
-                                // For signature fields, we'll embed the image, not set text
-                                // Leave the text field empty or set a placeholder
-                                field.setText("");
-                                console.log(`✅ Signature field detected: ${fieldName} (will embed image)`);
+                            if (typeof value === 'string' && value.startsWith('data:image/')) {
+                                field.setText('');
+                            } else if (I9_DATE_FIELDS.has(fieldName)) {
+                                field.setText(isoToMmDdYyyy(value));
                             } else {
                                 field.setText(value.toString());
-                                console.log(`✅ Set text field: ${fieldName} = "${value}"`);
                             }
                         }
                     } else {
@@ -556,13 +689,33 @@ const I9Form = ({ document, token, onClose, onSuccess }) => {
                 }
             };
 
-            // Embed signatures for all signature fields
+            const signatureSources = {
+                'Signature of Employee': signatureDataUrl,
+                'Signature of Employer or AR': formData['Signature of Employer or AR'],
+                'Signature of Preparer or Translator 0': formData['Signature of Preparer or Translator 0'],
+                'Signature of Preparer or Translator 1': formData['Signature of Preparer or Translator 1'],
+                'Signature of Preparer or Translator 2': formData['Signature of Preparer or Translator 2'],
+                'Signature of Preparer or Translator 3': formData['Signature of Preparer or Translator 3'],
+                'Signature of Emp Rep 0': formData['Signature of Emp Rep 0'],
+                'Signature of Emp Rep 1': formData['Signature of Emp Rep 1'],
+                'Signature of Emp Rep 2': formData['Signature of Emp Rep 2'],
+            };
+
             for (const fieldName of signatureFields) {
-                const signatureDataUrl = formData[fieldName];
-                if (signatureDataUrl) {
-                    await embedSignature(pdfDoc, signatureDataUrl, fieldName);
+                const sigUrl = signatureSources[fieldName];
+                if (sigUrl) {
+                    await embedSignature(pdfDoc, sigUrl, fieldName);
                 }
             }
+
+            I9_SIGNATURE_FIELDS.forEach((fieldName) => {
+                try {
+                    const field = form.getTextField(fieldName);
+                    if (field) field.setText('');
+                } catch {
+                    // ignore
+                }
+            });
 
             // Lock all fields
             form.getFields().forEach((f) => {
@@ -659,6 +812,14 @@ const I9Form = ({ document, token, onClose, onSuccess }) => {
 
     const handleSubmit = async () => {
         try {
+            const validation = validateHiringPdfForm('I-9', formData, { hasSignature: Boolean(signatureDataUrl) });
+            setErrors(validation.fieldErrors || {});
+            if (!validation.ok) {
+                if (validation.firstSection) setActiveSection(validation.firstSection);
+                showStatusModal('error', 'Please fix the form', formatHiringValidationMessage(validation.messages));
+                return;
+            }
+
             setSubmitting(true);
 
             let bytes = filledPdfBytes;
@@ -722,12 +883,11 @@ const I9Form = ({ document, token, onClose, onSuccess }) => {
                 return (
                     <EmployeeInfo
                         formData={formData}
+                        errors={errors}
                         onInputChange={handleInputChange}
                         onCheckboxChange={handleCheckboxChange}
                         signatureDataUrl={signatureDataUrl}
-                        onSignatureEnd={() => handleSignatureEnd('employee')}
-                        onClearSignature={() => clearSignature('employee')}
-                        sigCanvasRef={employeeSigCanvasRef}
+                        onSignatureChange={handleEmployeeSignatureChange}
                         formatDateForInput={formatDateForInput}
                         usStates={usStates}
                     />
@@ -738,7 +898,7 @@ const I9Form = ({ document, token, onClose, onSuccess }) => {
                         formData={formData}
                         onInputChange={handleInputChange}
                         onCheckboxChange={handleCheckboxChange}
-                        signatureDataUrl={signatureDataUrl}
+                        signatureDataUrl={formData['Signature of Employer or AR']}
                         onSignatureEnd={() => handleSignatureEnd('employer')}
                         onClearSignature={() => clearSignature('employer')}
                         sigCanvasRef={employerSigCanvasRef}
@@ -779,12 +939,11 @@ const I9Form = ({ document, token, onClose, onSuccess }) => {
                 return (
                     <EmployeeInfo
                         formData={formData}
+                        errors={errors}
                         onInputChange={handleInputChange}
                         onCheckboxChange={handleCheckboxChange}
                         signatureDataUrl={signatureDataUrl}
-                        onSignatureEnd={() => handleSignatureEnd('employee')}
-                        onClearSignature={() => clearSignature('employee')}
-                        sigCanvasRef={employeeSigCanvasRef}
+                        onSignatureChange={handleEmployeeSignatureChange}
                         formatDateForInput={formatDateForInput}
                         usStates={usStates}
                     />

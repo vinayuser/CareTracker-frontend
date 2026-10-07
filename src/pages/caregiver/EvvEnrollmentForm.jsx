@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { toast } from 'react-toastify';
 import { ArrowLeft, ArrowRight, Printer, Save } from 'lucide-react';
 import { EvvEnrollmentStepOne, EvvEnrollmentStepTwo } from '../../components/agency/evv-enrollment/EvvEnrollmentSteps';
 import SubmitButton from '../../components/ui/SubmitButton';
 import { fetchCaregiverEvvEnrollment, submitCaregiverEvvEnrollment } from '../../redux/slices/evvEnrollmentsSlice';
 import { evvEnrollmentToForm, WIZARD_STEPS } from '../../utils/evvEnrollmentForm';
+import {
+  sanitizeEvvPatch,
+  validateEvvEnrollmentForm,
+  formatEvvValidationMessage,
+  withTodaySignatureDates,
+} from '../../utils/evvEnrollmentFormValidation';
 import { ROUTES } from '../../routes/routes';
 import useSubmitLock from '../../hooks/useSubmitLock';
 import useScrollToTopOnChange from '../../hooks/useScrollToTopOnChange';
@@ -29,6 +36,7 @@ export default function CaregiverEvvEnrollmentForm() {
   const { selected } = useSelector((state) => state.evvEnrollments);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(evvEnrollmentToForm(null));
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
   const [submitting, runLocked] = useSubmitLock();
 
@@ -42,8 +50,22 @@ export default function CaregiverEvvEnrollmentForm() {
   }, [dispatch, id, navigate]);
 
   useEffect(() => {
-    if (selected) setForm(evvEnrollmentToForm(selected));
+    if (!selected) return;
+    const next = evvEnrollmentToForm(selected);
+    setForm({
+      ...next,
+      formData: withTodaySignatureDates(next.formData),
+    });
   }, [selected]);
+
+  const clearFieldError = (...keys) => {
+    setErrors((prev) => {
+      if (!keys.some((k) => prev[k])) return prev;
+      const next = { ...prev };
+      keys.forEach((k) => { delete next[k]; });
+      return next;
+    });
+  };
 
   const onFormDataChange = (section, patch) => {
     // Caregivers may only update their own signature fields — never client ink.
@@ -53,6 +75,7 @@ export default function CaregiverEvvEnrollmentForm() {
       if (!Object.keys(allowed).length) return;
       nextPatch = allowed;
     }
+    nextPatch = sanitizeEvvPatch(section, nextPatch);
     setForm((prev) => ({
       ...prev,
       formData: {
@@ -60,6 +83,12 @@ export default function CaregiverEvvEnrollmentForm() {
         [section]: { ...prev.formData[section], ...nextPatch },
       },
     }));
+    Object.keys(nextPatch || {}).forEach((field) => {
+      clearFieldError(`${section}.${field}`);
+    });
+    if (section === 'evvMethods' && 'methods' in (nextPatch || {})) {
+      clearFieldError('evvMethods.methods');
+    }
   };
 
   const editable = ['Pending', 'Rejected'].includes(form.status);
@@ -69,12 +98,38 @@ export default function CaregiverEvvEnrollmentForm() {
     && String(form.formData.authorization.clientSignature).startsWith('data:image'),
   );
 
-  const handleSubmit = () => runLocked(async () => {
-    try {
-      await dispatch(submitCaregiverEvvEnrollment({ id, formData: form.formData })).unwrap();
-      navigate(ROUTES.CAREGIVER_EVV_ENROLLMENTS);
-    } catch { /* toast */ }
-  });
+  const runValidation = () => {
+    const result = validateEvvEnrollmentForm(form, { mode: 'caregiver' });
+    setErrors(result.fieldErrors || {});
+    return result;
+  };
+
+  const handleNext = () => {
+    const result = runValidation();
+    // Allow moving to step 2 even with step-2 errors, but block if step-1 errors exist
+    const step1Errors = Object.keys(result.fieldErrors || {}).filter((k) =>
+      k.startsWith('caregiverInfo') || k.startsWith('clientInfo') || k.startsWith('serviceInfo'));
+    if (step1Errors.length) {
+      toast.error(formatEvvValidationMessage(step1Errors.map((k) => result.fieldErrors[k])));
+      return;
+    }
+    setStep(2);
+  };
+
+  const handleSubmit = () => {
+    const result = runValidation();
+    if (!result.ok) {
+      if (result.firstStep) setStep(result.firstStep);
+      toast.error(formatEvvValidationMessage(result.messages));
+      return;
+    }
+    return runLocked(async () => {
+      try {
+        await dispatch(submitCaregiverEvvEnrollment({ id, formData: form.formData })).unwrap();
+        navigate(ROUTES.CAREGIVER_EVV_ENROLLMENTS);
+      } catch { /* toast */ }
+    });
+  };
 
   if (loading) return <div className="flex min-h-[40vh] items-center justify-center text-sm text-gray-500">Loading enrollment form...</div>;
 
@@ -114,13 +169,20 @@ export default function CaregiverEvvEnrollmentForm() {
       <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8">
         <Stepper currentStep={step} />
         {step === 1 ? (
-          <EvvEnrollmentStepOne form={form} onFormDataChange={onFormDataChange} readOnly={readOnly} lockClientFields={editable} />
+          <EvvEnrollmentStepOne
+            form={form}
+            onFormDataChange={onFormDataChange}
+            readOnly={readOnly}
+            lockClientFields={editable}
+            errors={errors}
+          />
         ) : (
           <EvvEnrollmentStepTwo
             form={form}
             onFormDataChange={onFormDataChange}
             readOnly={readOnly}
             lockClientSignature
+            errors={errors}
           />
         )}
 
@@ -131,7 +193,7 @@ export default function CaregiverEvvEnrollmentForm() {
             </button>
           ) : <div />}
           {step < 2 ? (
-            <button type="button" onClick={() => setStep(2)} className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white hover:bg-primary-hover">
+            <button type="button" onClick={handleNext} className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white hover:bg-primary-hover">
               Next <ArrowRight size={18} />
             </button>
           ) : editable ? (

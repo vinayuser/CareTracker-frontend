@@ -1,3 +1,6 @@
+import { formatUsPhone, isValidEmail, isValidUsPhone } from './agencyInformationValidation';
+import { isValidZipLocation } from './leadFormValidation';
+
 export const INSURANCE_INTAKE_STATUSES = ['Draft', 'Submitted', 'Verified'];
 
 export const PRIMARY_INSURANCE_TYPES = [
@@ -112,6 +115,7 @@ export const buildEmptyFormData = () => ({
   authorization: {
     signature: '',
     printName: '',
+    // Filled with today in insuranceIntakeToForm when empty
     date: '',
   },
   requiredDocuments: {
@@ -159,42 +163,126 @@ export const todayDateInputValue = () => toDateInputValue(new Date());
 
 export const digitsOnly = (value = '') => String(value).replace(/\D/g, '');
 
-export const formatPhoneInput = (value = '') => digitsOnly(value).slice(0, 15);
+/** Format as US phone while typing: (555) 123-4567 */
+export const formatPhoneInput = (value = '') => formatUsPhone(value);
 
-export const isValidPhone = (value = '') => {
-  const digits = digitsOnly(value);
-  return digits.length >= 10 && digits.length <= 15;
+export const isValidPhone = (value = '') => isValidUsPhone(value);
+
+export const isValidDateInput = (value = '') => {
+  const raw = String(value || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return false;
+  const d = new Date(`${raw}T12:00:00`);
+  return !Number.isNaN(d.getTime());
 };
 
-export const isValidDateInput = (value = '') => /^\d{4}-\d{2}-\d{2}$/.test(String(value || '').trim());
+const todayIso = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
 
-/** Step 1 required: intake date + at least one client phone (and DOB when editable). */
+const requireText = (errors, key, value, label) => {
+  if (!String(value || '').trim()) errors[key] = `${label} is required`;
+};
+
+const optionalPhone = (errors, key, value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return;
+  if (!isValidPhone(raw)) errors[key] = 'Enter a valid US phone: (555) 123-4567';
+};
+
+const optionalEmail = (errors, key, value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return;
+  if (!isValidEmail(raw)) errors[key] = 'Enter a valid email address';
+};
+
+const optionalDate = (errors, key, value, { notFuture = false, notPastBirth = false } = {}) => {
+  const raw = String(value || '').trim();
+  if (!raw) return;
+  if (!isValidDateInput(raw)) {
+    errors[key] = 'Enter a valid date';
+    return;
+  }
+  if (notFuture && raw > todayIso()) errors[key] = 'Date cannot be in the future';
+  if (notPastBirth && raw > todayIso()) errors[key] = 'Date of birth cannot be in the future';
+};
+
+const optionalZip = (errors, key, value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return;
+  if (!isValidZipLocation(raw)) errors[key] = 'Enter a valid ZIP (e.g. 78701)';
+};
+
+const optionalSsnLast4 = (errors, key, value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return;
+  if (!/^\d{4}$/.test(raw)) errors[key] = 'Enter the last 4 digits of the SSN';
+};
+
+const hasInk = (value) => Boolean(value && String(value).startsWith('data:image'));
+
+/** Step 1: client info + primary insurance required fields and typed-field checks. */
 export function validateInsuranceIntakeStepOne(form, { clientInfoLocked = false } = {}) {
   const errors = {};
   const ci = form?.formData?.clientInfo || {};
+  const pri = form?.formData?.primaryInsurance || {};
+  const sec = form?.formData?.secondaryInsurance || {};
+  const rx = form?.formData?.prescriptionCoverage || {};
 
   if (!isValidDateInput(form?.intakeDate)) {
     errors.intakeDate = 'Intake date is required';
+  } else if (form.intakeDate > todayIso()) {
+    errors.intakeDate = 'Intake date cannot be in the future';
   }
 
-  if (!clientInfoLocked && !isValidDateInput(ci.dob)) {
-    errors.dob = 'Date of birth is required';
+  if (!clientInfoLocked) {
+    requireText(errors, 'clientFullName', ci.clientFullName, 'Client full name');
+    if (!isValidDateInput(ci.dob)) errors.dob = 'Date of birth is required';
+    else optionalDate(errors, 'dob', ci.dob, { notPastBirth: true });
+    requireText(errors, 'gender', ci.gender, 'Gender');
+    requireText(errors, 'address', ci.address, 'Address');
+    requireText(errors, 'city', ci.city, 'City');
+    requireText(errors, 'state', ci.state, 'State');
+    if (!String(ci.zip || '').trim()) errors.zip = 'ZIP is required';
+    else optionalZip(errors, 'zip', ci.zip);
+    if (!String(ci.email || '').trim()) errors.email = 'Email is required';
+    else optionalEmail(errors, 'email', ci.email);
+  } else {
+    optionalDate(errors, 'dob', ci.dob, { notPastBirth: true });
+    optionalZip(errors, 'zip', ci.zip);
+    optionalEmail(errors, 'email', ci.email);
   }
 
-  // Phones are always editable — require a valid mobile or home number
-  const hasPhone = isValidPhone(ci.phoneMobile) || isValidPhone(ci.phoneHome);
-  if (!hasPhone) {
-    errors.phoneMobile = 'Enter a valid phone number (at least 10 digits)';
+  if (!String(ci.phoneMobile || '').trim()) {
+    errors.phoneMobile = 'Mobile phone is required';
+  } else if (!isValidPhone(ci.phoneMobile)) {
+    errors.phoneMobile = 'Enter a valid US phone: (555) 123-4567';
   }
-  if (ci.phoneHome && !isValidPhone(ci.phoneHome)) {
-    errors.phoneHome = 'Enter a valid phone number (at least 10 digits)';
+  optionalPhone(errors, 'phoneHome', ci.phoneHome);
+  optionalPhone(errors, 'emergencyPhone', ci.emergencyPhone);
+  optionalSsnLast4(errors, 'ssnLast4', ci.ssnLast4);
+
+  if (!Array.isArray(pri.types) || pri.types.length === 0) {
+    errors.insuranceTypes = 'Select at least one insurance type';
   }
-  if (ci.phoneMobile && !isValidPhone(ci.phoneMobile)) {
-    errors.phoneMobile = 'Enter a valid phone number (at least 10 digits)';
+  if (pri.types?.includes('Other')) {
+    requireText(errors, 'otherType', pri.otherType, 'Other insurance type');
   }
-  if (ci.emergencyPhone && !isValidPhone(ci.emergencyPhone)) {
-    errors.emergencyPhone = 'Enter a valid phone number (at least 10 digits)';
+  requireText(errors, 'companyName', pri.companyName, 'Insurance company name');
+  requireText(errors, 'memberId', pri.memberId, 'Member ID / Policy #');
+  requireText(errors, 'policyHolderRelationship', pri.policyHolderRelationship, 'Relationship to client');
+  if (pri.policyHolderRelationship === 'Other') {
+    requireText(errors, 'policyHolderRelationshipOther', pri.policyHolderRelationshipOther, 'Relationship');
   }
+  optionalPhone(errors, 'insurancePhone', pri.insurancePhone);
+  optionalDate(errors, 'policyHolderDob', pri.policyHolderDob, { notPastBirth: true });
+  optionalDate(errors, 'effectiveDate', pri.effectiveDate);
+
+  optionalDate(errors, 'secondaryDob', sec.dob, { notPastBirth: true });
+  optionalPhone(errors, 'rxPhone', rx.phone);
 
   return errors;
 }
@@ -204,20 +292,46 @@ export function validateInsuranceIntakeStepTwo(form) {
   const auth = form?.formData?.authorization || {};
   const pri = form?.formData?.primaryInsurance || {};
   const rx = form?.formData?.prescriptionCoverage || {};
+  const med = form?.formData?.medicare || {};
   const mcd = form?.formData?.medicaid || {};
+  const add = form?.formData?.additionalCoverage || {};
+  const docs = form?.formData?.requiredDocuments || {};
 
+  requireText(errors, 'authPrintName', auth.printName, 'Print name');
   if (!isValidDateInput(auth.date)) {
     errors.authDate = 'Authorization date is required';
+  } else if (auth.date > todayIso()) {
+    errors.authDate = 'Authorization date cannot be in the future';
   }
-  if (pri.insurancePhone && !isValidPhone(pri.insurancePhone)) {
-    errors.insurancePhone = 'Enter a valid phone number (at least 10 digits)';
+  if (!hasInk(auth.signature)) {
+    errors.authSignature = 'Signature is required';
   }
-  if (rx.phone && !isValidPhone(rx.phone)) {
-    errors.rxPhone = 'Enter a valid phone number (at least 10 digits)';
+
+  optionalPhone(errors, 'insurancePhone', pri.insurancePhone);
+  optionalPhone(errors, 'rxPhone', rx.phone);
+  optionalPhone(errors, 'caseWorkerPhone', mcd.caseWorkerPhone);
+  optionalDate(errors, 'partAEffectiveDate', med.partAEffectiveDate);
+  optionalDate(errors, 'partBEffectiveDate', med.partBEffectiveDate);
+  optionalDate(errors, 'medicaidEffectiveDate', mcd.effectiveDate);
+
+  if (add.vaBenefits === true) {
+    requireText(errors, 'vaClaimNumber', add.vaClaimNumber, 'VA claim number');
   }
-  if (mcd.caseWorkerPhone && !isValidPhone(mcd.caseWorkerPhone)) {
-    errors.caseWorkerPhone = 'Enter a valid phone number (at least 10 digits)';
+  if (add.longTermCare === true) {
+    requireText(errors, 'ltcPolicyClaimNumber', add.ltcPolicyClaimNumber, 'Policy / claim number');
+    requireText(errors, 'ltcCompany', add.ltcCompany, 'Insurance company');
   }
+
+  const status = String(form?.status || 'Draft');
+  if (status !== 'Draft') {
+    if (!hasUploadedDocument(docs.insuranceCard)) {
+      errors.docInsuranceCard = 'Insurance card is required';
+    }
+    if (!hasUploadedDocument(docs.photoId)) {
+      errors.docPhotoId = 'Photo ID is required';
+    }
+  }
+
   return errors;
 }
 
@@ -394,7 +508,7 @@ export function insuranceIntakeToForm(intake, client = null) {
   merged.medicare.partBEffectiveDate = toDateInputValue(merged.medicare.partBEffectiveDate);
   merged.medicaid.effectiveDate = toDateInputValue(merged.medicaid.effectiveDate);
   merged.medicaid.caseWorkerPhone = formatPhoneInput(merged.medicaid.caseWorkerPhone);
-  merged.authorization.date = toDateInputValue(merged.authorization.date);
+  merged.authorization.date = toDateInputValue(merged.authorization.date) || todayDateInputValue();
   merged.officeUse.date = toDateInputValue(merged.officeUse.date);
   merged.officeUse.nextReviewDate = toDateInputValue(merged.officeUse.nextReviewDate);
 

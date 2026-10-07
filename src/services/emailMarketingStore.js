@@ -237,6 +237,16 @@ export function listAgencies() {
   return AGENCIES;
 }
 
+/** Load real agencies + platform login users for campaign targeting. */
+export async function fetchPlatformAudience() {
+  const response = await axiosInstance.get(API_ROUTES.ADMIN.EMAIL_MARKETING.PLATFORM_AUDIENCE);
+  const data = response.data?.data || {};
+  return {
+    agencies: Array.isArray(data.agencies) ? data.agencies : [],
+    users: Array.isArray(data.users) ? data.users : [],
+  };
+}
+
 export function getSettings() {
   return load().settings;
 }
@@ -428,13 +438,17 @@ function isSuppressed(email, settings) {
   return (settings.suppression || []).map((e) => e.toLowerCase()).includes(String(email || '').toLowerCase());
 }
 
-export function previewPlatformAudience(audience = {}) {
+export function previewPlatformAudience(audience = {}, users = null) {
   const settings = getSettings();
   const roles = audience.roles?.length ? audience.roles : [];
   const statuses = audience.statuses?.length ? audience.statuses : [];
-  let pool = PLATFORM_USERS.filter((user) => {
+  const source = Array.isArray(users) ? users : PLATFORM_USERS;
+  const pool = source.filter((user) => {
     if (roles.length && !roles.includes(user.role)) return false;
-    if (audience.agency && audience.agency !== 'All' && user.agency !== audience.agency) return false;
+    if (audience.agency && audience.agency !== 'All') {
+      const agencyMatch = user.agency === audience.agency || user.agencyId === audience.agency;
+      if (!agencyMatch) return false;
+    }
     if (statuses.length && !statuses.includes(user.status)) return false;
     return true;
   });
@@ -516,10 +530,10 @@ const escapeHtml = (value) => String(value ?? '')
   .replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;');
 
-export function audienceRecipients(audience) {
+export function audienceRecipients(audience, platformUsers = null) {
   const preview = audience?.kind === 'leads'
     ? previewLeadAudience(audience)
-    : previewPlatformAudience(audience);
+    : previewPlatformAudience(audience, platformUsers);
   return preview.recipients || [];
 }
 
@@ -548,11 +562,11 @@ export function campaignHtml(content = {}) {
   return `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:${content.backgroundColor || '#ffffff'};font-family:Arial,sans-serif">${body}${footer}</body></html>`;
 }
 
-export function saveCampaign(input, mode = 'draft', delivery = null) {
+export function saveCampaign(input, mode = 'draft', delivery = null, platformUsers = null) {
   const data = load();
   const preview = input.audience?.kind === 'leads'
     ? previewLeadAudience(input.audience)
-    : previewPlatformAudience(input.audience);
+    : previewPlatformAudience(input.audience, platformUsers);
   const count = input.audience?.kind === 'leads' ? preview.valid : preview.estimated;
   const existing = input.id ? data.campaigns.find((c) => c.id === input.id) : null;
   let status = existing?.status || 'Draft';
@@ -599,13 +613,22 @@ export function saveCampaign(input, mode = 'draft', delivery = null) {
   return row;
 }
 
-export async function deliverAndSaveCampaign(input) {
-  const people = audienceRecipients(input.audience).map((person) => ({
+export async function deliverAndSaveCampaign(input, platformUsers = null) {
+  let users = platformUsers;
+  if (input.audience?.kind === 'platform' && !users) {
+    const audience = await fetchPlatformAudience();
+    users = audience.users;
+  }
+  const people = audienceRecipients(input.audience, users).map((person) => ({
     name: person.name || `${person.firstName || ''} ${person.lastName || ''}`.trim(),
     email: person.email,
   })).filter((person) => person.email && !/\.example$/i.test(person.email));
   if (!people.length) {
-    throw new Error('These recipients are sample addresses and cannot receive mail. Use a leads list with real emails.');
+    throw new Error(
+      input.audience?.kind === 'platform'
+        ? 'No eligible platform users match this audience.'
+        : 'These recipients are sample addresses and cannot receive mail. Use a leads list with real emails.',
+    );
   }
   const response = await axiosInstance.post(API_ROUTES.ADMIN.EMAIL_MARKETING.SEND, {
     subject: input.content?.subject,
@@ -614,7 +637,7 @@ export async function deliverAndSaveCampaign(input) {
     html: campaignHtml(input.content || {}),
     recipients: people,
   });
-  return saveCampaign(input, 'send', response.data?.data || {});
+  return saveCampaign(input, 'send', response.data?.data || {}, users);
 }
 
 export function duplicateCampaign(id) {

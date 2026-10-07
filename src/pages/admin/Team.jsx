@@ -165,8 +165,8 @@ export default function Team() {
     const confirmed = await confirmAlert({
       title: 'Delete team member?',
       text: `${member.name} will lose access to the super admin panel.`,
-      confirmButtonText: 'Delete',
-      confirmButtonColor: '#dc2626',
+      confirmText: 'Delete',
+      danger: true,
     });
     if (!confirmed) return;
     try {
@@ -294,11 +294,13 @@ export default function Team() {
                           <ActionIconButton
                             icon={Pencil}
                             label="Edit"
+                            className="text-primary hover:bg-primary/10"
                             onClick={() => openAction(member, 'edit')}
                           />
                           <ActionIconButton
                             icon={KeyRound}
                             label="Set password"
+                            className="text-amber-600 hover:bg-amber-50"
                             onClick={() => openAction(member, 'password')}
                           />
                           {!isSelf ? (
@@ -306,12 +308,16 @@ export default function Team() {
                               <ActionIconButton
                                 icon={member.status === 'Active' ? UserX : UserCheck}
                                 label={member.status === 'Active' ? 'Deactivate' : 'Activate'}
+                                className={member.status === 'Active'
+                                  ? 'text-slate-500 hover:bg-slate-100'
+                                  : 'text-emerald-600 hover:bg-emerald-50'}
                                 onClick={() => handleStatusToggle(member)}
                                 disabled={actionLoading}
                               />
                               <ActionIconButton
                                 icon={Trash2}
                                 label="Delete"
+                                className="text-rose-600 hover:bg-rose-50"
                                 onClick={() => handleDelete(member)}
                                 disabled={actionLoading}
                               />

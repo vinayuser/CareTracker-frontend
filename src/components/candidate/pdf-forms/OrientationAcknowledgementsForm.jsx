@@ -1,413 +1,297 @@
-// components/forms/OrientationAcknowledgementsForm.jsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { submitFilledPdfForm } from './pdfFormSubmit';
 import { fetchPdfTemplateBytes } from './pdfTemplateFetch';
-
 import { PDFDocument } from 'pdf-lib';
 import StatusModal from '../../ui/StatusModal';
+import { validateHiringPdfForm, formatHiringValidationMessage } from '../../../utils/hiringPdfFormValidation';
+import { getCandidatePrefill, mergeFormWithCandidate } from '../../../utils/candidateFormPrefill';
 import AcknowledgementSection from './sections/OrientationAcknowledgements/AcknowledgementSection';
 import ContentInitialsSection from './sections/OrientationAcknowledgements/ContentInitialsSection';
 import SignatureSection from './sections/OrientationAcknowledgements/SignatureSection';
 
-const OrientationAcknowledgementsForm = ({ document, token, onClose, onSuccess }) => {
-    // Generate initial state for all 46 initials fields (23 employee + 23 trainer)
-    const generateInitialsFields = () => {
-        const fields = {};
-        // Employee Initials (1-23)
-        for (let i = 1; i <= 23; i++) {
-            fields[`Initials ${i}`] = "";
-        }
-        // Trainer Initials (1_2-23_2)
-        for (let i = 1; i <= 23; i++) {
-            fields[`Initials ${i}_2`] = "";
-        }
-        return fields;
-    };
+function generateInitialsFields() {
+  const fields = {};
+  for (let i = 1; i <= 23; i++) {
+    fields[`Initials ${i}`] = '';
+    fields[`Initials ${i}_2`] = '';
+  }
+  return fields;
+}
 
-    const [formData, setFormData] = useState({
-        // Core fields
-        "Todays Date": "",
-        "Position with Company": "",
-        "Signature31_es_:signer:signature": "",
-        "Start Date": "",
-        "Printed Name": "",
+const EMPTY_1202 = {
+  'Todays Date': '',
+  'Position with Company': '',
+  'Signature31_es_:signer:signature': '',
+  'Start Date': '',
+  'Printed Name': '',
+  orientation_acknowledged: false,
+  ...generateInitialsFields(),
+};
 
-        // Additional field for checkbox
-        "orientation_acknowledged": false,
+function buildInitial1202(candidate, savedFormData) {
+  const prefill = getCandidatePrefill(candidate);
+  return mergeFormWithCandidate(EMPTY_1202, savedFormData, {
+    'Printed Name': prefill.fullName,
+    'Position with Company': prefill.designation,
+    'Todays Date': prefill.today,
+    'Start Date': prefill.today,
+  });
+}
 
-        // Generated initials fields
-        ...generateInitialsFields()
+const SIG_KEY = 'Signature31_es_:signer:signature';
+
+const OrientationAcknowledgementsForm = ({ document, candidate = null, token, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState(() =>
+    buildInitial1202(candidate || document?.candidate, document?.form_data),
+  );
+  const [submitting, setSubmitting] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [filledPdfBytes, setFilledPdfBytes] = useState(null);
+  const [signatureDataUrl, setSignatureDataUrl] = useState('');
+  const [activeSection, setActiveSection] = useState('acknowledgement');
+  const [errors, setErrors] = useState({});
+
+  const [statusModal, setStatusModal] = useState({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: '',
+  });
+
+  const sections = [
+    { id: 'acknowledgement', name: 'Acknowledgment' },
+    { id: 'content', name: 'Content & Initials' },
+    { id: 'signature', name: 'Signature & Info' },
+  ];
+
+  const showStatusModal = (type, title, message) => {
+    setStatusModal({ isOpen: true, type, title, message });
+  };
+
+  const closeStatusModal = () => {
+    setStatusModal((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  const clearFieldError = (...fields) => {
+    setErrors((prev) => {
+      if (!fields.some((f) => prev[f])) return prev;
+      const next = { ...prev };
+      fields.forEach((f) => { delete next[f]; });
+      return next;
     });
+  };
 
-    const [generatingPreview, setGeneratingPreview] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
-    const [previewUrl, setPreviewUrl] = useState('');
-    const [filledPdfBytes, setFilledPdfBytes] = useState(null);
-    const [signatureDataUrl, setSignatureDataUrl] = useState('');
-    const [activeSection, setActiveSection] = useState('acknowledgement');
-    const sigCanvasRef = useRef();
+  const handleInputChange = (fieldName, value) => {
+    setFormData((prev) => ({ ...prev, [fieldName]: value }));
+    clearFieldError(fieldName);
+  };
 
-    // Status modal state
-    const [statusModal, setStatusModal] = useState({
-        isOpen: false,
-        type: 'success',
-        title: '',
-        message: ''
-    });
+  const handleSignatureChange = (dataUrl) => {
+    setSignatureDataUrl(dataUrl || '');
+    setFormData((prev) => ({ ...prev, [SIG_KEY]: '' }));
+    if (dataUrl) clearFieldError(SIG_KEY);
+  };
 
-    // Navigation sections
-    const sections = [
-        { id: 'acknowledgement', name: 'Acknowledgment' },
-        { id: 'content', name: 'Content & Initials' },
-        { id: 'signature', name: 'Signature & Info' }
+  const dataURLToImageBytes = async (dataURL) => {
+    if (!dataURL) return null;
+    try {
+      const response = await fetch(dataURL);
+      const blob = await response.blob();
+      return new Uint8Array(await blob.arrayBuffer());
+    } catch (error) {
+      console.error('Error converting signature to image:', error);
+      return null;
+    }
+  };
+
+  const fillPdf = async (data, pdfUrl) => {
+    if (!data.orientation_acknowledged) {
+      throw new Error('You must acknowledge the orientation terms before submitting.');
+    }
+
+    const pdfBuffer = await fetchPdfTemplateBytes(pdfUrl);
+    const pdfDoc = await PDFDocument.load(pdfBuffer);
+    const form = pdfDoc.getForm();
+
+    const fieldNames = [
+      'Todays Date',
+      'Position with Company',
+      'Start Date',
+      'Printed Name',
+      ...Array.from({ length: 23 }, (_, i) => `Initials ${i + 1}`),
+      ...Array.from({ length: 23 }, (_, i) => `Initials ${i + 1}_2`),
     ];
 
-    // Show status modal
-    const showStatusModal = (type, title, message) => {
-        setStatusModal({
-            isOpen: true,
-            type,
-            title,
-            message
-        });
-    };
+    fieldNames.forEach((fieldName) => {
+      try {
+        const field = form.getTextField(fieldName);
+        if (field) field.setText(data[fieldName] || '');
+      } catch {
+        /* field missing */
+      }
+    });
 
-    // Close status modal
-    const closeStatusModal = () => {
-        setStatusModal(prev => ({ ...prev, isOpen: false }));
-    };
-
-    // Handler functions
-    const handleInputChange = (fieldName, value) => {
-        setFormData(prev => ({
-            ...prev,
-            [fieldName]: value
-        }));
-    };
-
-    // Signature handling
-    const handleSignatureEnd = () => {
-        if (sigCanvasRef.current && !sigCanvasRef.current.isEmpty()) {
-            const signatureDataURL = sigCanvasRef.current.toDataURL();
-            setSignatureDataUrl(signatureDataURL);
-            handleInputChange("Signature31_es_:signer:signature", "");
-        }
-    };
-
-    const clearSignature = () => {
-        if (sigCanvasRef.current) {
-            sigCanvasRef.current.clear();
-            setSignatureDataUrl('');
-            handleInputChange("Signature31_es_:signer:signature", "");
-        }
-    };
-
-    // Convert data URL to image bytes for PDF embedding
-    const dataURLToImageBytes = async (dataURL) => {
-        if (!dataURL) return null;
-        try {
-            const response = await fetch(dataURL);
-            const blob = await response.blob();
-            return new Uint8Array(await blob.arrayBuffer());
-        } catch (error) {
-            console.error("Error converting signature to image:", error);
-            return null;
-        }
-    };
-
-    // PDF filling logic - COMPLETE VERSION
-    const fillPdf = async (formData, pdfUrl) => {
-        try {
-            // Check if acknowledgment checkbox is checked
-            if (!formData["orientation_acknowledged"]) {
-                throw new Error("You must acknowledge the orientation terms before submitting.");
-            }
-
-            const pdfBuffer = await fetchPdfTemplateBytes(pdfUrl);
-      const pdfDoc = await PDFDocument.load(pdfBuffer);
-            const form = pdfDoc.getForm();
-
-            // Generate list of all field names to fill
-            const fieldNames = [
-                // Core fields
-                "Todays Date", "Position with Company", "Start Date", "Printed Name",
-
-                // Employee Initials (1-23)
-                ...Array.from({ length: 23 }, (_, i) => `Initials ${i + 1}`),
-
-                // Trainer Initials (1_2-23_2)
-                ...Array.from({ length: 23 }, (_, i) => `Initials ${i + 1}_2`)
-            ];
-
-            console.log('🔄 Filling text fields...');
-            fieldNames.forEach(fieldName => {
-                try {
-                    const field = form.getTextField(fieldName);
-                    if (field) {
-                        const value = formData[fieldName] || "";
-                        field.setText(value);
-                        console.log(`✅ Set text field: ${fieldName} = "${value}"`);
-                    } else {
-                        console.log(`❌ Text field not found: ${fieldName}`);
-                    }
-                } catch (error) {
-                    console.log(`❌ Error setting text field ${fieldName}:`, error.message);
-                }
-            });
-
-            // Handle signature field
+    try {
+      const signatureField = form.getTextField(SIG_KEY);
+      if (signatureField) {
+        if (signatureDataUrl) {
+          const signatureImageBytes = await dataURLToImageBytes(signatureDataUrl);
+          if (signatureImageBytes) {
+            const signatureImage = await pdfDoc.embedPng(signatureImageBytes);
+            const pages = pdfDoc.getPages();
             try {
-                const signatureField = form.getTextField("Signature31_es_:signer:signature");
-                if (signatureField) {
-                    if (signatureDataUrl) {
-                        // Use drawn signature as image
-                        const signatureImageBytes = await dataURLToImageBytes(signatureDataUrl);
-                        if (signatureImageBytes) {
-                            const signatureImage = await pdfDoc.embedPng(signatureImageBytes);
-                            const pages = pdfDoc.getPages();
-                            
-                            // Try to find signature field position
-                            try {
-                                const widgets = signatureField.acroField.getWidgets();
-                                if (widgets && widgets.length > 0) {
-                                    const rect = widgets[0].getRectangle();
-                                    const pageRef = widgets[0].P();
-                                    
-                                    let pageIndex = 0;
-                                    for (let i = 0; i < pages.length; i++) {
-                                        if (pages[i].ref === pageRef) {
-                                            pageIndex = i;
-                                            break;
-                                        }
-                                    }
-                                    
-                                    pages[pageIndex].drawImage(signatureImage, {
-                                        x: rect.x || rect.left || 100,
-                                        y: rect.y || rect.bottom || 100,
-                                        width: rect.width || (rect.right - rect.left) || 200,
-                                        height: rect.height || (rect.top - rect.bottom) || 50,
-                                    });
-                                }
-                            } catch (error) {
-                                console.warn("Could not find exact signature field position, using default:", error);
-                                // Fallback to default position
-                                if (pages[0]) {
-                                    pages[0].drawImage(signatureImage, { 
-                                        x: 100, 
-                                        y: 100, 
-                                        width: 200, 
-                                        height: 50 
-                                    });
-                                }
-                            }
-                            
-                            // Clear text from signature field when using drawn signature
-                            signatureField.setText("");
-                        }
-                    } else {
-                        // Use text signature
-                        signatureField.setText(formData["Signature31_es_:signer:signature"] || "");
-                    }
+              const widgets = signatureField.acroField.getWidgets();
+              if (widgets?.length > 0) {
+                const rect = widgets[0].getRectangle();
+                const pageRef = widgets[0].P();
+                let pageIndex = 0;
+                for (let i = 0; i < pages.length; i++) {
+                  if (pages[i].ref === pageRef) {
+                    pageIndex = i;
+                    break;
+                  }
                 }
-            } catch (error) {
-                console.log('❌ Error handling signature field:', error.message);
+                pages[pageIndex].drawImage(signatureImage, {
+                  x: rect.x || rect.left || 100,
+                  y: rect.y || rect.bottom || 100,
+                  width: rect.width || (rect.right - rect.left) || 200,
+                  height: rect.height || (rect.top - rect.bottom) || 50,
+                });
+              }
+            } catch {
+              if (pages[0]) {
+                pages[0].drawImage(signatureImage, { x: 100, y: 100, width: 200, height: 50 });
+              }
             }
-
-            // Lock all fields
-            form.getFields().forEach((f) => {
-                try {
-                    f.enableReadOnly();
-                } catch (err) {
-                    // ignore
-                }
-            });
-
-            form.flatten();
-            const filledPdfBytes = await pdfDoc.save();
-            return filledPdfBytes;
-
-        } catch (error) {
-            console.error('Error filling Orientation Acknowledgements Form:', error);
-            throw error;
+            signatureField.setText('');
+          }
+        } else {
+          signatureField.setText('');
         }
-    };
+      }
+    } catch {
+      /* signature field missing */
+    }
 
-    const handlePreview = async () => {
-        console.log('📊 Current formData:', formData);
-        try {
-            // Validate acknowledgment
-            if (!formData["orientation_acknowledged"]) {
-                showStatusModal(
-                    'error',
-                    'Acknowledgment Required',
-                    'You must acknowledge the orientation terms before generating a preview.'
-                );
-                return;
-            }
+    form.getFields().forEach((f) => {
+      try { f.enableReadOnly(); } catch { /* ignore */ }
+    });
+    form.flatten();
+    return pdfDoc.save();
+  };
 
-            setGeneratingPreview(true);
+  const handleSubmit = async () => {
+    const validation = validateHiringPdfForm('1202', formData, { hasSignature: Boolean(signatureDataUrl) });
+    setErrors(validation.fieldErrors || {});
+    if (!validation.ok) {
+      if (validation.firstSection) setActiveSection(validation.firstSection);
+      showStatusModal('error', 'Please fix the form', formatHiringValidationMessage(validation.messages));
+      return;
+    }
 
-            if (previewUrl) {
-                try { URL.revokeObjectURL(previewUrl); } catch (e) { /* ignore */ }
-                setPreviewUrl('');
-            }
+    try {
+      setSubmitting(true);
+      let bytes = filledPdfBytes;
+      if (!bytes) bytes = await fillPdf(formData, document.url);
 
-            const bytes = await fillPdf(formData, document.url);
-            setFilledPdfBytes(bytes);
-
-            const blob = new Blob([bytes], { type: "application/pdf" });
-            const blobUrl = URL.createObjectURL(blob);
-            setPreviewUrl(blobUrl);
-        } catch (error) {
-            showStatusModal(
-                'error',
-                'Preview Generation Failed',
-                error.message || 'Failed to generate preview. Please try again.'
-            );
-        } finally {
-            setGeneratingPreview(false);
-        }
-    };
-
-    const handleSubmit = async () => {
-        try {
-            // Validate acknowledgment
-            if (!formData["orientation_acknowledged"]) {
-                showStatusModal(
-                    'error',
-                    'Acknowledgment Required',
-                    'You must acknowledge the orientation terms before submitting.'
-                );
-                return;
-            }
-
-            setSubmitting(true);
-
-            let bytes = filledPdfBytes;
-            if (!bytes) {
-                bytes = await fillPdf(formData, document.url);
-            }
-
-            const filledPdfBlob = new Blob([bytes], { type: "application/pdf" });
-
-            await submitFilledPdfForm({
+      await submitFilledPdfForm({
         token,
         documentCode: document.code,
         formData,
-        pdfBlob: filledPdfBlob,
+        pdfBlob: new Blob([bytes], { type: 'application/pdf' }),
         fileName: `${document.name}_filled.pdf`,
       });
 
-            showStatusModal(
-                'success',
-                'Document Submitted Successfully!',
-                'Your Orientation Acknowledgements form has been submitted successfully.'
-            );
+      showStatusModal(
+        'success',
+        'Document Submitted Successfully!',
+        'Your Orientation Acknowledgements form has been submitted successfully.',
+      );
 
-            if (previewUrl) {
-                try { URL.revokeObjectURL(previewUrl); } catch (e) { /* ignore */ }
-            }
-            setPreviewUrl('');
-            setFilledPdfBytes(null);
+      if (previewUrl) {
+        try { URL.revokeObjectURL(previewUrl); } catch { /* ignore */ }
+      }
+      setPreviewUrl('');
+      setFilledPdfBytes(null);
 
-            setTimeout(() => {
-                try { onSuccess && onSuccess(); } catch (e) { /* ignore */ }
-                try { onClose && onClose(); } catch (e) { /* ignore */ }
-            }, 2000);
+      setTimeout(() => {
+        try { onSuccess?.(); } catch { /* ignore */ }
+        try { onClose?.(); } catch { /* ignore */ }
+      }, 2000);
+    } catch (error) {
+      const errorMessage =
+        error?.message || error.response?.data?.message || 'Failed to submit document. Please try again.';
+      showStatusModal('error', 'Submission Failed', errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-        } catch (error) {
-            console.error('Error submitting PDF:', error);
-            const errorMessage = error?.message || error.response?.data?.message || 'Failed to submit document. Please try again.';
-            showStatusModal('error', 'Submission Failed', errorMessage);
-        } finally {
-            setSubmitting(false);
-        }
-    };
+  const renderCurrentSection = () => {
+    switch (activeSection) {
+      case 'content':
+        return <ContentInitialsSection formData={formData} onInputChange={handleInputChange} />;
+      case 'signature':
+        return (
+          <SignatureSection
+            formData={formData}
+            errors={errors}
+            onInputChange={handleInputChange}
+            signatureDataUrl={signatureDataUrl}
+            onSignatureChange={handleSignatureChange}
+          />
+        );
+      case 'acknowledgement':
+      default:
+        return (
+          <AcknowledgementSection
+            formData={formData}
+            errors={errors}
+            onInputChange={handleInputChange}
+          />
+        );
+    }
+  };
 
-    // Render current section
-    const renderCurrentSection = () => {
-        switch (activeSection) {
-            case 'acknowledgement':
-                return (
-                    <AcknowledgementSection
-                        formData={formData}
-                        onInputChange={handleInputChange}
-                    />
-                );
-            case 'content':
-                return (
-                    <ContentInitialsSection
-                        formData={formData}
-                        onInputChange={handleInputChange}
-                    />
-                );
-            case 'signature':
-                return (
-                    <SignatureSection
-                        formData={formData}
-                        onInputChange={handleInputChange}
-                        signatureDataUrl={signatureDataUrl}
-                        onSignatureEnd={handleSignatureEnd}
-                        onClearSignature={clearSignature}
-                        sigCanvasRef={sigCanvasRef}
-                    />
-                );
-            default:
-                return (
-                    <AcknowledgementSection
-                        formData={formData}
-                        onInputChange={handleInputChange}
-                    />
-                );
-        }
-    };
+  useEffect(() => () => {
+    if (previewUrl) {
+      try { URL.revokeObjectURL(previewUrl); } catch { /* ignore */ }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    // cleanup on unmount
-    useEffect(() => {
-        return () => {
-            if (previewUrl) {
-                try { URL.revokeObjectURL(previewUrl); } catch (e) { /* ignore */ }
-            }
-            if (sigCanvasRef.current) {
-                try { sigCanvasRef.current.clear(); } catch (e) { /* ignore */ }
-            }
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+  return (
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+        <div className="max-h-[95vh] w-full max-w-6xl overflow-hidden rounded-lg bg-white">
+          <div className="flex items-center justify-between border-b p-6">
+            <h2 className="text-xl font-semibold">Fill Orientation Acknowledgements Form</h2>
+            <button type="button" onClick={onClose} className="text-2xl text-gray-500 hover:text-gray-700">✕</button>
+          </div>
 
-    return (
-        <>
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-lg max-w-6xl w-full max-h-[95vh] overflow-hidden">
-                    <div className="flex justify-between items-center p-6 border-b">
-                        <h2 className="text-xl font-semibold">Fill Orientation Acknowledgements Form</h2>
-                        <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
-                    </div>
+          <div className="max-h-[85vh] overflow-y-auto p-6">
+            <div className="mb-6">
+              <div className="flex flex-wrap gap-2">
+                {sections.map((section) => (
+                  <button
+                    key={section.id}
+                    type="button"
+                    onClick={() => setActiveSection(section.id)}
+                    className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                      activeSection === section.id
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    {section.name}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                    <div className="p-6 overflow-y-auto max-h-[85vh]">
-                        {/* Navigation */}
-                        <div className="mb-6">
-                            <div className="flex flex-wrap gap-2">
-                                {sections.map((section) => (
-                                    <button
-                                        key={section.id}
-                                        onClick={() => setActiveSection(section.id)}
-                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeSection === section.id
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                            }`}
-                                    >
-                                        {section.name}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+            {renderCurrentSection()}
 
-                        {/* Current Section */}
-                        {renderCurrentSection()}
-
-                        {/* Action Buttons */}
-            <div className="flex gap-4 mb-6 mt-8">
+            <div className="mb-6 mt-8 flex gap-4">
               <button
                 type="button"
                 onClick={handleSubmit}
@@ -424,23 +308,20 @@ const OrientationAcknowledgementsForm = ({ document, token, onClose, onSuccess }
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      </div>
 
-            {/* PDF Preview removed — submit fills and uploads directly */}
-                    </div>
-                </div>
-            </div>
-
-            {/* Status Modal */}
-            <StatusModal
-                isOpen={statusModal.isOpen}
-                onClose={closeStatusModal}
-                type={statusModal.type}
-                title={statusModal.title}
-                message={statusModal.message}
-                duration={statusModal.type === 'success' ? 2000 : 3000}
-            />
-        </>
-    );
+      <StatusModal
+        isOpen={statusModal.isOpen}
+        onClose={closeStatusModal}
+        type={statusModal.type}
+        title={statusModal.title}
+        message={statusModal.message}
+        duration={statusModal.type === 'success' ? 2000 : 3000}
+      />
+    </>
+  );
 };
 
 export default OrientationAcknowledgementsForm;

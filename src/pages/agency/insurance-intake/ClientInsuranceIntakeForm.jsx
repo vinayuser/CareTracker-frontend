@@ -168,14 +168,56 @@ export default function ClientInsuranceIntakeForm() {
     if (!keys.length) return;
     setErrors((prev) => {
       const next = { ...prev };
+      const clear = (...errorKeys) => errorKeys.forEach((k) => delete next[k]);
       keys.forEach((key) => {
-        if (key === 'phoneMobile' || key === 'phoneHome') delete next.phoneMobile;
-        if (key === 'dob') delete next.dob;
-        if (key === 'emergencyPhone') delete next.emergencyPhone;
-        if (key === 'insurancePhone') delete next.insurancePhone;
-        if (key === 'phone' && section === 'prescriptionCoverage') delete next.rxPhone;
-        if (key === 'caseWorkerPhone') delete next.caseWorkerPhone;
-        if (key === 'date' && section === 'authorization') delete next.authDate;
+        if (section === 'clientInfo') {
+          if (key === 'clientFullName') clear('clientFullName');
+          if (key === 'dob') clear('dob');
+          if (key === 'gender') clear('gender');
+          if (key === 'address') clear('address');
+          if (key === 'city') clear('city');
+          if (key === 'state') clear('state');
+          if (key === 'zip') clear('zip');
+          if (key === 'email') clear('email');
+          if (key === 'ssnLast4') clear('ssnLast4');
+          if (key === 'phoneMobile' || key === 'phoneHome') clear('phoneMobile', 'phoneHome');
+          if (key === 'emergencyPhone') clear('emergencyPhone');
+        }
+        if (section === 'primaryInsurance') {
+          if (key === 'types') clear('insuranceTypes');
+          if (key === 'otherType') clear('otherType');
+          if (key === 'companyName') clear('companyName');
+          if (key === 'memberId') clear('memberId');
+          if (key === 'policyHolderRelationship') clear('policyHolderRelationship');
+          if (key === 'policyHolderRelationshipOther') clear('policyHolderRelationshipOther');
+          if (key === 'insurancePhone') clear('insurancePhone');
+          if (key === 'policyHolderDob') clear('policyHolderDob');
+          if (key === 'effectiveDate') clear('effectiveDate');
+        }
+        if (section === 'secondaryInsurance' && key === 'dob') clear('secondaryDob');
+        if (section === 'prescriptionCoverage' && key === 'phone') clear('rxPhone');
+        if (section === 'medicaid') {
+          if (key === 'caseWorkerPhone') clear('caseWorkerPhone');
+          if (key === 'effectiveDate') clear('medicaidEffectiveDate');
+        }
+        if (section === 'medicare') {
+          if (key === 'partAEffectiveDate') clear('partAEffectiveDate');
+          if (key === 'partBEffectiveDate') clear('partBEffectiveDate');
+        }
+        if (section === 'additionalCoverage') {
+          if (key === 'vaBenefits' || key === 'vaClaimNumber') clear('vaClaimNumber');
+          if (key === 'longTermCare' || key === 'ltcPolicyClaimNumber') clear('ltcPolicyClaimNumber');
+          if (key === 'ltcCompany') clear('ltcCompany');
+        }
+        if (section === 'authorization') {
+          if (key === 'printName') clear('authPrintName');
+          if (key === 'date') clear('authDate');
+          if (key === 'signature') clear('authSignature');
+        }
+        if (section === 'requiredDocuments') {
+          if (key === 'insuranceCard') clear('docInsuranceCard');
+          if (key === 'photoId') clear('docPhotoId');
+        }
       });
       return next;
     });
@@ -242,6 +284,12 @@ export default function ClientInsuranceIntakeForm() {
       const recordId = await ensureIntakeSaved();
       const updated = await dispatch(uploadInsuranceDocument({ id: recordId, docKey, file })).unwrap();
       applyIntakeToForm(updated);
+      setErrors((prev) => {
+        const next = { ...prev };
+        if (docKey === 'insuranceCard') delete next.docInsuranceCard;
+        if (docKey === 'photoId') delete next.docPhotoId;
+        return next;
+      });
     } catch {
       // toast / validation handled upstream
     } finally {
@@ -267,6 +315,7 @@ export default function ClientInsuranceIntakeForm() {
     setErrors(stepErrors);
     if (Object.keys(stepErrors).length) {
       scrollAppToTop();
+      toast.error('Please fix the highlighted fields before continuing');
       return;
     }
     setStep(2);
@@ -281,10 +330,12 @@ export default function ClientInsuranceIntakeForm() {
     if (Object.keys(step1).length) {
       setStep(1);
       scrollAppToTop();
+      toast.error('Please fix the highlighted fields before saving');
       return;
     }
     if (Object.keys(step2).length) {
       scrollAppToTop();
+      toast.error('Please fix the highlighted fields before saving');
       return;
     }
 

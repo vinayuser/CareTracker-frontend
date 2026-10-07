@@ -22,6 +22,14 @@ import Drawer from '../../../components/ui/Drawer';
 
 const PAGE_SIZE = 5;
 
+function todayKey() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 const STATUS_STYLE = {
   caregiver_only: 'bg-slate-100 text-slate-700',
   no_schedule: 'bg-amber-50 text-amber-700 ring-1 ring-amber-100',
@@ -169,10 +177,40 @@ export default function EvvSummaryReport() {
     return () => document.removeEventListener('mousedown', onPointer);
   }, []);
 
+  const today = todayKey();
+
+  const setRangeFrom = (value) => {
+    const next = value && value > today ? today : value;
+    setDraftFrom(next);
+    if (next && draftTo && next > draftTo) setDraftTo(next);
+  };
+
+  const setRangeTo = (value) => {
+    const capped = value && value > today ? today : value;
+    const next = capped && draftFrom && capped < draftFrom ? draftFrom : capped;
+    setDraftTo(next);
+  };
+
   const applyFilters = (next = {}) => {
+    let from = next.from ?? draftFrom;
+    let to = next.to ?? draftTo;
+    if (from && from > today) {
+      toast.error('Start date cannot be in the future');
+      from = today;
+      setDraftFrom(today);
+    }
+    if (to && to > today) {
+      toast.error('End date cannot be in the future');
+      to = today;
+      setDraftTo(today);
+    }
+    if (from && to && from > to) {
+      toast.error('Start date must be on or before end date');
+      return;
+    }
     setApplied({
-      from: next.from ?? draftFrom,
-      to: next.to ?? draftTo,
+      from,
+      to,
       clientId: next.clientId ?? draftClientId,
       status: next.status ?? draftStatus,
     });
@@ -245,14 +283,17 @@ export default function EvvSummaryReport() {
               <input
                 type="date"
                 value={draftFrom}
-                onChange={(e) => setDraftFrom(e.target.value)}
+                max={draftTo && draftTo < today ? draftTo : today}
+                onChange={(e) => setRangeFrom(e.target.value)}
                 className="min-w-0 flex-1 border-0 bg-transparent py-1 text-sm text-slate-800 outline-none"
               />
               <span className="text-slate-300">–</span>
               <input
                 type="date"
                 value={draftTo}
-                onChange={(e) => setDraftTo(e.target.value)}
+                min={draftFrom || undefined}
+                max={today}
+                onChange={(e) => setRangeTo(e.target.value)}
                 className="min-w-0 flex-1 border-0 bg-transparent py-1 text-sm text-slate-800 outline-none"
               />
             </div>

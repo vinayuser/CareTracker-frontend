@@ -2,17 +2,79 @@ import { useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import DigitalSignaturePad from '../../../ui/DigitalSignaturePad';
 import { uploadAssessmentSignature } from '../../../../utils/assessmentSignatures';
+import { RELATIONSHIPS } from '../../../../utils/leadForm';
 
 export const inputClass =
   'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
 
-export function Field({ label, children, className = '', error }) {
+export const readOnlyInputClass =
+  'w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700';
+
+/** Max length for single-line text fields across assessment packet forms. */
+export const PACKET_MAX_INPUT = 40;
+/** Max length for description / textarea fields across assessment packet forms. */
+export const PACKET_MAX_TEXTAREA = 100;
+
+const SKIP_MAX_TYPES = new Set(['date', 'time', 'datetime-local', 'checkbox', 'radio', 'file', 'hidden', 'number']);
+
+/** Single-line packet input — defaults to max 40 characters (except date/time/checkbox). */
+export function PacketInput({
+  type = 'text',
+  maxLength,
+  className = inputClass,
+  ...rest
+}) {
+  const skipMax = SKIP_MAX_TYPES.has(type);
+  const limit = skipMax ? undefined : (maxLength ?? PACKET_MAX_INPUT);
+  return <input type={type} className={className} maxLength={limit} {...rest} />;
+}
+
+/** Multi-line packet field — defaults to max 100 characters. */
+export function PacketTextarea({
+  maxLength = PACKET_MAX_TEXTAREA,
+  className = inputClass,
+  ...rest
+}) {
+  return <textarea className={className} maxLength={maxLength} {...rest} />;
+}
+
+export function ReadOnlyClientGrid({
+  clientName = '',
+  dob = '',
+  className = '',
+}) {
   return (
-    <label className={`block ${className}`}>
+    <div className={`grid gap-3 sm:grid-cols-2 ${className}`}>
+      <Field label="Client Name">
+        <input readOnly disabled className={readOnlyInputClass} value={clientName} tabIndex={-1} />
+      </Field>
+      <Field label="DOB">
+        <input readOnly disabled type="date" className={readOnlyInputClass} value={dob} tabIndex={-1} />
+      </Field>
+    </div>
+  );
+}
+
+export function ReadOnlyClientFields({
+  clientName = '',
+  dob = '',
+  subtitle = 'Auto-filled from the client record. Client details cannot be edited on assessment forms.',
+}) {
+  return (
+    <SectionCard title="Client Information" subtitle={subtitle}>
+      <ReadOnlyClientGrid clientName={clientName} dob={dob} />
+    </SectionCard>
+  );
+}
+
+export function Field({ label, children, className = '', error }) {
+  // Use a div (not <label>) so nested radios/checkboxes with their own labels work correctly.
+  return (
+    <div className={`block ${className}`}>
       {label ? <span className="mb-1 block text-xs font-medium text-gray-600">{label}</span> : null}
       {children}
       {error ? <span className="mt-1 block text-xs text-red-600">{error}</span> : null}
-    </label>
+    </div>
   );
 }
 
@@ -80,6 +142,7 @@ export function SignatureBlock({
   value = {},
   onChange,
   showRelationship = false,
+  lockPrintedName = false,
 }) {
   const patch = (p) => onChange({ ...value, ...p });
   const [uploading, setUploading] = useState(false);
@@ -119,14 +182,33 @@ export function SignatureBlock({
           {uploading ? <p className="mt-1 text-xs text-gray-500">Uploading signature…</p> : null}
         </div>
         <Field label="Print Name">
-          <input className={inputClass} value={value.printedName || ''} onChange={(e) => patch({ printedName: e.target.value })} />
+          <PacketInput
+            readOnly={lockPrintedName}
+            disabled={lockPrintedName}
+            className={lockPrintedName ? readOnlyInputClass : inputClass}
+            value={value.printedName || ''}
+            onChange={(e) => patch({ printedName: e.target.value })}
+            tabIndex={lockPrintedName ? -1 : undefined}
+          />
         </Field>
         <Field label="Date">
-          <input type="date" className={inputClass} value={value.date || ''} onChange={(e) => patch({ date: e.target.value })} />
+          <PacketInput type="date" className={inputClass} value={value.date || ''} onChange={(e) => patch({ date: e.target.value })} />
         </Field>
         {showRelationship ? (
           <Field label="Relationship" className="sm:col-span-2">
-            <input className={inputClass} value={value.relationship || ''} onChange={(e) => patch({ relationship: e.target.value })} />
+            <select
+              className={inputClass}
+              value={value.relationship || ''}
+              onChange={(e) => patch({ relationship: e.target.value })}
+            >
+              <option value="">Select relationship</option>
+              {RELATIONSHIPS.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+              {value.relationship && !RELATIONSHIPS.includes(value.relationship) ? (
+                <option value={value.relationship}>{value.relationship}</option>
+              ) : null}
+            </select>
           </Field>
         ) : null}
       </div>

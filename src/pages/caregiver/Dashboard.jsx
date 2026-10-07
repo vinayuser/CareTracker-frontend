@@ -41,25 +41,64 @@ function KpiCard({ label, children, icon: Icon, iconBg }) {
   );
 }
 
-function WeeklyBarChart({ weeklyHours = [], weeklySummary = {} }) {
+function formatWeekRangeLabel(week) {
+  if (!week?.from || !week?.to) return '';
+  try {
+    const opts = { month: 'short', day: 'numeric' };
+    const from = new Date(`${week.from}T12:00:00`).toLocaleDateString(undefined, opts);
+    const to = new Date(`${week.to}T12:00:00`).toLocaleDateString(undefined, {
+      ...opts,
+      year: 'numeric',
+    });
+    return `${from} – ${to}`;
+  } catch {
+    return `${week.from} – ${week.to}`;
+  }
+}
+
+function formatBarHours(hours) {
+  const n = Number(hours) || 0;
+  if (n <= 0) return '';
+  if (n < 1) return `${Math.round(n * 60)}m`;
+  return `${n % 1 === 0 ? n : n.toFixed(1)}h`;
+}
+
+function WeeklyBarChart({ weeklyHours = [], weeklySummary = {}, weekRange = null }) {
   const max = Math.max(1, ...weeklyHours.map((d) => d.hours || 0));
+  const rangeLabel = formatWeekRangeLabel(weekRange);
   return (
     <div>
-      <div className="flex h-36 items-end justify-between gap-2">
-        {weeklyHours.map((item) => (
-          <div key={item.day} className="flex flex-1 flex-col items-center gap-2">
-            <div
-              className="w-full rounded-t-md bg-primary/80"
-              style={{ height: `${Math.max(8, ((item.hours || 0) / max) * 100)}%`, minHeight: '8px' }}
-            />
-            <span className="text-xs text-gray-500">{item.day}</span>
-          </div>
-        ))}
+      {rangeLabel ? (
+        <p className="mb-3 text-xs text-gray-500">{rangeLabel}</p>
+      ) : null}
+      <div className="flex h-40 items-end justify-between gap-2">
+        {weeklyHours.map((item) => {
+          const hours = Number(item.hours) || 0;
+          const pct = hours > 0 ? Math.max(10, (hours / max) * 100) : 0;
+          return (
+            <div key={item.day} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
+              <span className="h-4 text-[10px] font-medium text-gray-600">{formatBarHours(hours)}</span>
+              <div className="flex h-28 w-full items-end">
+                <div
+                  className={`w-full rounded-t-md ${hours > 0 ? 'bg-primary/80' : 'bg-gray-100'}`}
+                  style={{ height: hours > 0 ? `${pct}%` : '4px' }}
+                  title={`${item.day}${item.date ? ` (${item.date})` : ''}: ${hours.toFixed(2)}h · ${item.visits ?? 0} visit(s)`}
+                />
+              </div>
+              <span className="text-xs text-gray-500">{item.day}</span>
+            </div>
+          );
+        })}
       </div>
       <div className="mt-4 flex flex-wrap gap-4 border-t border-gray-100 pt-3 text-sm">
         <span className="text-gray-600">
-          Total Hours: <strong className="text-gray-900">{weeklySummary.total_hours || '00h 00m'}</strong>
+          Worked: <strong className="text-gray-900">{weeklySummary.total_hours || '00h 00m'}</strong>
         </span>
+        {weeklySummary.scheduled_hours ? (
+          <span className="text-gray-600">
+            Scheduled: <strong className="text-gray-900">{weeklySummary.scheduled_hours}</strong>
+          </span>
+        ) : null}
         <span className="text-gray-600">
           Total Visits: <strong className="text-gray-900">{weeklySummary.total_visits ?? 0}</strong>
         </span>
@@ -109,6 +148,7 @@ export default function CaregiverDashboard() {
   const alerts = data?.alerts || [];
   const weeklyHours = data?.weekly_hours || [];
   const weeklySummary = data?.weekly_summary || {};
+  const weekRange = data?.week || null;
   const enrollment = data?.enrollment || kpis?.enrollment || {};
 
   const greeting = useMemo(() => greetingForNow(), []);
@@ -133,15 +173,28 @@ export default function CaregiverDashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <KpiCard label="Today's Visits" icon={CalendarCheck} iconBg="bg-blue-100 text-blue-600">
-          <p className="text-3xl font-bold text-gray-900">{kpis?.today_visits?.total ?? 0}</p>
+        <KpiCard label="This Week's Visits" icon={CalendarCheck} iconBg="bg-blue-100 text-blue-600">
+          <p className="text-3xl font-bold text-gray-900">
+            {kpis?.week_visits?.total ?? kpis?.today_visits?.total ?? 0}
+          </p>
           <div className="mt-2 flex flex-wrap gap-2 text-xs font-medium">
-            <span className="text-emerald-600">{kpis?.today_visits?.completed ?? 0} Completed</span>
-            {(kpis?.today_visits?.in_progress ?? 0) > 0 ? (
-              <span className="text-blue-600">{kpis.today_visits.in_progress} In Progress</span>
+            <span className="text-emerald-600">
+              {kpis?.week_visits?.completed ?? kpis?.today_visits?.completed ?? 0} Completed
+            </span>
+            {(kpis?.week_visits?.in_progress ?? kpis?.today_visits?.in_progress ?? 0) > 0 ? (
+              <span className="text-blue-600">
+                {(kpis?.week_visits?.in_progress ?? kpis?.today_visits?.in_progress)} In Progress
+              </span>
             ) : null}
-            <span className="text-orange-600">{kpis?.today_visits?.upcoming ?? 0} Upcoming</span>
+            <span className="text-orange-600">
+              {kpis?.week_visits?.upcoming ?? kpis?.today_visits?.upcoming ?? 0} Upcoming
+            </span>
           </div>
+          {(kpis?.week_visits?.today_total ?? kpis?.today_visits?.total) != null ? (
+            <p className="mt-1 text-xs text-gray-500">
+              {kpis?.week_visits?.today_total ?? kpis?.today_visits?.total ?? 0} today
+            </p>
+          ) : null}
         </KpiCard>
 
         <KpiCard label="Hours This Week" icon={Clock} iconBg="bg-violet-100 text-violet-600">
@@ -150,8 +203,13 @@ export default function CaregiverDashboard() {
             <div className="h-full rounded-full bg-primary" style={{ width: `${kpis?.hours_this_week?.percent ?? 0}%` }} />
           </div>
           <p className="mt-1 text-xs text-gray-500">
-            {kpis?.hours_this_week?.percent ?? 0}% · Goal: {kpis?.hours_this_week?.goal || '40h'}
+            {kpis?.hours_this_week?.percent ?? 0}% worked · Goal: {kpis?.hours_this_week?.goal || '40h'}
           </p>
+          {kpis?.hours_this_week?.scheduled ? (
+            <p className="mt-0.5 text-xs text-gray-400">
+              Scheduled: {kpis.hours_this_week.scheduled}
+            </p>
+          ) : null}
         </KpiCard>
 
         <KpiCard label="Upcoming Pay (est.)" icon={Wallet} iconBg="bg-emerald-100 text-emerald-600">
@@ -331,7 +389,7 @@ export default function CaregiverDashboard() {
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 className="font-semibold text-gray-900">This Week Overview</h2>
         <div className="mt-4">
-          <WeeklyBarChart weeklyHours={weeklyHours} weeklySummary={weeklySummary} />
+          <WeeklyBarChart weeklyHours={weeklyHours} weeklySummary={weeklySummary} weekRange={weekRange} />
         </div>
       </div>
     </div>

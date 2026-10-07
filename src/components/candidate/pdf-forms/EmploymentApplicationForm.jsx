@@ -1,10 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { fetchPdfTemplateBytes } from './pdfTemplateFetch';
 
 import { submitFilledPdfForm } from './pdfFormSubmit';
 import { PDFDocument } from 'pdf-lib';
-import SignatureCanvas from 'react-signature-canvas';
-import axios from 'axios';
 
 // Import section components
 import PersonalInformationSection from './sections/EmploymentApplication/PersonalInformationSection';
@@ -16,141 +14,181 @@ import ProfessionalReferencesSection from './sections/EmploymentApplication/Prof
 import SignatureSection from './sections/EmploymentApplication/SignatureSection';
 import StatusModal from '../../ui/StatusModal';
 import AwardsCertificationsSection from './sections/EmploymentApplication/AwardsCertificationsSection';
+import {
+  validateHiringPdfForm,
+  formatHiringValidationMessage,
+  formatUsPhone,
+  sanitizeZip,
+  clampText,
+} from '../../../utils/hiringPdfFormValidation';
 
-const EmploymentApplicationForm = ({ document, token, onClose, onSuccess }) => {
-  const [formData, setFormData] = useState({
-    // Personal Information
-    "Name": "",
-    "Date": "",
-    "Address": "",
-    "City": "",
-    "State": "",
-    "Zip": "",
-    "Email Address": "",
-    "Phone": "",
+const todayIso = () => new Date().toISOString().slice(0, 10);
 
-    // Position Information
-    "Position": "",
-    "Location Preference": "",
-    "Salary Desired": "",
-    "How many hours can you work weekly": "",
-    "When would you be available to begin work": "",
+function sanitizeMoney(value) {
+  const raw = String(value || '').replace(/[^\d.]/g, '');
+  const firstDot = raw.indexOf('.');
+  if (firstDot === -1) return raw.slice(0, 10);
+  return `${raw.slice(0, firstDot).slice(0, 10)}.${raw.slice(firstDot + 1).replace(/\./g, '').slice(0, 2)}`;
+}
 
-    // Work Preferences
-    "No Preference": false,
-    "Monday": false,
-    "Tuesday": false,
-    "Wednesday": false,
-    "Thursday": false,
-    "Friday": false,
-    "Saturday": false,
-    "Sunday": false,
-    "Full Time Only": false,
-    "Part Time Only": false,
-    "Full or Part Time": false,
-    "Nights Yes": false,
-    "Nights No": false,
-    "Work US Yes": false,
-    "Work US No": false,
-    "Test Yes": false,
-    "Test No": false,
-    "Accommodation Yes": false,
-    "Accommodation No": false,
-    "reasonable accommodation If no describe what accommodations you would need 1": "",
+function sanitize1020Field(field, value) {
+  if (typeof value !== 'string') return value;
+  if (field === 'Phone' || field === 'PHONE NUMBER' || field === 'PHONE NUMBER_2' || field === 'PHONE NUMBER_3'
+    || field === 'Prof Telephone_1' || field === 'Prof Telephone_2' || field === 'Prof Telephone_3') {
+    return formatUsPhone(value);
+  }
+  if (field === 'Zip') return sanitizeZip(value);
+  if (field === 'State') return clampText(String(value).toUpperCase().replace(/[^A-Z]/g, ''), 2);
+  if (field === 'Salary Desired') return sanitizeMoney(value);
+  if (field === 'How many hours can you work weekly') return String(value).replace(/\D/g, '').slice(0, 3);
+  if (field === 'Name' || field === 'City' || field === 'Position' || field === 'Location Preference') {
+    return clampText(value, 40);
+  }
+  if (field === 'Address' || field === 'Email Address') return clampText(value, 100);
+  if (field === 'Signature1_es_:signer:signature' || field === 'Signature2_es_:signer:signature') {
+    return clampText(value, 40);
+  }
+  return value;
+}
 
-    // Education
-    "NAME OF SCHOOLHigh School": "",
-    "LOCATIONHigh School": "",
-    "NO OF YEARS COMPLETEDHigh School": "",
-    "MAJOR OR DEGREEHigh School": "",
-    "NAME OF SCHOOLCollege": "",
-    "LOCATIONCollege": "",
-    "NO OF YEARS COMPLETEDCollege": "",
-    "MAJOR OR DEGREECollege": "",
-    "NAME OF SCHOOLCollege_2": "",
-    "LOCATIONCollege_2": "",
-    "NO OF YEARS COMPLETEDCollege_2": "",
-    "MAJOR OR DEGREECollege_2": "",
-    "NAME OF SCHOOLOther": "",
-    "LOCATIONOther": "",
-    "NO OF YEARS COMPLETEDOther": "",
-    "MAJOR OR DEGREEOther": "",
+const EMPTY_1020 = {
+  Name: '',
+  Date: '',
+  Address: '',
+  City: '',
+  State: '',
+  Zip: '',
+  'Email Address': '',
+  Phone: '',
+  Position: '',
+  'Location Preference': '',
+  'Salary Desired': '',
+  'How many hours can you work weekly': '',
+  'When would you be available to begin work': '',
+  'No Preference': false,
+  Monday: false,
+  Tuesday: false,
+  Wednesday: false,
+  Thursday: false,
+  Friday: false,
+  Saturday: false,
+  Sunday: false,
+  'Full Time Only': false,
+  'Part Time Only': false,
+  'Full or Part Time': false,
+  'Nights Yes': false,
+  'Nights No': false,
+  'Work US Yes': false,
+  'Work US No': false,
+  'Test Yes': false,
+  'Test No': false,
+  'Accommodation Yes': false,
+  'Accommodation No': false,
+  'reasonable accommodation If no describe what accommodations you would need 1': '',
+  'NAME OF SCHOOLHigh School': '',
+  'LOCATIONHigh School': '',
+  'NO OF YEARS COMPLETEDHigh School': '',
+  'MAJOR OR DEGREEHigh School': '',
+  'NAME OF SCHOOLCollege': '',
+  'LOCATIONCollege': '',
+  'NO OF YEARS COMPLETEDCollege': '',
+  'MAJOR OR DEGREECollege': '',
+  'NAME OF SCHOOLCollege_2': '',
+  'LOCATIONCollege_2': '',
+  'NO OF YEARS COMPLETEDCollege_2': '',
+  'MAJOR OR DEGREECollege_2': '',
+  'NAME OF SCHOOLOther': '',
+  'LOCATIONOther': '',
+  'NO OF YEARS COMPLETEDOther': '',
+  'MAJOR OR DEGREEOther': '',
+  'Name of Employer': '',
+  'EMPLOYMENT FROM': '',
+  'EMPLOYMENT TO': '',
+  'COMPLETE ADDRESS': '',
+  'PHONE NUMBER': '',
+  'NAME OF SUPERVISOR': '',
+  'MAY WE CONTACT FOR REFERENCES': false,
+  NO_5: false,
+  'YOUR LAST JOB TITLE': '',
+  'REASON FOR LEAVING PLEASE BE SPECIFIC': '',
+  'PLEASE LIST THE JOB DUTIES OF YOUR POSITION WITH THIS COMPANYRow1': '',
+  '2 NAME OF EMPLOYER': '',
+  'EMPLOYMENT DATES FROM_2': '',
+  'EMPLOYMENT DATES TO_2': '',
+  'COMPLETE ADDRESS_2': '',
+  'PHONE NUMBER_2': '',
+  'NAME OF SUPERVISOR_2': '',
+  'MAY WE CONTACT FOR REFERENCES_2': false,
+  NO_6: false,
+  'YOUR LAST JOB TITLE_2': '',
+  'REASON FOR LEAVING PLEASE BE SPECIFIC_2': '',
+  'PLEASE LIST THE JOB DUTIES OF YOUR POSITION WITH THIS COMPANYRow1_2': '',
+  '3 NAME OF EMPLOYER': '',
+  'EMPLOYMENT DATES FROM_3': '',
+  'EMPLOYMENT DATES TO_3': '',
+  'COMPLETE ADDRESS_3': '',
+  'PHONE NUMBER_3': '',
+  'NAME OF SUPERVISOR_3': '',
+  'MAY WE CONTACT FOR REFERENCES_3': false,
+  NO_7: false,
+  'YOUR LAST JOB TITLE_3': '',
+  'REASON FOR LEAVING PLEASE BE SPECIFIC_3': '',
+  'PLEASE LIST THE JOB DUTIES OF YOUR POSITION WITH THIS COMPANYRow1_3': '',
+  'Prof Name_1': '',
+  'Prof Company_1': '',
+  'Prof Telephone_1': '',
+  'Prof Years_1': '',
+  'Prof Name_2': '',
+  'Prof Company_2': '',
+  'Prof Telephone_2': '',
+  'Prof Years_2': '',
+  'Prof Name_3': '',
+  'Prof Company_3': '',
+  'Prof Telephone_3': '',
+  'Prof Years_3': '',
+  '1': '',
+  '2': '',
+  '3': '',
+  '4': '',
+  '5': '',
+  '6': '',
+  'Please use this space for any additional information you would like to provide that may assist us in the hiring process 1': '',
+  Date_2: '',
+  Date_3: '',
+  'Signature1_es_:signer:signature': '',
+  'Signature2_es_:signer:signature': '',
+};
 
-    // Employment History
-    "Name of Employer": "",
-    "EMPLOYMENT FROM": "",
-    "EMPLOYMENT TO": "",
-    "COMPLETE ADDRESS": "",
-    "PHONE NUMBER": "",
-    "NAME OF SUPERVISOR": "",
-    "MAY WE CONTACT FOR REFERENCES": false,
-    "NO_5": false,
-    "YOUR LAST JOB TITLE": "",
-    "REASON FOR LEAVING PLEASE BE SPECIFIC": "",
-    "PLEASE LIST THE JOB DUTIES OF YOUR POSITION WITH THIS COMPANYRow1": "",
+function buildInitial1020(candidate, savedFormData) {
+  const saved = savedFormData && typeof savedFormData === 'object' ? savedFormData : {};
+  const fullName = `${candidate?.first_name || ''} ${candidate?.last_name || ''}`.trim();
+  return {
+    ...EMPTY_1020,
+    ...saved,
+    Name: saved.Name || fullName,
+    Date: saved.Date || todayIso(),
+    Address: saved.Address || candidate?.location || '',
+    'Email Address': saved['Email Address'] || candidate?.email || '',
+    Phone: saved.Phone || formatUsPhone(candidate?.phone || ''),
+    Position: saved.Position || candidate?.designation || '',
+    'Location Preference': saved['Location Preference'] || candidate?.location || '',
+    Date_2: saved.Date_2 || todayIso(),
+    Date_3: saved.Date_3 || todayIso(),
+  };
+}
 
-    "2 NAME OF EMPLOYER": "",
-    "EMPLOYMENT DATES FROM_2": "",
-    "EMPLOYMENT DATES TO_2": "",
-    "COMPLETE ADDRESS_2": "",
-    "PHONE NUMBER_2": "",
-    "NAME OF SUPERVISOR_2": "",
-    "MAY WE CONTACT FOR REFERENCES_2": false,
-    "NO_6": false,
-    "YOUR LAST JOB TITLE_2": "",
-    "REASON FOR LEAVING PLEASE BE SPECIFIC_2": "",
-    "PLEASE LIST THE JOB DUTIES OF YOUR POSITION WITH THIS COMPANYRow1_2": "",
-
-    "3 NAME OF EMPLOYER": "",
-    "EMPLOYMENT DATES FROM_3": "",
-    "EMPLOYMENT DATES TO_3": "",
-    "COMPLETE ADDRESS_3": "",
-    "PHONE NUMBER_3": "",
-    "NAME OF SUPERVISOR_3": "",
-    "MAY WE CONTACT FOR REFERENCES_3": false,
-    "NO_7": false,
-    "YOUR LAST JOB TITLE_3": "",
-    "REASON FOR LEAVING PLEASE BE SPECIFIC_3": "",
-    "PLEASE LIST THE JOB DUTIES OF YOUR POSITION WITH THIS COMPANYRow1_3": "",
-
-    // Professional References
-    "Prof Name_1": "",
-    "Prof Company_1": "",
-    "Prof Telephone_1": "",
-    "Prof Years_1": "",
-    "Prof Name_2": "",
-    "Prof Company_2": "",
-    "Prof Telephone_2": "",
-    "Prof Years_2": "",
-    "Prof Name_3": "",
-    "Prof Company_3": "",
-    "Prof Telephone_3": "",
-    "Prof Years_3": "",
-
-    // Additional Information
-    "1": "",
-    "2": "",
-    "3": "",
-    "4": "",
-    "5": "",
-    "6": "",
-    "Please use this space for any additional information you would like to provide that may assist us in the hiring process 1": "",
-
-    // Signature
-    "Date_2": "",
-    "Date_3": "",
-    "Signature1_es_:signer:signature": "",
-    "Signature2_es_:signer:signature": ""
-  });
+const EmploymentApplicationForm = ({ document, candidate = null, token, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState(() =>
+    buildInitial1020(candidate || document?.candidate, document?.form_data),
+  );
 
   const [generatingPreview, setGeneratingPreview] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
-  const [filledPdfBytes, setFilledPdfBytes] = useState(null); // store bytes to avoid re-fetching preview URL
+  const [filledPdfBytes, setFilledPdfBytes] = useState(null);
   const [signatureDataUrl, setSignatureDataUrl] = useState('');
-  const [signatureType, setSignatureType] = useState('text');
   const [activeSection, setActiveSection] = useState('personal');
-  const sigCanvasRef = useRef();
+  const [errors, setErrors] = useState({});
 
   // Status modal state
   const [statusModal, setStatusModal] = useState({
@@ -186,36 +224,39 @@ const EmploymentApplicationForm = ({ document, token, onClose, onSuccess }) => {
   const closeStatusModal = () => {
     setStatusModal(prev => ({ ...prev, isOpen: false }));
   };
-  // Handler functions
+  const clearFieldError = (...fields) => {
+    setErrors((prev) => {
+      if (!fields.some((f) => prev[f])) return prev;
+      const next = { ...prev };
+      fields.forEach((f) => { delete next[f]; });
+      return next;
+    });
+  };
+
   const handleInputChange = (fieldName, value) => {
-    setFormData(prev => ({
+    const next = sanitize1020Field(fieldName, value);
+    setFormData((prev) => ({
       ...prev,
-      [fieldName]: value
+      [fieldName]: next,
     }));
+    clearFieldError(fieldName);
   };
 
   const handleCheckboxChange = (fieldName, checked) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [fieldName]: checked
+      [fieldName]: checked,
     }));
-  };
-
-  // Signature handling functions
-  const handleSignatureEnd = () => {
-    if (sigCanvasRef.current && !sigCanvasRef.current.isEmpty()) {
-      const signatureDataURL = sigCanvasRef.current.toDataURL();
-      setSignatureDataUrl(signatureDataURL);
-      handleInputChange("Signature1_es_:signer:signature", "Signed");
+    if (fieldName === 'Work US Yes' || fieldName === 'Work US No') {
+      clearFieldError('Work US Yes');
     }
   };
 
-  const clearSignature = () => {
-    if (sigCanvasRef.current) {
-      sigCanvasRef.current.clear();
-      setSignatureDataUrl('');
-      handleInputChange("Signature1_es_:signer:signature", "");
-    }
+  const handleSignatureChange = (dataUrl) => {
+    setSignatureDataUrl(dataUrl || '');
+    handleInputChange('Signature1_es_:signer:signature', '');
+    handleInputChange('Signature2_es_:signer:signature', '');
+    if (dataUrl) clearFieldError('Signature1_es_:signer:signature');
   };
 
   // Convert data URL to image bytes for PDF embedding
@@ -372,98 +413,72 @@ const EmploymentApplicationForm = ({ document, token, onClose, onSuccess }) => {
         }
       });
 
-      // Handle signature based on type
-      if (signatureType === "text") {
-        const signatureFields = ["Signature1_es_:signer:signature", "Signature2_es_:signer:signature"];
-        signatureFields.forEach(fieldName => {
-          try {
-            const field = form.getTextField(fieldName);
-            if (field) {
-              field.setText(formData["Signature1_es_:signer:signature"] || "");
-            }
-          } catch (error) {
-            // ignore
-          }
-        });
-      } else {
-        // Use drawn signature - embed as image at exact field positions for BOTH signature fields
-        if (signatureDataUrl) {
-          const signatureImageBytes = await dataURLToImageBytes(signatureDataUrl);
-          if (signatureImageBytes) {
-            const signatureImage = await pdfDoc.embedPng(signatureImageBytes);
-            const pages = pdfDoc.getPages();
+      // Embed drawn signature at both signature field positions
+      if (signatureDataUrl) {
+        const signatureImageBytes = await dataURLToImageBytes(signatureDataUrl);
+        if (signatureImageBytes) {
+          const signatureImage = await pdfDoc.embedPng(signatureImageBytes);
+          const pages = pdfDoc.getPages();
+          const signatureFieldsToTry = [
+            'Signature1_es_:signer:signature',
+            'Signature2_es_:signer:signature',
+          ];
+          const signaturePositions = [];
 
-            const signatureFieldsToTry = [
-              "Signature1_es_:signer:signature",
-              "Signature2_es_:signer:signature"
-            ];
-
-            const signaturePositions = [];
-
-            for (const sfn of signatureFieldsToTry) {
-              try {
-                const field = form.getTextField(sfn);
-                if (!field) continue;
-                const widgets = field.acroField.getWidgets();
-                if (!widgets || widgets.length === 0) continue;
-                const rect = widgets[0].getRectangle();
-                const pageRef = widgets[0].P();
-                let pageIndex = 0;
-                for (let i = 0; i < pages.length; i++) {
-                  if (pages[i].ref === pageRef) {
-                    pageIndex = i;
-                    break;
-                  }
+          for (const sfn of signatureFieldsToTry) {
+            try {
+              const field = form.getTextField(sfn);
+              if (!field) continue;
+              const widgets = field.acroField.getWidgets();
+              if (!widgets || widgets.length === 0) continue;
+              const rect = widgets[0].getRectangle();
+              const pageRef = widgets[0].P();
+              let pageIndex = 0;
+              for (let i = 0; i < pages.length; i++) {
+                if (pages[i].ref === pageRef) {
+                  pageIndex = i;
+                  break;
                 }
-                signaturePositions.push({
-                  x: rect.x ?? rect.left ?? 100,
-                  y: rect.y ?? rect.bottom ?? 600,
-                  width: rect.width ?? (rect.right - rect.left) ?? 200,
-                  height: rect.height ?? (rect.top - rect.bottom) ?? 50,
-                  pageIndex,
-                  fieldName: sfn
-                });
-              } catch (err) {
-                // ignore per-field errors
               }
-            }
-
-            // Draw signature at found positions
-            if (signaturePositions.length > 0) {
-              signaturePositions.forEach(position => {
-                const page = pages[position.pageIndex] || pages[0];
-                if (!page) return;
-                page.drawImage(signatureImage, {
-                  x: position.x,
-                  y: position.y,
-                  width: position.width,
-                  height: position.height,
-                });
+              signaturePositions.push({
+                x: rect.x ?? rect.left ?? 100,
+                y: rect.y ?? rect.bottom ?? 600,
+                width: rect.width ?? (rect.right - rect.left) ?? 200,
+                height: rect.height ?? (rect.top - rect.bottom) ?? 50,
+                pageIndex,
               });
-            } else {
-              // fallbacks
-              if (pages[1]) {
-                pages[1].drawImage(signatureImage, { x: 100, y: 600, width: 200, height: 50 });
-              } else if (pages[0]) {
-                pages[0].drawImage(signatureImage, { x: 100, y: 600, width: 200, height: 50 });
-              }
+            } catch {
+              // ignore per-field errors
             }
+          }
+
+          if (signaturePositions.length > 0) {
+            signaturePositions.forEach((position) => {
+              const page = pages[position.pageIndex] || pages[0];
+              if (!page) return;
+              page.drawImage(signatureImage, {
+                x: position.x,
+                y: position.y,
+                width: position.width,
+                height: position.height,
+              });
+            });
+          } else if (pages[1]) {
+            pages[1].drawImage(signatureImage, { x: 100, y: 600, width: 200, height: 50 });
+          } else if (pages[0]) {
+            pages[0].drawImage(signatureImage, { x: 100, y: 600, width: 200, height: 50 });
           }
         }
-
-        // Clear both signature text fields when using drawn signature
-        const signatureTextFields = ["Signature1_es_:signer:signature", "Signature2_es_:signer:signature"];
-        signatureTextFields.forEach(fieldName => {
-          try {
-            const field = form.getTextField(fieldName);
-            if (field) {
-              field.setText("");
-            }
-          } catch (error) {
-            // ignore
-          }
-        });
       }
+
+      ['Signature1_es_:signer:signature', 'Signature2_es_:signer:signature'].forEach((fieldName) => {
+        try {
+          const field = form.getTextField(fieldName);
+          if (field) field.setText('');
+        } catch {
+          // ignore
+        }
+      });
 
       // Lock all fields
       form.getFields().forEach((f) => {
@@ -512,6 +527,16 @@ const EmploymentApplicationForm = ({ document, token, onClose, onSuccess }) => {
   };
 
   const handleSubmit = async () => {
+    const validation = validateHiringPdfForm('1020', formData, {
+      hasSignature: Boolean(signatureDataUrl),
+    });
+    setErrors(validation.fieldErrors || {});
+    if (!validation.ok) {
+      if (validation.firstSection) setActiveSection(validation.firstSection);
+      showStatusModal('error', 'Please fix the form', formatHiringValidationMessage(validation.messages));
+      return;
+    }
+
     try {
       setSubmitting(true);
 
@@ -562,17 +587,12 @@ const EmploymentApplicationForm = ({ document, token, onClose, onSuccess }) => {
     }
   };
 
-  // cleanup on unmount
   useEffect(() => {
     return () => {
       if (previewUrl) {
         try { URL.revokeObjectURL(previewUrl); } catch (e) { /* ignore */ }
       }
-      if (sigCanvasRef.current) {
-        try { sigCanvasRef.current.clear(); } catch (e) { /* ignore */ }
-      }
     };
-    // intentionally empty deps to run only on unmount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -583,6 +603,7 @@ const EmploymentApplicationForm = ({ document, token, onClose, onSuccess }) => {
         return (
           <PersonalInformationSection
             formData={formData}
+            errors={errors}
             onInputChange={handleInputChange}
           />
         );
@@ -590,6 +611,7 @@ const EmploymentApplicationForm = ({ document, token, onClose, onSuccess }) => {
         return (
           <PositionInformationSection
             formData={formData}
+            errors={errors}
             onInputChange={handleInputChange}
           />
         );
@@ -634,17 +656,20 @@ const EmploymentApplicationForm = ({ document, token, onClose, onSuccess }) => {
         return (
           <SignatureSection
             formData={formData}
-            signatureType={signatureType}
+            errors={errors}
             signatureDataUrl={signatureDataUrl}
             onInputChange={handleInputChange}
-            onSignatureTypeChange={setSignatureType}
-            onSignatureEnd={handleSignatureEnd}
-            onClearSignature={clearSignature}
-            sigCanvasRef={sigCanvasRef}
+            onSignatureChange={handleSignatureChange}
           />
         );
       default:
-        return <PersonalInformationSection formData={formData} onInputChange={handleInputChange} />;
+        return (
+          <PersonalInformationSection
+            formData={formData}
+            errors={errors}
+            onInputChange={handleInputChange}
+          />
+        );
     }
   };
 

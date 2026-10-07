@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
+  ArrowRightLeft,
   Check,
   CheckCircle2,
   Clock,
@@ -9,7 +10,10 @@ import {
   MoreVertical,
   Plus,
   Settings,
+  XCircle,
 } from 'lucide-react';
+import Drawer from '../ui/Drawer';
+import { confirmAlert } from '../../utils/swal';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axiosInstance from '../../api/axiosInstance';
@@ -141,18 +145,50 @@ const EMPTY_BILLING = {
   payments: [],
 };
 
-export default function AgencyBillingTab({ agencyId, onManageSubscription }) {
+function AutoRenewalSwitch({ checked, disabled, onChange }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label="Auto renewal"
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+        checked ? 'bg-emerald-500' : 'bg-slate-300'
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+          checked ? 'translate-x-4' : 'translate-x-0.5'
+        }`}
+      />
+    </button>
+  );
+}
+
+export default function AgencyBillingTab({
+  agencyId,
+  onManageSubscription,
+  plans = [],
+  refreshKey = 0,
+  onSubscriptionChanged,
+}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [billing, setBilling] = useState(EMPTY_BILLING);
   const [downloadingId, setDownloadingId] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
+  const [planPickerOpen, setPlanPickerOpen] = useState(false);
+  const [pickedPlanId, setPickedPlanId] = useState('');
+  const [savingSubscription, setSavingSubscription] = useState(false);
 
   useEffect(() => {
     if (!agencyId) return undefined;
     let cancelled = false;
 
     const load = async () => {
-      setLoading(true);
+      if (reloadKey === 0 && refreshKey === 0) setLoading(true);
       setError('');
       try {
         const response = await axiosInstance.get(`${API_ROUTES.ADMIN.AGENCY.BILLING}/${agencyId}/billing`);
@@ -180,7 +216,61 @@ export default function AgencyBillingTab({ agencyId, onManageSubscription }) {
 
     load();
     return () => { cancelled = true; };
-  }, [agencyId]);
+  }, [agencyId, reloadKey, refreshKey]);
+
+  const saveSubscription = async (payload, successMessage) => {
+    setSavingSubscription(true);
+    try {
+      await axiosInstance.put(`${API_ROUTES.ADMIN.AGENCY.UPDATE}/${agencyId}`, payload, { skipErrorToast: true });
+      toast.success(successMessage);
+      setReloadKey((k) => k + 1);
+      onSubscriptionChanged?.();
+      return true;
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update subscription');
+      return false;
+    } finally {
+      setSavingSubscription(false);
+    }
+  };
+
+  const openPlanPicker = () => {
+    setPickedPlanId(billing.plan?.id || '');
+    setPlanPickerOpen(true);
+  };
+
+  const handleConfirmPlanChange = async () => {
+    const nextPlan = plans.find((p) => p.id === pickedPlanId);
+    if (!nextPlan || nextPlan.id === billing.plan?.id) {
+      setPlanPickerOpen(false);
+      return;
+    }
+    const confirmed = await confirmAlert({
+      title: `Switch to ${nextPlan.name}?`,
+      text: `A pending invoice of ${formatPrice(nextPlan.price)} / ${formatBillingCycle(nextPlan.billingCycle).toLowerCase()} will be created for this agency.`,
+      confirmText: 'Change plan',
+      icon: 'question',
+    });
+    if (!confirmed) return;
+    const ok = await saveSubscription({ subscriptionPlanId: nextPlan.id }, `Plan changed to ${nextPlan.name}`);
+    if (ok) setPlanPickerOpen(false);
+  };
+
+  const handleAutoRenewalChange = async (enabled) => {
+    if (!enabled) {
+      const confirmed = await confirmAlert({
+        title: 'Disable auto renewal?',
+        text: 'The subscription will not renew automatically at the end of the current billing period.',
+        confirmText: 'Disable',
+        danger: true,
+      });
+      if (!confirmed) return;
+    }
+    await saveSubscription(
+      { autoRenewal: enabled },
+      enabled ? 'Auto renewal enabled' : 'Auto renewal disabled',
+    );
+  };
 
   const plan = billing.plan;
   const summary = billing.summary;
@@ -242,12 +332,15 @@ export default function AgencyBillingTab({ agencyId, onManageSubscription }) {
               >
                 Manage Subscription
               </button>
-              <Link
-                to={ROUTES.ADMIN_SUBSCRIPTION_PLANS}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              <button
+                type="button"
+                onClick={openPlanPicker}
+                disabled={savingSubscription}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
               >
-                Change Plan
-              </Link>
+                <ArrowRightLeft size={13} />
+                {plan ? 'Change Plan' : 'Assign Plan'}
+              </button>
             </div>
           )}
         >
@@ -296,16 +389,29 @@ export default function AgencyBillingTab({ agencyId, onManageSubscription }) {
               </div>
               <div>
                 <p className="text-[11px] font-medium text-slate-400">Auto Renewal</p>
-                <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-bold text-slate-900">
-                  {subscription.autoRenewal ? (
-                    <>
-                      <CheckCircle2 size={14} className="text-emerald-500" />
-                      <span className="text-emerald-700">Enabled</span>
-                    </>
-                  ) : (
-                    '—'
-                  )}
-                </p>
+                {plan ? (
+                  <div className="mt-1 flex items-center gap-2">
+                    <AutoRenewalSwitch
+                      checked={Boolean(subscription.autoRenewal)}
+                      disabled={savingSubscription || subscription.status !== 'Active'}
+                      onChange={handleAutoRenewalChange}
+                    />
+                    <span className={`inline-flex items-center gap-1 text-sm font-bold ${
+                      subscription.autoRenewal ? 'text-emerald-700' : 'text-slate-500'
+                    }`}
+                    >
+                      {subscription.autoRenewal
+                        ? <CheckCircle2 size={14} className="text-emerald-500" />
+                        : <XCircle size={14} className="text-slate-400" />}
+                      {subscription.autoRenewal ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </div>
+                ) : (
+                  <p className="mt-1 text-sm font-bold text-slate-900">—</p>
+                )}
+                {plan && subscription.status !== 'Active' ? (
+                  <p className="mt-0.5 text-[11px] text-slate-400">Agency must be Active</p>
+                ) : null}
               </div>
             </div>
 
@@ -469,12 +575,7 @@ export default function AgencyBillingTab({ agencyId, onManageSubscription }) {
         <CardShell
           title="Payment Methods"
           icon={CreditCard}
-          action={(
-            <button type="button" className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline">
-              <Plus size={14} />
-              Add Payment Method
-            </button>
-          )}
+         
         >
           {billing.paymentMethods.length ? (
             <ul className="space-y-3">
@@ -528,6 +629,78 @@ export default function AgencyBillingTab({ agencyId, onManageSubscription }) {
           )}
         </CardShell>
       </div>
+
+      <Drawer
+        open={planPickerOpen}
+        onClose={() => setPlanPickerOpen(false)}
+        title={plan ? 'Change Plan' : 'Assign Plan'}
+        width="md"
+        footer={(
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setPlanPickerOpen(false)}
+              disabled={savingSubscription}
+              className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmPlanChange}
+              disabled={savingSubscription || !pickedPlanId || pickedPlanId === plan?.id}
+              className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-50"
+            >
+              {savingSubscription ? 'Saving…' : plan ? 'Change Plan' : 'Assign Plan'}
+            </button>
+          </div>
+        )}
+      >
+        {plans.length === 0 ? (
+          <EmptyState message="No active subscription plans available." />
+        ) : (
+          <div className="space-y-3">
+            {plans.map((option) => {
+              const isCurrent = option.id === plan?.id;
+              const isPicked = option.id === pickedPlanId;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setPickedPlanId(option.id)}
+                  className={`w-full rounded-xl border px-4 py-3.5 text-left transition-colors ${
+                    isPicked
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                      : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-bold text-slate-900">{option.name}</p>
+                        {isCurrent ? (
+                          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                            Current
+                          </span>
+                        ) : null}
+                      </div>
+                      {option.description ? (
+                        <p className="mt-1 text-xs text-slate-500">{option.description}</p>
+                      ) : null}
+                    </div>
+                    <p className="shrink-0 text-sm font-bold text-slate-900">
+                      {formatPrice(option.price)}
+                      <span className="text-xs font-medium text-slate-500">
+                        {' '}/ {formatBillingCycle(option.billingCycle).toLowerCase()}
+                      </span>
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 }

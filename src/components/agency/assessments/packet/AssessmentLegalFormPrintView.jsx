@@ -663,6 +663,7 @@ export function AssessmentLegalFormPrintView({
     return (
       <div className="ap-packet-print">
         <LegalShell code={code} title={copy.title} agencyBranding={agencyBranding}>
+          <IdRow clientName={d.clientName || d.client?.printedName} dob={d.dob} />
           <p className="al-p"><strong>{copy.intro}</strong></p>
           <ul className="al-bullets">
             {copy.bullets.map((b) => <li key={b}>{b}</li>)}
@@ -791,10 +792,7 @@ export function AssessmentLegalFormPrintView({
           </div>
           <div className="al-print-name">
             <div className="al-print-line">{client.printedName || '\u00A0'}</div>
-            <div className="al-print-label">
-              Print Name
-              {client.relationship ? ` — Relationship: ${client.relationship}` : ''}
-            </div>
+            <div className="al-print-label">Print Name</div>
           </div>
         </LegalShell>
       </div>
@@ -803,6 +801,7 @@ export function AssessmentLegalFormPrintView({
 
   if (code === '800') {
     const copy = getForm800Copy(name);
+    const client = d.client || {};
     return (
       <div className="ap-packet-print">
         <LegalShell code={code} title={copy.title} agencyBranding={agencyBranding}>
@@ -811,6 +810,28 @@ export function AssessmentLegalFormPrintView({
             {copy.bullets.map((b) => <li key={b.slice(0, 40)}>{b}</li>)}
           </ul>
           {copy.paragraphsAfter.map((p) => <p key={p.slice(0, 40)} className="al-p">{p}</p>)}
+          {d.acknowledged != null ? (
+            <p className="al-p al-ack al-ack-row">
+              <CheckMark checked={!!d.acknowledged} />
+              <span>I acknowledge receipt of this Nondiscrimination Notice.</span>
+            </p>
+          ) : null}
+          <div className="al-sigs al-sigs-610">
+            <div className="al-sig">
+              <div className="al-sig-line">
+                <SignatureImg value={client.signature} />
+              </div>
+              <div className="al-sig-label">Client / Representative Signature</div>
+            </div>
+            <div className="al-sig">
+              <div className="al-sig-line">{formatFormDate(client.date) || '\u00A0'}</div>
+              <div className="al-sig-label">Date</div>
+            </div>
+          </div>
+          <div className="al-print-name">
+            <div className="al-print-line">{client.printedName || '\u00A0'}</div>
+            <div className="al-print-label">Print Name</div>
+          </div>
         </LegalShell>
       </div>
     );

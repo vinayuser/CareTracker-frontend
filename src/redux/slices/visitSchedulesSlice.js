@@ -146,7 +146,12 @@ export const fetchVisitTimer = createAsyncThunk('visitSchedules/visitTimer', asy
 
 export const checkInVisit = createAsyncThunk('visitSchedules/checkIn', async ({ id, payload = {} }, { rejectWithValue }) => {
   try {
-    const response = await axiosInstance.post(`${API_ROUTES.CAREGIVER.VISITS.CHECK_IN}/${id}/check-in`, payload);
+    // skipErrorToast: slice shows success/warning/error — avoid duplicate interceptor toasts
+    const response = await axiosInstance.post(
+      `${API_ROUTES.CAREGIVER.VISITS.CHECK_IN}/${id}/check-in`,
+      payload,
+      { skipErrorToast: true },
+    );
     const visit = response.data.data;
     if (visit?.lateCheckIn || visit?.status === 'Exception') {
       toast.warning(response.data.message || 'Clocked in late — marked as exception for agency review');
@@ -161,7 +166,11 @@ export const checkInVisit = createAsyncThunk('visitSchedules/checkIn', async ({ 
 });
 export const checkOutVisit = createAsyncThunk('visitSchedules/checkOut', async ({ id, payload = {} }, { rejectWithValue }) => {
   try {
-    const response = await axiosInstance.post(`${API_ROUTES.CAREGIVER.VISITS.CHECK_OUT}/${id}/check-out`, payload);
+    const response = await axiosInstance.post(
+      `${API_ROUTES.CAREGIVER.VISITS.CHECK_OUT}/${id}/check-out`,
+      payload,
+      { skipErrorToast: true },
+    );
     toast.success(response.data.message || 'Clocked out');
     return response.data.data;
   } catch (error) {

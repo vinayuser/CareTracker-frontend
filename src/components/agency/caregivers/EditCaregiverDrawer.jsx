@@ -21,7 +21,8 @@ const EMPTY = {
   profilePic: '',
 };
 
-export default function EditCaregiverDrawer({ open, onClose, caregiver, onSuccess }) {
+/** `onSave(id, updates)` replaces the agency-portal redux save (e.g. for super admin). */
+export default function EditCaregiverDrawer({ open, onClose, caregiver, onSuccess, onSave }) {
   const dispatch = useDispatch();
   const [form, setForm] = useState(EMPTY);
   const [errors, setErrors] = useState({});
@@ -61,22 +62,22 @@ export default function EditCaregiverDrawer({ open, onClose, caregiver, onSucces
     if (!caregiver?.id || !validate()) return;
 
     return runLocked(async () => {
+      const updates = {
+        fullName: form.fullName.trim(),
+        email: form.email.trim(),
+        userId: form.userId.trim(),
+        phone: form.phone.trim(),
+        employeeId: form.employeeId.trim(),
+        dateOfBirth: form.dateOfBirth,
+        status: form.status,
+        profilePic: form.profilePic || '',
+      };
       try {
-        await dispatch(
-          editCaregiver({
-            id: caregiver.id,
-            updates: {
-              fullName: form.fullName.trim(),
-              email: form.email.trim(),
-              userId: form.userId.trim(),
-              phone: form.phone.trim(),
-              employeeId: form.employeeId.trim(),
-              dateOfBirth: form.dateOfBirth,
-              status: form.status,
-              profilePic: form.profilePic || '',
-            },
-          }),
-        ).unwrap();
+        if (onSave) {
+          await onSave(caregiver.id, updates);
+        } else {
+          await dispatch(editCaregiver({ id: caregiver.id, updates })).unwrap();
+        }
         onSuccess?.();
         onClose();
       } catch {

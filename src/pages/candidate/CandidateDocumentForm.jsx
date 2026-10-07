@@ -106,6 +106,7 @@ export default function CandidateDocumentForm() {
             code: doc.document_code || documentCode,
             url: resolvePublicDocumentUrl(doc.template_url || doc.url),
           }}
+          candidate={doc.candidate || null}
           token={token}
           onClose={handleSuccess}
           onSuccess={handleSuccess}

@@ -9,11 +9,17 @@ import SubmitButton from '../../../components/ui/SubmitButton';
 import { addAssessment, fetchAssessment, updateAssessment } from '../../../redux/slices/assessmentsSlice';
 import {
   EMPTY_ASSESSMENT,
+  applyClientIdentityToForm110,
   assessmentToForm,
   buildEmptyFormData,
+  clientRecordToForm110Fields,
   joinClientName,
   todayIso,
 } from '../../../utils/assessmentForm';
+import {
+  PACKET_MAX_INPUT,
+  PACKET_MAX_TEXTAREA,
+} from '../../../components/agency/assessments/packet/PacketFields';
 import {
   ASSESSMENT_PACKET_FORMS,
   getPacketFormMeta,
@@ -70,18 +76,95 @@ function applyLeadPrefill(prefill) {
   forms['1081'] = { ...forms['1081'], clientName };
   forms['1083'] = { ...forms['1083'], firstName, lastName };
   forms['790'] = { ...forms['790'], clientName };
+  forms['324'] = {
+    ...forms['324'],
+    clientName,
+    client: {
+      ...(forms['324'].client || {}),
+      printedName: clientName,
+      date: todayIso(),
+    },
+  };
+
+  const withLead = syncClinicalFromPacket({
+    ...base.formData,
+    forms,
+    leadMeta: prefill.leadMeta || {
+      leadId: prefill.leadId || null,
+      leadCode: prefill.leadCode || '',
+    },
+  });
 
   return {
     ...base,
-    formData: syncClinicalFromPacket({
-      ...base.formData,
-      forms,
-      leadMeta: prefill.leadMeta || {
-        leadId: prefill.leadId || null,
-        leadCode: prefill.leadCode || '',
-      },
-    }),
+    formData: applyClientIdentityToForm110(withLead, null, todayIso(), ''),
   };
+}
+
+const FORM110_LOCKED_KEYS = new Set([
+  'firstName', 'lastName', 'clientName', 'dob', 'sex',
+  'address', 'phone', 'cellPhone', 'email', 'city', 'state', 'zip',
+]);
+
+function clampPacketString(value, max) {
+  if (typeof value !== 'string') return value;
+  return value.length > max ? value.slice(0, max) : value;
+}
+
+function isSignatureFieldKey(key = '') {
+  return /signature|photo|logo|path|url/i.test(String(key));
+}
+
+function isSignatureLikeValue(value) {
+  if (typeof value !== 'string' || !value) return false;
+  return value.startsWith('data:image')
+    || value.startsWith('/uploads/')
+    || value.startsWith('/api/uploads/')
+    || /^https?:\/\//i.test(value);
+}
+
+/** Radio / select fields store full option labels — never truncate (many ADL labels exceed 40 chars). */
+const PACKET_ENUM_KEYS = new Set([
+  'eating', 'bathing', 'toileting', 'dressing', 'ambulation', 'livesWith',
+  'riskLevel', 'advancedDirective', 'billingCycle', 'pertinentInfoYesNo',
+  'priority', 'priorityLevel', 'codeStatus', 'sex',
+]);
+
+function isEnumFieldKey(key = '') {
+  return PACKET_ENUM_KEYS.has(String(key));
+}
+
+/** Enforce max lengths on packet form patches (40 input / 100 textarea-ish). Never truncate signatures/uploads/enum labels. */
+function clampPacketPatch(patch = {}, textareaKeys = []) {
+  const textArea = new Set(textareaKeys);
+  const out = {};
+  Object.entries(patch || {}).forEach(([key, value]) => {
+    if (typeof value === 'string') {
+      if (isSignatureFieldKey(key) || isSignatureLikeValue(value) || isEnumFieldKey(key)) {
+        out[key] = value;
+        return;
+      }
+      out[key] = clampPacketString(value, textArea.has(key) ? PACKET_MAX_TEXTAREA : PACKET_MAX_INPUT);
+      return;
+    }
+    if (Array.isArray(value)) {
+      // Checkbox rows store option labels; do not truncate (e.g. systems-review strings).
+      out[key] = value.map((item) => {
+        if (typeof item === 'string') return item;
+        if (item && typeof item === 'object') {
+          return clampPacketPatch(item, textareaKeys);
+        }
+        return item;
+      });
+      return;
+    }
+    if (value && typeof value === 'object') {
+      out[key] = clampPacketPatch(value, textareaKeys);
+      return;
+    }
+    out[key] = value;
+  });
+  return out;
 }
 
 function buildPayload(form) {
@@ -129,32 +212,82 @@ export default function ClientAssessmentForm() {
 
   useScrollToTopOnChange(activeCode);
 
+  // Only reload when the assessment id / create mode changes — not when authUser object identity churns
+  // (that was wiping in-progress signatures on Form 110).
+  const authUserKey = authUser?.id || authUser?.email || '';
   useEffect(() => {
+    const defaultAssessor = authUser?.fullName || authUser?.name || authUser?.email || '';
     if (!isEdit) {
-      setForm(applyLeadPrefill(location.state?.leadPrefill));
+      const base = applyLeadPrefill(location.state?.leadPrefill);
+      const assessorName = base.assessorName || defaultAssessor;
+      setForm({
+        ...base,
+        assessorName,
+        formData: applyClientIdentityToForm110(
+          base.formData,
+          null,
+          base.assessmentDate || todayIso(),
+          assessorName,
+        ),
+      });
       setActiveCode(null);
       setLoading(false);
-      return;
+      return undefined;
     }
+    let cancelled = false;
     setLoading(true);
     dispatch(fetchAssessment(id)).unwrap()
       .then((data) => {
-        setForm(assessmentToForm(data));
+        if (cancelled) return;
+        const mapped = assessmentToForm(data);
+        const assessorName = mapped.assessorName || defaultAssessor;
+        setForm({
+          ...mapped,
+          assessorName,
+          formData: applyClientIdentityToForm110(
+            mapped.formData,
+            mapped.client,
+            mapped.assessmentDate,
+            assessorName,
+          ),
+        });
         setAssessmentCode(data.assessmentCode || '');
         setActiveCode(null);
       })
-      .catch(() => navigate(ROUTES.AGENCY_ASSESSMENTS))
-      .finally(() => setLoading(false));
-  }, [dispatch, id, isEdit, location.state, navigate]);
+      .catch(() => {
+        if (!cancelled) navigate(ROUTES.AGENCY_ASSESSMENTS);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- authUserKey is the stable identity for defaults
+  }, [dispatch, id, isEdit, location.state, navigate, authUserKey]);
 
   const onPacketChange = (patch) => {
     if (!activeCode) return;
+    const textareaKeys = [
+      'notes', 'comments', 'adviceGiven', 'otherProblemsList', 'pertinentInfoDetails',
+      'coordinatorNotes', 'other', 'medicalRecordsFrom',
+      'hospitalAdmissions', 'surgeries', 'ongoingProblems',
+      'pcpAddress', 'pharmacyAddress', 'address',
+    ];
+    let safePatch = clampPacketPatch(patch, textareaKeys);
+    // Never allow editing client identity on Form 110 (or mirrored quote helpers).
+    if (activeCode === '110') {
+      safePatch = { ...safePatch };
+      FORM110_LOCKED_KEYS.forEach((key) => {
+        delete safePatch[key];
+      });
+    }
     setForm((prev) => {
       const nextForms = {
         ...prev.formData.forms,
         [activeCode]: {
           ...(prev.formData.forms?.[activeCode] || {}),
-          ...patch,
+          ...safePatch,
         },
       };
       return {
@@ -168,13 +301,11 @@ export default function ClientAssessmentForm() {
     if (activeCode === '110') {
       setErrors((e) => {
         const n = { ...e };
-        Object.keys(patch || {}).forEach((key) => {
+        Object.keys(safePatch || {}).forEach((key) => {
           if (n[key]) delete n[key];
         });
-        if (patch?.firstName !== undefined || patch?.clientName !== undefined) delete n.firstName;
-        if (patch?.lastName !== undefined || patch?.clientName !== undefined) delete n.lastName;
-        if (patch?.allergicReactions === 'NO') delete n.allergies;
-        if (patch?.allergies !== undefined) delete n.allergies;
+        if (safePatch?.allergicReactions === 'NO') delete n.allergies;
+        if (safePatch?.allergies !== undefined) delete n.allergies;
         return n;
       });
     }
@@ -307,6 +438,8 @@ export default function ClientAssessmentForm() {
               agencyName,
               agencyLogo,
               agencyBranding,
+              clientId: form.clientId,
+              clientSnapshot: clientRecordToForm110Fields(form.client, form.formData),
             }}
           />
 
@@ -393,16 +526,22 @@ export default function ClientAssessmentForm() {
           }
           setErrors({});
           setForm((prev) => {
-            const forms = prev.formData?.forms || {};
+            const withClient = applyClientIdentityToForm110(
+              prev.formData,
+              prev.client,
+              prev.assessmentDate,
+              prev.assessorName,
+            );
+            const forms = withClient.forms || {};
             const filled = prefillPacketFormFromClient(code, forms, {
-              formData: prev.formData,
+              formData: withClient,
               assessmentDate: prev.assessmentDate,
               assessorName: prev.assessorName,
             });
             return {
               ...prev,
               formData: syncClinicalFromPacket({
-                ...prev.formData,
+                ...withClient,
                 forms: { ...forms, [code]: filled },
               }),
             };

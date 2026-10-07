@@ -2,89 +2,92 @@ import React, { useState, useRef, useEffect } from 'react';
 import { fetchPdfTemplateBytes } from './pdfTemplateFetch';
 import { submitFilledPdfForm } from './pdfFormSubmit';
 import { PDFDocument } from 'pdf-lib';
-import axios from 'axios';
 import StatusModal from '../../ui/StatusModal';
 import NewHireSection from './sections/EmployeePersonalAction/NewHireSection';
 import SeparationSection from './sections/EmployeePersonalAction/SeparationSection';
 import SignatureSection from './sections/EmployeePersonalAction/SignatureSection';
+import { sanitizeEpafField, validateEpafForm } from '../../../utils/epafFormValidation';
 
-const EmployeePersonalActionForm = ({ document, token, onClose, onSuccess }) => {
-  const [formData, setFormData] = useState({
-    // New Hire Information - TEXT FIELDS
-    "Last Name": "",
-    "First Name": "",
-    "Mail": "", // Mailing Address
-    "Date of Birth": "",
-    "Gender identified as": "",
-    "ssn": "",
-    "Date of Hire": "",
-    "Position": "",
-    "Pay Rate": "",
-    "Resident of": "",
-    "W-4 Status": "",
-    "Bank Name": "",
-    "Routing": "",
-    "Account": "",
-    "Reports To": "",
-    "Hours Per Week": "",
-    "State": "",
-    "zipcode": "",
-    
-    // Separation Information - TEXT FIELDS
-    "Employee Name": "",
-    "ESIPosition": "",
-    "Last Day Worked": "",
-    "Immediate Supervisor": "",
-    "ESIReason": "",
-    "If Terminated Who Was the Witness": "",
-    "Total Number of Hours Employee is Owed at Termination": "",
-    "Inactive Date Entered": "",
-    "Completed By": "",
-    "ManagerHR": "",
-    
-    // Signature - TEXT FIELDS
-    "Signature": "",
-    "signature_date": "",
-    "payrolldate": "",
-    "Date": "", // Appears to be generic date field
-    
-    // ========== CHECKBOXES ==========
-    // Marital Status
-    "checkbox_married": false,
-    "checkbox_divorced": false,
-    "checkbox_single": false,
-    
-    // Paycheck Delivery
-    "checkbox_PickupatOffice": false,
-    "checkbox_DirectDeposit": false,
-    
-    // Account Type
-    "checkbox_savings": false,
-    "checkbox_checking": false,
-    
-    // Separation Code
-    "checkbox_QuitWNotice": false,
-    "checkbox_QuitNONotice": false,
-    "checkbox_Terminated": false,
-    "checkbox_Job Abandonment": false,
-    
-    // Rehire Eligibility
-    "checkbox_Eligible RehireYes": false,
-    "checkbox_EligibleRehireNo": false,
-    
-    // Administrative
-    "checkbox_ReceivedbyPayroll": false,
-    
-    // Verify I-9 - CHECKBOX (no "checkbox_" prefix)
-    "Verify I-9": false
-  });
+const EMPTY_EPAF = {
+  'Last Name': '',
+  'First Name': '',
+  Mail: '',
+  'Date of Birth': '',
+  'Gender identified as': '',
+  ssn: '',
+  'Date of Hire': '',
+  Position: '',
+  'Pay Rate': '',
+  'Resident of': '',
+  'W-4 Status': '',
+  'Bank Name': '',
+  Routing: '',
+  Account: '',
+  'Reports To': '',
+  'Hours Per Week': '',
+  State: '',
+  zipcode: '',
+  'Employee Name': '',
+  ESIPosition: '',
+  'Last Day Worked': '',
+  'Immediate Supervisor': '',
+  ESIReason: '',
+  'If Terminated Who Was the Witness': '',
+  'Total Number of Hours Employee is Owed at Termination': '',
+  'Inactive Date Entered': '',
+  'Completed By': '',
+  ManagerHR: '',
+  Signature: '',
+  signature_date: '',
+  payrolldate: '',
+  Date: '',
+  checkbox_married: false,
+  checkbox_divorced: false,
+  checkbox_single: false,
+  checkbox_PickupatOffice: false,
+  checkbox_DirectDeposit: false,
+  checkbox_savings: false,
+  checkbox_checking: false,
+  checkbox_QuitWNotice: false,
+  checkbox_QuitNONotice: false,
+  checkbox_Terminated: false,
+  'checkbox_Job Abandonment': false,
+  'checkbox_Eligible RehireYes': false,
+  checkbox_EligibleRehireNo: false,
+  checkbox_ReceivedbyPayroll: false,
+  'Verify I-9': false,
+};
 
-  const [generatingPreview, setGeneratingPreview] = useState(false);
+function buildInitialEpafForm(candidate, savedFormData) {
+  const saved = savedFormData && typeof savedFormData === 'object' ? savedFormData : {};
+  const firstName = saved['First Name'] || candidate?.first_name || '';
+  const lastName = saved['Last Name'] || candidate?.last_name || '';
+  const fullName = `${firstName} ${lastName}`.trim();
+
+  return {
+    ...EMPTY_EPAF,
+    ...saved,
+    'First Name': firstName,
+    'Last Name': lastName,
+    'Employee Name': saved['Employee Name'] || fullName,
+    'Date of Birth': saved['Date of Birth'] || candidate?.date_of_birth || '',
+    Mail: saved.Mail || candidate?.location || '',
+    Position: saved.Position || candidate?.designation || '',
+    ESIPosition: saved.ESIPosition || candidate?.designation || '',
+  };
+}
+
+const EmployeePersonalActionForm = ({ document, candidate = null, token, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState(() =>
+    buildInitialEpafForm(candidate || document?.candidate, document?.form_data),
+  );
+
   const [submitting, setSubmitting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
   const [filledPdfBytes, setFilledPdfBytes] = useState(null);
   const [signatureDataUrl, setSignatureDataUrl] = useState('');
   const [activeSection, setActiveSection] = useState('newhire');
+  const [errors, setErrors] = useState({});
   const sigCanvasRef = useRef();
 
   // Status modal state
@@ -117,17 +120,25 @@ const EmployeePersonalActionForm = ({ document, token, onClose, onSuccess }) => 
     setStatusModal(prev => ({ ...prev, isOpen: false }));
   };
 
-  // Handler functions
+  const clearFieldError = (...fields) => {
+    setErrors((prev) => {
+      if (!fields.some((f) => prev[f])) return prev;
+      const next = { ...prev };
+      fields.forEach((f) => { delete next[f]; });
+      return next;
+    });
+  };
+
   const handleInputChange = (fieldName, value) => {
-    setFormData(prev => ({
+    const next = sanitizeEpafField(fieldName, value);
+    setFormData((prev) => ({
       ...prev,
-      [fieldName]: value
+      [fieldName]: next,
     }));
+    clearFieldError(fieldName);
   };
 
   const handleCheckboxChange = (fieldName, value) => {
-    console.log(`🔘 Checkbox change: ${fieldName} = ${value}`);
-
     // Handle Verify I-9 separately (it's a regular checkbox, not mutually exclusive)
     if (fieldName === "Verify I-9") {
       setFormData(prev => ({
@@ -147,6 +158,7 @@ const EmployeePersonalActionForm = ({ document, token, onClose, onSuccess }) => 
           checkbox_divorced: fieldName === 'checkbox_divorced' ? value : false,
           checkbox_single: fieldName === 'checkbox_single' ? value : false,
         }));
+        clearFieldError('maritalStatus');
         return;
       }
 
@@ -157,6 +169,7 @@ const EmployeePersonalActionForm = ({ document, token, onClose, onSuccess }) => 
           checkbox_PickupatOffice: fieldName === 'checkbox_PickupatOffice' ? value : false,
           checkbox_DirectDeposit: fieldName === 'checkbox_DirectDeposit' ? value : false,
         }));
+        clearFieldError('paycheckDelivery');
         return;
       }
 
@@ -167,6 +180,7 @@ const EmployeePersonalActionForm = ({ document, token, onClose, onSuccess }) => 
           checkbox_savings: fieldName === 'checkbox_savings' ? value : false,
           checkbox_checking: fieldName === 'checkbox_checking' ? value : false,
         }));
+        clearFieldError('accountType');
         return;
       }
 
@@ -183,6 +197,7 @@ const EmployeePersonalActionForm = ({ document, token, onClose, onSuccess }) => 
         };
         updates[fieldName] = value;
         setFormData(prev => ({ ...prev, ...updates }));
+        clearFieldError('separationCode');
         return;
       }
 
@@ -210,6 +225,7 @@ const EmployeePersonalActionForm = ({ document, token, onClose, onSuccess }) => 
       const signatureDataURL = sigCanvasRef.current.toDataURL();
       setSignatureDataUrl(signatureDataURL);
       handleInputChange("Signature", "");
+      clearFieldError('Signature');
     }
   };
 
@@ -218,6 +234,7 @@ const EmployeePersonalActionForm = ({ document, token, onClose, onSuccess }) => 
       sigCanvasRef.current.clear();
       setSignatureDataUrl('');
       handleInputChange("Signature", "");
+      clearFieldError('Signature');
     }
   };
 
@@ -285,7 +302,6 @@ const EmployeePersonalActionForm = ({ document, token, onClose, onSuccess }) => 
         "Total Number of Hours Employee is Owed at Termination",
         "ManagerHR",
         "payrolldate",
-        "Signature",
         "signature_date"
       ];
 
@@ -402,6 +418,13 @@ const EmployeePersonalActionForm = ({ document, token, onClose, onSuccess }) => 
         }
       }
 
+      try {
+        const signatureField = form.getTextField('Signature');
+        if (signatureField) signatureField.setText('');
+      } catch {
+        // ignore
+      }
+
       // Lock all fields
       form.getFields().forEach((f) => {
         try {
@@ -421,60 +444,21 @@ const EmployeePersonalActionForm = ({ document, token, onClose, onSuccess }) => 
     }
   };
 
-  // Debug useEffect
-  useEffect(() => {
-    console.log('🔍 Current formData checkboxes:', {
-      marital: {
-        married: formData.checkbox_married,
-        divorced: formData.checkbox_divorced,
-        single: formData.checkbox_single
-      },
-      paycheck: {
-        pickup: formData.checkbox_PickupatOffice,
-        deposit: formData.checkbox_DirectDeposit
-      },
-      account: {
-        checking: formData.checkbox_checking,
-        savings: formData.checkbox_savings
-      },
-      verifyI9: formData["Verify I-9"],
-      separation: {
-        quitWNotice: formData.checkbox_QuitWNotice,
-        quitNoNotice: formData.checkbox_QuitNONotice,
-        terminated: formData.checkbox_Terminated,
-        jobAbandonment: formData["checkbox_Job Abandonment"]
-      }
+  const handleSubmit = async () => {
+    const { fieldErrors, firstSection } = validateEpafForm(formData, {
+      hasSignature: Boolean(signatureDataUrl),
     });
-  }, [formData]);
-
-  const handlePreview = async () => {
-    console.log('📊 Current formData:', formData);
-    try {
-      setGeneratingPreview(true);
-
-      if (previewUrl) {
-        try { URL.revokeObjectURL(previewUrl); } catch (e) { /* ignore */ }
-        setPreviewUrl('');
-      }
-
-      const bytes = await fillPdf(formData, document.url);
-      setFilledPdfBytes(bytes);
-
-      const blob = new Blob([bytes], { type: "application/pdf" });
-      const blobUrl = URL.createObjectURL(blob);
-      setPreviewUrl(blobUrl);
-    } catch (error) {
+    setErrors(fieldErrors);
+    if (Object.keys(fieldErrors).length > 0) {
+      if (firstSection) setActiveSection(firstSection);
       showStatusModal(
         'error',
-        'Preview Generation Failed',
-        'Failed to generate preview. Please try again.'
+        'Please fix the form',
+        'Some required fields are missing or invalid. Check the highlighted fields.',
       );
-    } finally {
-      setGeneratingPreview(false);
+      return;
     }
-  };
 
-  const handleSubmit = async () => {
     try {
       setSubmitting(true);
 
@@ -526,6 +510,7 @@ const EmployeePersonalActionForm = ({ document, token, onClose, onSuccess }) => 
         return (
           <NewHireSection
             formData={formData}
+            errors={errors}
             onInputChange={handleInputChange}
             onCheckboxChange={handleCheckboxChange}
           />
@@ -534,6 +519,7 @@ const EmployeePersonalActionForm = ({ document, token, onClose, onSuccess }) => 
         return (
           <SeparationSection
             formData={formData}
+            errors={errors}
             onInputChange={handleInputChange}
             onCheckboxChange={handleCheckboxChange}
           />
@@ -542,6 +528,7 @@ const EmployeePersonalActionForm = ({ document, token, onClose, onSuccess }) => 
         return (
           <SignatureSection
             formData={formData}
+            errors={errors}
             onInputChange={handleInputChange}
             signatureDataUrl={signatureDataUrl}
             onSignatureEnd={handleSignatureEnd}
@@ -553,6 +540,7 @@ const EmployeePersonalActionForm = ({ document, token, onClose, onSuccess }) => 
         return (
           <NewHireSection
             formData={formData}
+            errors={errors}
             onInputChange={handleInputChange}
             onCheckboxChange={handleCheckboxChange}
           />

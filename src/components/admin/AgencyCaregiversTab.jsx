@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -7,7 +7,7 @@ import {
   Filter,
   MoreVertical,
   Pencil,
-  Plus,
+  Power,
   Search,
   TrendingDown,
   TrendingUp,
@@ -21,6 +21,28 @@ import { toast } from 'react-toastify';
 import axiosInstance from '../../api/axiosInstance';
 import API_ROUTES from '../../api/apiRoutes';
 import ActionIconButton from '../ui/ActionIconButton';
+import ViewCaregiverDrawer from '../agency/caregivers/ViewCaregiverDrawer';
+import EditCaregiverDrawer from '../agency/caregivers/EditCaregiverDrawer';
+import { confirmAlert } from '../../utils/swal';
+
+const MENU_WIDTH = 192;
+
+function toCaregiverModel(row, detail = null) {
+  const src = detail || {};
+  return {
+    id: src.id || row?.id,
+    fullName: src.fullName || src.name || row?.name || '',
+    email: src.email || row?.email || '',
+    phone: src.phone || row?.phone || '',
+    userId: src.userId || row?.userId || '',
+    employeeId: src.employeeId || row?.employeeId || '',
+    dateOfBirth: src.dateOfBirth || row?.dateOfBirth || '',
+    status: src.status || row?.status || 'Active',
+    profilePic: src.profilePic || row?.profilePic || '',
+    createdAt: src.createdAt || row?.joinedOn || null,
+    agencyName: src.agencyName || '',
+  };
+}
 
 const PAGE_SIZE = 10;
 const STATUS_FILTERS = ['All', 'Active', 'Inactive', 'Pending'];
@@ -146,6 +168,104 @@ export default function AgencyCaregiversTab({ agencyId, agencyName }) {
     from: 0,
     to: 0,
   });
+  const [reloadKey, setReloadKey] = useState(0);
+  const [menu, setMenu] = useState(null);
+  const [statusUpdatingId, setStatusUpdatingId] = useState('');
+  const [viewOpen, setViewOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [activeCaregiver, setActiveCaregiver] = useState(null);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!menu) return undefined;
+    const onPointerDown = (e) => {
+      if (e.target.closest?.('[data-caregiver-menu-trigger]')) return;
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenu(null);
+    };
+    const close = () => setMenu(null);
+    document.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [menu]);
+
+  const loadDetails = async (row) => {
+    try {
+      const res = await axiosInstance.get(`${API_ROUTES.ADMIN.CAREGIVERS.OVERVIEW}/${row.id}/overview`);
+      return toCaregiverModel(row, res.data?.data?.caregiver);
+    } catch {
+      return toCaregiverModel(row);
+    }
+  };
+
+  const openView = async (row) => {
+    setMenu(null);
+    setActiveCaregiver(toCaregiverModel(row));
+    setViewOpen(true);
+    setActiveCaregiver(await loadDetails(row));
+  };
+
+  const openEdit = async (row) => {
+    setMenu(null);
+    setActiveCaregiver(await loadDetails(row));
+    setEditOpen(true);
+  };
+
+  const openMenu = (row, e) => {
+    if (menu?.row.id === row.id) {
+      setMenu(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMenu({
+      row,
+      top: rect.bottom + 4,
+      left: Math.max(8, rect.right - MENU_WIDTH),
+    });
+  };
+
+  const saveCaregiver = async (id, updates) => {
+    try {
+      await axiosInstance.put(API_ROUTES.ADMIN.CAREGIVERS.UPDATE(id), updates, { skipErrorToast: true });
+      toast.success('Caregiver updated');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update caregiver');
+      throw err;
+    }
+  };
+
+  const handleStatusToggle = async (row) => {
+    setMenu(null);
+    const nextStatus = row.status === 'Active' ? 'Inactive' : 'Active';
+    const confirmed = await confirmAlert({
+      title: nextStatus === 'Inactive' ? 'Deactivate account?' : 'Activate account?',
+      text: nextStatus === 'Inactive'
+        ? `${row.name} will no longer be able to sign in to the caregiver portal.`
+        : `${row.name} will regain access to the caregiver portal.`,
+      confirmText: nextStatus === 'Inactive' ? 'Deactivate' : 'Activate',
+      danger: nextStatus === 'Inactive',
+    });
+    if (!confirmed) return;
+
+    setStatusUpdatingId(row.id);
+    try {
+      await axiosInstance.patch(
+        API_ROUTES.ADMIN.CAREGIVERS.STATUS(row.id),
+        { status: nextStatus },
+        { skipErrorToast: true },
+      );
+      toast.success(`Account marked as ${nextStatus}`);
+      setReloadKey((k) => k + 1);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update account status');
+    } finally {
+      setStatusUpdatingId('');
+    }
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -200,7 +320,7 @@ export default function AgencyCaregiversTab({ agencyId, agencyName }) {
     return () => {
       cancelled = true;
     };
-  }, [agencyId, page, debouncedSearch, status]);
+  }, [agencyId, page, debouncedSearch, status, reloadKey]);
 
   const pages = useMemo(
     () => pageNumbers(pagination.page || page, pagination.totalPages || 1),
@@ -292,13 +412,6 @@ export default function AgencyCaregiversTab({ agencyId, agencyName }) {
           >
             <Download size={15} /> Export
           </button>
-          <button
-            type="button"
-            onClick={() => toast.info('Caregivers are added from the agency portal.')}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-white hover:bg-primary-hover"
-          >
-            <Plus size={15} /> Add Caregiver
-          </button>
         </div>
       </div>
 
@@ -380,24 +493,27 @@ export default function AgencyCaregiversTab({ agencyId, agencyName }) {
                         <ActionIconButton
                           label="View"
                           className="text-primary hover:bg-primary/10"
-                          onClick={() => toast.info(`${cg.name} · ${cg.code}`)}
+                          onClick={() => openView(cg)}
                         >
                           <Eye size={15} />
                         </ActionIconButton>
                         <ActionIconButton
                           label="Edit"
                           className="text-slate-500 hover:bg-slate-100"
-                          onClick={() => toast.info('Caregiver edits are managed in the agency portal.')}
+                          onClick={() => openEdit(cg)}
                         >
                           <Pencil size={15} />
                         </ActionIconButton>
-                        <ActionIconButton
-                          label="More"
-                          className="text-slate-500 hover:bg-slate-100"
-                          onClick={() => toast.info(cg.email || 'No email on file')}
-                        >
-                          <MoreVertical size={15} />
-                        </ActionIconButton>
+                        <span data-caregiver-menu-trigger className="inline-flex">
+                          <ActionIconButton
+                            label="More actions"
+                            className={`text-slate-500 hover:bg-slate-100 ${menu?.row.id === cg.id ? 'bg-slate-100' : ''}`}
+                            onClick={(e) => openMenu(cg, e)}
+                            disabled={statusUpdatingId === cg.id}
+                          >
+                            <MoreVertical size={15} />
+                          </ActionIconButton>
+                        </span>
                       </div>
                     </td>
                   </tr>
@@ -449,6 +565,58 @@ export default function AgencyCaregiversTab({ agencyId, agencyName }) {
           </div>
         </div>
       </div>
+
+      {menu ? (
+        <div
+          ref={menuRef}
+          style={{ position: 'fixed', top: menu.top, left: menu.left, width: MENU_WIDTH }}
+          className="z-50 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+        >
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+            onClick={() => openView(menu.row)}
+          >
+            <Eye size={14} /> View details
+          </button>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+            onClick={() => openEdit(menu.row)}
+          >
+            <Pencil size={14} /> Edit caregiver
+          </button>
+          <button
+            type="button"
+            className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50 ${
+              menu.row.status === 'Active' ? 'text-rose-600' : 'text-emerald-700'
+            }`}
+            onClick={() => handleStatusToggle(menu.row)}
+          >
+            <Power size={14} />
+            {menu.row.status === 'Active' ? 'Deactivate account' : 'Activate account'}
+          </button>
+        </div>
+      ) : null}
+
+      <ViewCaregiverDrawer
+        open={viewOpen}
+        onClose={() => {
+          setViewOpen(false);
+          setActiveCaregiver(null);
+        }}
+        caregiver={activeCaregiver}
+      />
+      <EditCaregiverDrawer
+        open={editOpen}
+        caregiver={activeCaregiver}
+        onSave={saveCaregiver}
+        onClose={() => {
+          setEditOpen(false);
+          setActiveCaregiver(null);
+        }}
+        onSuccess={() => setReloadKey((k) => k + 1)}
+      />
     </div>
   );
 }

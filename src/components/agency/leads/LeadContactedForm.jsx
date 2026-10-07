@@ -14,12 +14,6 @@ const CONTACT_METHODS = [
   'Video Call',
 ];
 
-const NEXT_LEVELS = [
-  'Schedule Home Assessment',
-  'Proposal Sent',
-  'Converted',
-];
-
 const CALL_STATUSES = [
   {
     id: 'move_next',
@@ -82,13 +76,17 @@ function buildInitial(lead, authUser) {
     contactedBy: log.contactedBy || defaultAssignee,
     designation: log.designation || authUser?.title || authUser?.designation || 'Intake Coordinator',
     notes: log.notes || '',
-    followUpDate: log.followUpDate || todayInputDate(),
+    followUpDate: (() => {
+      const today = todayInputDate();
+      const saved = log.followUpDate ? toInputDate(log.followUpDate) : '';
+      // Never seed a past follow-up date
+      if (saved && saved >= today) return saved;
+      return today;
+    })(),
     followUpTime: log.followUpTime || '11:00',
     callStatus: log.callStatus || 'move_next',
-    nextLevel: log.nextLevel || 'Schedule Home Assessment',
+    nextLevel: 'Schedule Home Assessment',
     assignTo: log.assignTo || defaultAssignee,
-    addReminder: log.addReminder !== false,
-    reminderTask: log.reminderTask || 'Prepare assessment checklist and call client before visit.',
   };
 }
 
@@ -99,11 +97,20 @@ export default function LeadContactedForm({
   submitting = false,
   readOnly = false,
 }) {
+  const leadId = lead?.id || '';
+  const savedContactKey = [
+    lead?.formData?.contactLog?.callStatus || '',
+    lead?.formData?.contactLog?.contactedAt || '',
+    lead?.formData?.contactLog?.notes || '',
+  ].join('|');
+
   const [form, setForm] = useState(() => buildInitial(lead, authUser));
 
+  // Only re-hydrate from server when the lead or saved contact log changes — not on every parent render.
   useEffect(() => {
     setForm(buildInitial(lead, authUser));
-  }, [lead?.id, lead?.formData?.contactLog, authUser]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- authUser used for defaults; avoid reset on identity churn
+  }, [leadId, savedContactKey]);
 
   const set = (key, value) => setForm((p) => ({ ...p, [key]: value }));
   const notesLen = form.notes.length;
@@ -122,8 +129,13 @@ export default function LeadContactedForm({
     if (!form.notes.trim()) return 'Call Outcome / Notes is required';
     if (form.notes.length > 500) return 'Notes must be 500 characters or less';
     if (form.callStatus === 'move_next') {
-      if (!form.nextLevel) return 'Next level is required';
       if (!form.assignTo.trim()) return 'Assign To is required';
+    }
+    if (form.callStatus === 'needs_time' && !form.followUpDate) {
+      return 'Follow-up date is required';
+    }
+    if (form.followUpDate && form.followUpDate < todayInputDate()) {
+      return 'Next Follow-up Date cannot be earlier than today';
     }
     return null;
   };
@@ -154,8 +166,8 @@ export default function LeadContactedForm({
       callStatus: payloadForm.callStatus,
       nextLevel: payloadForm.nextLevel,
       assignTo: payloadForm.assignTo.trim(),
-      addReminder: Boolean(payloadForm.addReminder),
-      reminderTask: payloadForm.addReminder ? payloadForm.reminderTask.trim() : '',
+      addReminder: false,
+      reminderTask: '',
     });
   };
 
@@ -250,8 +262,13 @@ export default function LeadContactedForm({
             <input
               disabled={readOnly}
               type="date"
+              min={todayInputDate()}
               value={form.followUpDate}
-              onChange={(e) => set('followUpDate', e.target.value)}
+              onChange={(e) => {
+                const next = e.target.value;
+                const today = todayInputDate();
+                set('followUpDate', next && next < today ? today : next);
+              }}
               className={inputClass}
             />
             {form.followUpDate ? (
@@ -281,8 +298,12 @@ export default function LeadContactedForm({
                   key={opt.id}
                   type="button"
                   disabled={readOnly}
-                  onClick={() => set('callStatus', opt.id)}
-                  className={`rounded-xl border px-3 py-3 text-left transition disabled:cursor-default ${
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!readOnly) set('callStatus', opt.id);
+                  }}
+                  className={`rounded-xl border px-3 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
                     active
                       ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
                       : 'border-slate-200 bg-white hover:border-slate-300'
@@ -298,15 +319,13 @@ export default function LeadContactedForm({
 
         {showNextLevel ? (
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Move to Next Level" required>
-              <select
-                disabled={readOnly}
-                value={form.nextLevel}
-                onChange={(e) => set('nextLevel', e.target.value)}
-                className={inputClass}
-              >
-                {NEXT_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-              </select>
+            <Field label="Next step">
+              <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2.5 text-sm font-semibold text-emerald-800">
+                Assessment Scheduled
+              </div>
+              <p className="mt-1 text-[11px] text-slate-400">
+                Submitting moves this lead one step forward — no skipping.
+              </p>
             </Field>
             <Field label="Assign To" required>
               <input
@@ -318,41 +337,6 @@ export default function LeadContactedForm({
             </Field>
           </div>
         ) : null}
-
-        <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-slate-800">Add Reminder / Task</p>
-              <p className="text-xs text-slate-500">Create a follow-up task for this lead</p>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              disabled={readOnly}
-              aria-checked={form.addReminder}
-              onClick={() => set('addReminder', !form.addReminder)}
-              className={`relative h-7 w-12 rounded-full transition disabled:opacity-60 ${
-                form.addReminder ? 'bg-primary' : 'bg-slate-300'
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition ${
-                  form.addReminder ? 'left-5' : 'left-0.5'
-                }`}
-              />
-            </button>
-          </div>
-          {form.addReminder ? (
-            <textarea
-              disabled={readOnly}
-              rows={2}
-              value={form.reminderTask}
-              onChange={(e) => set('reminderTask', e.target.value)}
-              className={`${inputClass} mt-3`}
-              placeholder="Task description..."
-            />
-          ) : null}
-        </div>
 
         {!readOnly ? (
           <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">

@@ -1,288 +1,231 @@
-// components/forms/CareAvailabilityForm.jsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { submitFilledPdfForm } from './pdfFormSubmit';
 import { fetchPdfTemplateBytes } from './pdfTemplateFetch';
-
 import { PDFDocument } from 'pdf-lib';
 import StatusModal from '../../ui/StatusModal';
 import PersonalInfoSection from './sections/CareAvailability/PersonalInfoSection';
 import AvailabilitySection from './sections/CareAvailability/AvailabilitySection';
 import AreasSection from './sections/CareAvailability/AreasSection';
+import { validateHiringPdfForm, formatHiringValidationMessage, formatUsPhone } from '../../../utils/hiringPdfFormValidation';
+import { getCandidatePrefill, mergeFormWithCandidate } from '../../../utils/candidateFormPrefill';
 
-const CareAvailabilityForm = ({ document, token, onClose, onSuccess }) => {
-  const [formData, setFormData] = useState({
-    // Personal Information
-    "Name": "",
-    "Position": "",
-    "Address": "",
-    "Cell Phone": "",
-    "Home Phone": "",
-    "Email": "",
-    
-    // Areas I can work
-    "Areas I can workRow1": "",
-    "Areas I can workRow2": "",
-    "Areas I can workRow3": "",
-    "Areas I can workRow4": "",
-    "Areas I can workRow5": "",
-    "Areas I can workRow6": "",
-    
-    // Limitations or Special Requests
-    "1": "",
-    "2": "",
-    "3": "",
-    "4": "",
-    "5": "",
-    
-    // Availability Table
-    "SundayPM": "",
-    "SundayAM": "",
-    "MondayAM": "",
-    "MondayPM": "",
-    "TuesdayAM": "",
-    "TuesdayPM": "",
-    "WedAM": "",
-    "WedPM": "",
-    "ThuAM": "",
-    "ThuPM": "",
-    "FridayAM": "",
-    "FridayPM": "",
-    "SatAM": "",
-    "SatPM": ""
+const EMPTY_1204 = {
+  Name: '',
+  Position: '',
+  Address: '',
+  'Cell Phone': '',
+  'Home Phone': '',
+  Email: '',
+  'Areas I can workRow1': '',
+  'Areas I can workRow2': '',
+  'Areas I can workRow3': '',
+  'Areas I can workRow4': '',
+  'Areas I can workRow5': '',
+  'Areas I can workRow6': '',
+  '1': '',
+  '2': '',
+  '3': '',
+  '4': '',
+  '5': '',
+  SundayPM: '',
+  SundayAM: '',
+  MondayAM: '',
+  MondayPM: '',
+  TuesdayAM: '',
+  TuesdayPM: '',
+  WedAM: '',
+  WedPM: '',
+  ThuAM: '',
+  ThuPM: '',
+  FridayAM: '',
+  FridayPM: '',
+  SatAM: '',
+  SatPM: '',
+};
+
+function buildInitial1204(candidate, savedFormData) {
+  const prefill = getCandidatePrefill(candidate);
+  return mergeFormWithCandidate(EMPTY_1204, savedFormData, {
+    Name: prefill.fullName,
+    Position: prefill.designation,
+    Address: prefill.location,
+    'Cell Phone': prefill.phone,
+    Email: prefill.email,
   });
+}
 
-  const [generatingPreview, setGeneratingPreview] = useState(false);
+const PHONE_FIELDS = new Set(['Cell Phone', 'Home Phone']);
+
+const CareAvailabilityForm = ({ document, candidate = null, token, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState(() =>
+    buildInitial1204(candidate || document?.candidate, document?.form_data),
+  );
   const [submitting, setSubmitting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
   const [filledPdfBytes, setFilledPdfBytes] = useState(null);
   const [activeSection, setActiveSection] = useState('personal');
+  const [errors, setErrors] = useState({});
 
-  // Status modal state
   const [statusModal, setStatusModal] = useState({
     isOpen: false,
     type: 'success',
     title: '',
-    message: ''
+    message: '',
   });
 
-  // Navigation sections
   const sections = [
     { id: 'personal', name: 'Personal Info' },
     { id: 'availability', name: 'Availability' },
-    { id: 'areas', name: 'Work Areas & Limits' }
+    { id: 'areas', name: 'Work Areas & Limits' },
   ];
 
-  // Show status modal
   const showStatusModal = (type, title, message) => {
-    setStatusModal({
-      isOpen: true,
-      type,
-      title,
-      message
+    setStatusModal({ isOpen: true, type, title, message });
+  };
+
+  const closeStatusModal = () => {
+    setStatusModal((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  const clearFieldError = (...fields) => {
+    setErrors((prev) => {
+      if (!fields.some((f) => prev[f])) return prev;
+      const next = { ...prev };
+      fields.forEach((f) => { delete next[f]; });
+      return next;
     });
   };
 
-  // Close status modal
-  const closeStatusModal = () => {
-    setStatusModal(prev => ({ ...prev, isOpen: false }));
-  };
-
-  // Handler functions
   const handleInputChange = (fieldName, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [fieldName]: value
-    }));
+    const next = PHONE_FIELDS.has(fieldName) ? formatUsPhone(value) : value;
+    setFormData((prev) => ({ ...prev, [fieldName]: next }));
+    clearFieldError(fieldName);
   };
 
-  // PDF filling logic
-  const fillPdf = async (formData, pdfUrl) => {
-    try {
-      const pdfBuffer = await fetchPdfTemplateBytes(pdfUrl);
-      const pdfDoc = await PDFDocument.load(pdfBuffer);
-      const form = pdfDoc.getForm();
+  const fillPdf = async (data, pdfUrl) => {
+    const pdfBuffer = await fetchPdfTemplateBytes(pdfUrl);
+    const pdfDoc = await PDFDocument.load(pdfBuffer);
+    const form = pdfDoc.getForm();
 
-      // Fill all text fields
-      const textFields = [
-        "Name", "Position", "Address", "Cell Phone", "Home Phone", "Email",
-        "Areas I can workRow1", "Areas I can workRow2", "Areas I can workRow3",
-        "Areas I can workRow4", "Areas I can workRow5", "Areas I can workRow6",
-        "1", "2", "3", "4", "5",
-        "SundayPM", "SundayAM", "MondayAM", "MondayPM", "TuesdayAM", "TuesdayPM",
-        "WedAM", "WedPM", "ThuAM", "ThuPM", "FridayAM", "FridayPM", "SatAM", "SatPM"
-      ];
+    const textFields = [
+      'Name', 'Position', 'Address', 'Cell Phone', 'Home Phone', 'Email',
+      'Areas I can workRow1', 'Areas I can workRow2', 'Areas I can workRow3',
+      'Areas I can workRow4', 'Areas I can workRow5', 'Areas I can workRow6',
+      '1', '2', '3', '4', '5',
+      'SundayPM', 'SundayAM', 'MondayAM', 'MondayPM', 'TuesdayAM', 'TuesdayPM',
+      'WedAM', 'WedPM', 'ThuAM', 'ThuPM', 'FridayAM', 'FridayPM', 'SatAM', 'SatPM',
+    ];
 
-      console.log('🔄 Filling text fields...');
-      textFields.forEach(fieldName => {
-        try {
-          const field = form.getTextField(fieldName);
-          if (field) {
-            field.setText(formData[fieldName] || "");
-            console.log(`✅ Set text field: ${fieldName} = "${formData[fieldName]}"`);
-          } else {
-            console.log(`❌ Text field not found: ${fieldName}`);
-          }
-        } catch (error) {
-          console.log(`❌ Error setting text field ${fieldName}:`, error.message);
-        }
-      });
-
-      // Lock all fields
-      form.getFields().forEach((f) => {
-        try {
-          f.enableReadOnly();
-        } catch (err) {
-          // ignore
-        }
-      });
-
-      form.flatten();
-      const filledPdfBytes = await pdfDoc.save();
-      return filledPdfBytes;
-
-    } catch (error) {
-      console.error('Error filling Care Availability Form:', error);
-      throw error;
-    }
-  };
-
-  const handlePreview = async () => {
-    console.log('📊 Current formData:', formData);
-    try {
-      setGeneratingPreview(true);
-
-      if (previewUrl) {
-        try { URL.revokeObjectURL(previewUrl); } catch (e) { /* ignore */ }
-        setPreviewUrl('');
+    textFields.forEach((fieldName) => {
+      try {
+        const field = form.getTextField(fieldName);
+        if (field) field.setText(data[fieldName] || '');
+      } catch {
+        /* field missing */
       }
+    });
 
-      const bytes = await fillPdf(formData, document.url);
-      setFilledPdfBytes(bytes);
-
-      const blob = new Blob([bytes], { type: "application/pdf" });
-      const blobUrl = URL.createObjectURL(blob);
-      setPreviewUrl(blobUrl);
-    } catch (error) {
-      showStatusModal(
-        'error',
-        'Preview Generation Failed',
-        'Failed to generate preview. Please try again.'
-      );
-    } finally {
-      setGeneratingPreview(false);
-    }
+    form.getFields().forEach((f) => {
+      try { f.enableReadOnly(); } catch { /* ignore */ }
+    });
+    form.flatten();
+    return pdfDoc.save();
   };
 
   const handleSubmit = async () => {
+    const validation = validateHiringPdfForm('1204', formData, {});
+    setErrors(validation.fieldErrors || {});
+    if (!validation.ok) {
+      if (validation.firstSection) setActiveSection(validation.firstSection);
+      showStatusModal('error', 'Please fix the form', formatHiringValidationMessage(validation.messages));
+      return;
+    }
+
     try {
       setSubmitting(true);
-
       let bytes = filledPdfBytes;
-      if (!bytes) {
-        bytes = await fillPdf(formData, document.url);
-      }
-
-      const filledPdfBlob = new Blob([bytes], { type: "application/pdf" });
+      if (!bytes) bytes = await fillPdf(formData, document.url);
 
       await submitFilledPdfForm({
         token,
         documentCode: document.code,
         formData,
-        pdfBlob: filledPdfBlob,
+        pdfBlob: new Blob([bytes], { type: 'application/pdf' }),
         fileName: `${document.name}_filled.pdf`,
       });
 
       showStatusModal(
         'success',
         'Document Submitted Successfully!',
-        'Your Care Associate Availability form has been submitted successfully.'
+        'Your Care Associate Availability form has been submitted successfully.',
       );
 
       if (previewUrl) {
-        try { URL.revokeObjectURL(previewUrl); } catch (e) { /* ignore */ }
+        try { URL.revokeObjectURL(previewUrl); } catch { /* ignore */ }
       }
       setPreviewUrl('');
       setFilledPdfBytes(null);
 
       setTimeout(() => {
-        try { onSuccess && onSuccess(); } catch (e) { /* ignore */ }
-        try { onClose && onClose(); } catch (e) { /* ignore */ }
+        try { onSuccess?.(); } catch { /* ignore */ }
+        try { onClose?.(); } catch { /* ignore */ }
       }, 2000);
-
     } catch (error) {
-      console.error('Error submitting PDF:', error);
-      const errorMessage = error?.message || error.response?.data?.message || 'Failed to submit document. Please try again.';
+      const errorMessage =
+        error?.message || error.response?.data?.message || 'Failed to submit document. Please try again.';
       showStatusModal('error', 'Submission Failed', errorMessage);
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Render current section
   const renderCurrentSection = () => {
     switch (activeSection) {
-      case 'personal':
-        return (
-          <PersonalInfoSection
-            formData={formData}
-            onInputChange={handleInputChange}
-          />
-        );
       case 'availability':
-        return (
-          <AvailabilitySection
-            formData={formData}
-            onInputChange={handleInputChange}
-          />
-        );
+        return <AvailabilitySection formData={formData} onInputChange={handleInputChange} />;
       case 'areas':
-        return (
-          <AreasSection
-            formData={formData}
-            onInputChange={handleInputChange}
-          />
-        );
+        return <AreasSection formData={formData} onInputChange={handleInputChange} />;
+      case 'personal':
       default:
         return (
           <PersonalInfoSection
             formData={formData}
+            errors={errors}
             onInputChange={handleInputChange}
           />
         );
     }
   };
 
-  // cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (previewUrl) {
-        try { URL.revokeObjectURL(previewUrl); } catch (e) { /* ignore */ }
-      }
-    };
+  useEffect(() => () => {
+    if (previewUrl) {
+      try { URL.revokeObjectURL(previewUrl); } catch { /* ignore */ }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-lg max-w-6xl w-full max-h-[95vh] overflow-hidden">
-          <div className="flex justify-between items-center p-6 border-b">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+        <div className="max-h-[95vh] w-full max-w-6xl overflow-hidden rounded-lg bg-white">
+          <div className="flex items-center justify-between border-b p-6">
             <h2 className="text-xl font-semibold">Fill Care Associate Availability Form</h2>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+            <button type="button" onClick={onClose} className="text-2xl text-gray-500 hover:text-gray-700">✕</button>
           </div>
 
-          <div className="p-6 overflow-y-auto max-h-[85vh]">
-            {/* Navigation */}
+          <div className="max-h-[85vh] overflow-y-auto p-6">
             <div className="mb-6">
               <div className="flex flex-wrap gap-2">
                 {sections.map((section) => (
                   <button
                     key={section.id}
+                    type="button"
                     onClick={() => setActiveSection(section.id)}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeSection === section.id
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                      }`}
+                    className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                      activeSection === section.id
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
                   >
                     {section.name}
                   </button>
@@ -290,11 +233,9 @@ const CareAvailabilityForm = ({ document, token, onClose, onSuccess }) => {
               </div>
             </div>
 
-            {/* Current Section */}
             {renderCurrentSection()}
 
-            {/* Action Buttons */}
-            <div className="flex gap-4 mb-6 mt-8">
+            <div className="mb-6 mt-8 flex gap-4">
               <button
                 type="button"
                 onClick={handleSubmit}
@@ -311,13 +252,10 @@ const CareAvailabilityForm = ({ document, token, onClose, onSuccess }) => {
                 )}
               </button>
             </div>
-
-            {/* PDF Preview removed — submit fills and uploads directly */}
           </div>
         </div>
       </div>
 
-      {/* Status Modal */}
       <StatusModal
         isOpen={statusModal.isOpen}
         onClose={closeStatusModal}

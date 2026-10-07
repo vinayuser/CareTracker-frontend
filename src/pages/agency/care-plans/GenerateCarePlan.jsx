@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
@@ -8,12 +8,47 @@ import { CarePlanStepOne, CarePlanStepTwo } from '../../../components/agency/car
 import SubmitButton from '../../../components/ui/SubmitButton';
 import { fetchClients } from '../../../redux/slices/clientsSlice';
 import { fetchCaregivers } from '../../../redux/slices/caregiversSlice';
+import { fetchHrStaff } from '../../../redux/slices/hrStaffSlice';
 import { createCarePlan, fetchCarePlan, updateCarePlan } from '../../../redux/slices/carePlansSlice';
-import { carePlanToForm, clientToFormPatch } from '../../../utils/carePlanForm';
+import { carePlanToForm, clientToFormPatch, todayIso } from '../../../utils/carePlanForm';
+import {
+  sanitizeCarePlanPatch,
+  validateCarePlanForm,
+} from '../../../utils/carePlanFormValidation';
 import { saveCarePlanPrintDraft } from './CarePlanPrintPage';
 import { ROUTES } from '../../../routes/routes';
 import useSubmitLock from '../../../hooks/useSubmitLock';
 import useScrollToTopOnChange from '../../../hooks/useScrollToTopOnChange';
+
+function applyClientSignatureDefaults(formData, clientName) {
+  const today = todayIso();
+  const sig = formData.signatures || {};
+  const clientRep = sig.clientRep || {};
+  return {
+    ...formData,
+    authorization: {
+      ...(formData.authorization || {}),
+      representativeName: formData.authorization?.representativeName || clientName || '',
+      date: formData.authorization?.date || today,
+    },
+    signatures: {
+      ...sig,
+      clientRep: {
+        ...clientRep,
+        name: clientRep.name || clientName || '',
+        date: clientRep.date || today,
+      },
+      agencyStaff: {
+        ...(sig.agencyStaff || {}),
+        date: sig.agencyStaff?.date || today,
+      },
+      supervisor: {
+        ...(sig.supervisor || {}),
+        date: sig.supervisor?.date || today,
+      },
+    },
+  };
+}
 
 export default function GenerateCarePlan() {
   const { id } = useParams();
@@ -25,11 +60,13 @@ export default function GenerateCarePlan() {
   const agencyName = authUser?.agencyName ?? '';
   const { list: clients } = useSelector((state) => state.clients);
   const { list: caregivers } = useSelector((state) => state.caregivers);
+  const { list: hrStaff } = useSelector((state) => state.hrStaff);
   const { selected: existingPlan } = useSelector((state) => state.carePlans);
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(carePlanToForm(null));
   const [clientId, setClientId] = useState(searchParams.get('clientId') || '');
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(isEdit);
   const [submitting, runLocked] = useSubmitLock();
 
@@ -38,14 +75,45 @@ export default function GenerateCarePlan() {
   useEffect(() => {
     dispatch(fetchClients());
     dispatch(fetchCaregivers());
+    dispatch(fetchHrStaff());
     if (isEdit) dispatch(fetchCarePlan(id)).finally(() => setLoading(false));
   }, [dispatch, id, isEdit]);
+
+  const agencyMembers = useMemo(() => {
+    const members = [];
+    const ownerName = authUser?.fullName || authUser?.name || authUser?.email || '';
+    if (ownerName) {
+      members.push({
+        id: `owner-${authUser?.id || authUser?.email || 'self'}`,
+        name: ownerName,
+        role: 'Agency Owner',
+      });
+    }
+    (hrStaff || [])
+      .filter((m) => m.status !== 'Inactive')
+      .forEach((m) => {
+        const name = `${m.firstName || ''} ${m.lastName || ''}`.trim() || m.email || '';
+        if (!name) return;
+        // Avoid duplicating the logged-in owner if they also appear in HR list
+        if (members.some((existing) => existing.name.toLowerCase() === name.toLowerCase())) return;
+        members.push({
+          id: m.id,
+          name,
+          role: m.jobTitle || m.department || 'Team Member',
+        });
+      });
+    return members;
+  }, [authUser, hrStaff]);
 
   useEffect(() => {
     if (!existingPlan || !isEdit) return;
     const client = existingPlan.client
       || clients.find((c) => String(c.id) === String(existingPlan.clientId));
-    setForm(carePlanToForm(existingPlan, client));
+    const next = carePlanToForm(existingPlan, client);
+    setForm({
+      ...next,
+      formData: applyClientSignatureDefaults(next.formData, next.formData?.clientInfo?.clientName || ''),
+    });
     setClientId(existingPlan.clientId || '');
   }, [clients, existingPlan, isEdit]);
 
@@ -54,28 +122,40 @@ export default function GenerateCarePlan() {
     const client = clients.find((c) => c.id === clientId);
     if (!client) return;
     const patch = clientToFormPatch(client);
-    setForm((p) => ({
-      ...p,
-      clientId,
-      clientPhoto: client.profilePic || client.photo || '',
-      formData: {
-        ...p.formData,
-        clientInfo: { ...p.formData.clientInfo, ...patch.clientInfo },
-        medicalInfo: { ...p.formData.medicalInfo, ...patch.medicalInfo },
-        supplementary: { ...p.formData.supplementary, ...patch.supplementary },
-      },
-    }));
+    setForm((p) => {
+      const clientInfo = { ...p.formData.clientInfo, ...patch.clientInfo };
+      return {
+        ...p,
+        clientId,
+        clientPhoto: client.profilePic || client.photo || '',
+        formData: applyClientSignatureDefaults({
+          ...p.formData,
+          clientInfo,
+          medicalInfo: { ...p.formData.medicalInfo, ...patch.medicalInfo },
+          supplementary: { ...p.formData.supplementary, ...patch.supplementary },
+        }, clientInfo.clientName || ''),
+      };
+    });
   }, [clientId, clients, isEdit]);
 
   const onHeaderChange = (field, value) => setForm((p) => ({ ...p, [field]: value }));
 
   const onFormDataChange = (section, patchOrValue, isRoot = false) => {
+    const safe = sanitizeCarePlanPatch(section, patchOrValue);
     setForm((p) => {
-      if (isRoot) return { ...p, formData: { ...p.formData, [section]: patchOrValue } };
-      if (typeof patchOrValue === 'object' && !Array.isArray(patchOrValue)) {
-        return { ...p, formData: { ...p.formData, [section]: { ...p.formData[section], ...patchOrValue } } };
+      if (isRoot) return { ...p, formData: { ...p.formData, [section]: safe } };
+      if (typeof safe === 'object' && !Array.isArray(safe)) {
+        return { ...p, formData: { ...p.formData, [section]: { ...p.formData[section], ...safe } } };
       }
       return p;
+    });
+    setErrors((prev) => {
+      if (!Object.keys(prev).length) return prev;
+      const next = { ...prev };
+      Object.keys(prev).forEach((key) => {
+        if (key === section || key.startsWith(`${section}.`)) delete next[key];
+      });
+      return next;
     });
   };
 
@@ -84,17 +164,30 @@ export default function GenerateCarePlan() {
     const client = clients.find((c) => c.id === newClientId);
     if (!client) return;
     const patch = clientToFormPatch(client);
-    setForm((p) => ({
-      ...p,
-      clientId: newClientId,
-      clientPhoto: client.profilePic || client.photo || '',
-      formData: {
-        ...p.formData,
-        clientInfo: { ...p.formData.clientInfo, ...patch.clientInfo },
-        medicalInfo: { ...p.formData.medicalInfo, ...patch.medicalInfo },
-        supplementary: { ...p.formData.supplementary, ...patch.supplementary },
-      },
-    }));
+    setForm((p) => {
+      const clientInfo = { ...p.formData.clientInfo, ...patch.clientInfo };
+      return {
+        ...p,
+        clientId: newClientId,
+        clientPhoto: client.profilePic || client.photo || '',
+        formData: applyClientSignatureDefaults({
+          ...p.formData,
+          clientInfo,
+          medicalInfo: { ...p.formData.medicalInfo, ...patch.medicalInfo },
+          supplementary: { ...p.formData.supplementary, ...patch.supplementary },
+          signatures: {
+            ...p.formData.signatures,
+            // Always refresh client signature name when switching clients (unless already signed)
+            clientRep: {
+              ...p.formData.signatures?.clientRep,
+              name: p.formData.signatures?.clientRep?.signature?.startsWith?.('data:image')
+                ? (p.formData.signatures?.clientRep?.name || clientInfo.clientName || '')
+                : (clientInfo.clientName || ''),
+            },
+          },
+        }, clientInfo.clientName || ''),
+      };
+    });
   };
 
   const handlePrint = () => {
@@ -102,8 +195,24 @@ export default function GenerateCarePlan() {
     window.open(ROUTES.AGENCY_CARE_PLANS_PRINT_DRAFT, '_blank');
   };
 
+  const handleNext = () => {
+    const nextErrors = validateCarePlanForm({ ...form, clientId }, { requireClient: true });
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
+      return;
+    }
+    setErrors({});
+    setStep(2);
+  };
+
   const handleSubmit = () => {
     if (!clientId) return;
+    const formErrors = validateCarePlanForm({ ...form, clientId }, { requireClient: true });
+    if (Object.keys(formErrors).length > 0) {
+      setErrors(formErrors);
+      setStep(1);
+      return;
+    }
     return runLocked(async () => {
       const payload = {
         clientId,
@@ -155,9 +264,15 @@ export default function GenerateCarePlan() {
             onFormDataChange={onFormDataChange}
             agencyName={agencyName}
             clientInfoLocked={isEdit || Boolean(clientId)}
+            errors={errors}
           />
         ) : (
-          <CarePlanStepTwo form={form} onFormDataChange={onFormDataChange} caregivers={caregivers} />
+          <CarePlanStepTwo
+            form={form}
+            onFormDataChange={onFormDataChange}
+            caregivers={caregivers}
+            agencyMembers={agencyMembers}
+          />
         )}
 
         <div className="mt-8 flex justify-between border-t border-gray-100 pt-6">
@@ -169,7 +284,7 @@ export default function GenerateCarePlan() {
             <Link to={ROUTES.AGENCY_CARE_PLANS} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">Cancel</Link>
           )}
           {step < 2 ? (
-            <button type="button" disabled={!clientId} onClick={() => setStep(2)} className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-violet-700 disabled:opacity-50">
+            <button type="button" disabled={!clientId} onClick={handleNext} className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-violet-700 disabled:opacity-50">
               Next: Care Needs & Signatures <ArrowRight size={18} />
             </button>
           ) : (

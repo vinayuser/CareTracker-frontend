@@ -23,6 +23,7 @@ const API_ROUTES = {
       DETAIL: '/admin/agencies',
       CAREGIVERS: '/admin/agencies',
       BILLING: '/admin/agencies',
+      ACTIVITY: (id) => `/admin/agencies/${id}/activity`,
       DOCUMENTS: '/admin/agencies',
       NOTES: '/admin/agencies',
       CREATE: '/admin/agencies',
@@ -61,12 +62,14 @@ const API_ROUTES = {
       STATS: '/admin/clients/stats',
       LIST: '/admin/clients',
       OVERVIEW: '/admin/clients',
+      STATUS: (id) => `/admin/clients/${id}/status`,
     },
     CAREGIVERS: {
       STATS: '/admin/caregivers/stats',
       LIST: '/admin/caregivers',
       OVERVIEW: '/admin/caregivers',
       STATUS: (id) => `/admin/caregivers/${id}/status`,
+      UPDATE: (id) => `/admin/caregivers/${id}`,
     },
     SCHEDULES: {
       CAREGIVER: '/admin/schedules/caregiver',
@@ -113,6 +116,7 @@ const API_ROUTES = {
       SETTINGS: '/admin/marketing/settings',
       MAILCHIMP: '/admin/marketing/mailchimp',
       MAILCHIMP_LISTS: '/admin/marketing/mailchimp/lists',
+      PLATFORM_AUDIENCE: '/admin/marketing/platform-audience',
     },
     TEAM: {
       STATS: '/admin/team/stats',

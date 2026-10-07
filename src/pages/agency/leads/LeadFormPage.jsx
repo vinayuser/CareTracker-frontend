@@ -10,10 +10,13 @@ import LeadStageStepper from '../../../components/agency/leads/LeadStageStepper'
 import LeadStatusPanel from '../../../components/agency/leads/LeadStatusPanel';
 import LeadContactedForm from '../../../components/agency/leads/LeadContactedForm';
 import ScheduleHomeAssessmentForm from '../../../components/agency/leads/ScheduleHomeAssessmentForm';
+import LeadProposalStep from '../../../components/agency/leads/LeadProposalStep';
+import LeadConvertedStep from '../../../components/agency/leads/LeadConvertedStep';
 import SubmitButton from '../../../components/ui/SubmitButton';
 import {
   addLead,
   clearCurrentLead,
+  convertLead,
   createAssessmentFromLead,
   fetchLead,
   logLeadContact,
@@ -22,7 +25,14 @@ import {
 } from '../../../redux/slices/leadsSlice';
 import { ROUTES } from '../../../routes/routes';
 import { formToPayload, joinLeadName, leadToForm } from '../../../utils/leadForm';
-import { validateLeadForm } from '../../../utils/leadFormValidation';
+import {
+  canVisitLeadStep,
+  validateAssessmentStep,
+  validateContactedStep,
+  validateConvertStep,
+  validateLeadForm,
+  validateProposalStep,
+} from '../../../utils/leadFormValidation';
 import { formatDateTimeUS } from '../../../utils/dateFormat';
 import useSubmitLock from '../../../hooks/useSubmitLock';
 import { toast } from 'react-toastify';
@@ -42,8 +52,6 @@ export default function LeadFormPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const authUser = useSelector((s) => s.auth.user);
-  const { current } = useSelector((s) => s.leads);
-
   const isCreate = location.pathname.endsWith('/new');
   const isEdit = location.pathname.endsWith('/edit');
   const isDetail = Boolean(id) && !isEdit && !isCreate;
@@ -61,44 +69,67 @@ export default function LeadFormPage() {
       const empty = leadToForm(null);
       empty.assignedToName = authUser?.fullName || authUser?.name || authUser?.email || '';
       setForm(empty);
+      setErrors({});
       setActiveView('New Lead');
       setLoading(false);
       dispatch(clearCurrentLead());
       return undefined;
     }
+
     if (!id) return undefined;
+
+    let cancelled = false;
     setLoading(true);
     dispatch(fetchLead(id))
       .unwrap()
       .then((data) => {
+        if (cancelled) return;
         const mapped = leadToForm(data);
         setForm(mapped);
-        setActiveView(location.state?.activeView || mapped.stage || 'New Lead');
+        const preferredStep = location.state?.openStep;
+        const nextView = preferredStep && canVisitLeadStep(mapped.stage || 'New Lead', preferredStep)
+          ? preferredStep
+          : (mapped.stage || 'New Lead');
+        setActiveView(nextView);
+        setLoading(false);
       })
-      .catch(() => navigate(ROUTES.AGENCY_LEADS))
-      .finally(() => setLoading(false));
-    return undefined;
-  }, [authUser, dispatch, id, isCreate, navigate, location.state]);
+      .catch(() => {
+        if (cancelled) return;
+        setLoading(false);
+        navigate(ROUTES.AGENCY_LEADS);
+      });
 
-  useEffect(() => {
-    if (current && id && current.id === id && !isCreate) {
-      setForm(leadToForm(current));
-    }
-  }, [current, id, isCreate]);
+    return () => {
+      cancelled = true;
+    };
+    // Intentionally omit authUser so create form is not reset on profile refresh.
+    // location.state.openStep is read once when id/isCreate changes (post-create handoff).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, id, isCreate, navigate]);
 
   const onHeaderChange = (key, value) => {
+    // Do not let UI controls jump the saved pipeline stage — only priority/notes/etc.
+    if (key === 'stage') {
+      setActiveView(value);
+      return;
+    }
     setForm((prev) => ({ ...prev, [key]: value }));
-    if (key === 'stage') setActiveView(value);
   };
 
-  const onFormDataChange = (section, value, fieldPath) => {
-    setForm((prev) => ({
-      ...prev,
-      formData: {
-        ...prev.formData,
-        [section]: value,
-      },
-    }));
+  const onFormDataChange = (section, valueOrUpdater, fieldPath) => {
+    setForm((prev) => {
+      const prevSection = prev.formData?.[section] || {};
+      const nextSection = typeof valueOrUpdater === 'function'
+        ? valueOrUpdater(prevSection)
+        : valueOrUpdater;
+      return {
+        ...prev,
+        formData: {
+          ...prev.formData,
+          [section]: nextSection,
+        },
+      };
+    });
     if (fieldPath) {
       setErrors((prev) => {
         if (!prev[fieldPath]) return prev;
@@ -117,33 +148,63 @@ export default function LeadFormPage() {
     }
   };
 
-  const validate = () => {
-    const { valid, errors: nextErrors } = validateLeadForm(form);
-    setErrors(nextErrors);
-    if (!valid) {
-      toast.error('Please fix the highlighted fields before saving.');
+  const applyStepErrors = (result, fallbackMessage) => {
+    setErrors(result.errors || {});
+    if (!result.valid) {
+      toast.error(fallbackMessage || 'Please complete the required fields before continuing.');
       return false;
     }
     return true;
   };
 
-  const handleSave = () => {
-    if (!validate()) return;
+  const persistLead = async (nextForm, nextStage) => {
+    const payload = formToPayload({ ...nextForm, stage: nextStage });
+    if (isCreate || !id) {
+      const created = await dispatch(addLead(payload)).unwrap();
+      return created;
+    }
+    return dispatch(updateLead({ id, payload })).unwrap();
+  };
+
+  const assessmentPayloadFromLead = (leadForm = form) => {
+    const home = leadForm.formData?.homeAssessment || {};
+    return {
+      assessorName: home.assessorName || leadForm.assignedToName || authUser?.fullName || '',
+      assessmentDate: home.visitDate || undefined,
+    };
+  };
+
+  /** Create the linked assessment once — used when finishing proposal / converting the lead. */
+  const ensureAssessmentFromLead = async (leadForm = form) => {
+    if (!id || leadForm.assessmentId) return leadToForm(leadForm);
+    const result = await dispatch(createAssessmentFromLead({
+      id,
+      payload: assessmentPayloadFromLead(leadForm),
+    })).unwrap();
+    const lead = result?.lead || result;
+    return leadToForm(lead);
+  };
+
+  const handleSaveNewLead = () => {
+    const result = validateLeadForm(form, { requireDob: true });
+    if (!applyStepErrors(result, 'Complete the New Lead form before continuing.')) return;
+
     return runLocked(async () => {
-      const payload = formToPayload(form);
       try {
         if (isCreate) {
-          const created = await dispatch(addLead(payload)).unwrap();
-          navigate(ROUTES.AGENCY_LEADS_DETAIL.replace(':id', created.id), {
-            state: { activeView: 'Contacted' },
+          const created = await persistLead(form, 'Contacted');
+          navigate(ROUTES.AGENCY_LEADS_EDIT.replace(':id', created.id), {
+            replace: true,
+            state: { openStep: 'Contacted' },
           });
-        } else {
-          await dispatch(updateLead({ id, payload })).unwrap();
-          if (isEdit) {
-            navigate(ROUTES.AGENCY_LEADS_DETAIL.replace(':id', id), {
-              state: { activeView },
-            });
-          }
+          return;
+        }
+        const updated = await persistLead(form, form.stage === 'New Lead' ? 'Contacted' : form.stage);
+        const mapped = leadToForm(updated);
+        setForm(mapped);
+        setErrors({});
+        if (mapped.stage === 'Contacted' || form.stage === 'New Lead') {
+          setActiveView('Contacted');
         }
       } catch {
         // toast in slice
@@ -153,20 +214,26 @@ export default function LeadFormPage() {
 
   const handleContactSubmit = (payload) => {
     if (isCreate || !id) {
-      window.alert('Save the lead first, then log contact.');
+      toast.error('Save the lead first, then log contact.');
       setActiveView('New Lead');
       return;
     }
+    const contactPayload = {
+      ...payload,
+      nextLevel: payload.callStatus === 'move_next' ? 'Schedule Home Assessment' : payload.nextLevel,
+    };
+    if (contactPayload.callStatus === 'move_next' || contactPayload.callStatus === 'needs_time') {
+      const result = validateContactedStep(contactPayload);
+      if (!applyStepErrors(result, 'Complete the Contacted step before continuing.')) return;
+    }
+
     return runLocked(async () => {
       try {
-        const lead = await dispatch(logLeadContact({ id, payload })).unwrap();
+        const lead = await dispatch(logLeadContact({ id, payload: contactPayload })).unwrap();
         const mapped = leadToForm(lead);
         setForm(mapped);
-        if (payload.callStatus === 'move_next' && payload.nextLevel === 'Schedule Home Assessment') {
-          setActiveView('Assessment Scheduled');
-        } else {
-          setActiveView(mapped.stage || 'Contacted');
-        }
+        setErrors({});
+        setActiveView(mapped.stage || 'Contacted');
       } catch {
         // toast
       }
@@ -175,46 +242,117 @@ export default function LeadFormPage() {
 
   const handleScheduleSubmit = (payload) => {
     if (isCreate || !id) {
-      window.alert('Save the lead first, then schedule the assessment.');
+      toast.error('Save the lead first, then schedule the assessment.');
       return;
     }
+    const draft = {
+      ...form,
+      formData: {
+        ...form.formData,
+        homeAssessment: {
+          ...(form.formData?.homeAssessment || {}),
+          ...payload,
+        },
+      },
+    };
+    const result = validateAssessmentStep(draft);
+    if (!applyStepErrors(result, 'Complete the assessment schedule before continuing.')) return;
+
     return runLocked(async () => {
       try {
-        const result = await dispatch(scheduleLeadAssessment({ id, payload })).unwrap();
-        const lead = result?.lead || result;
-        setForm(leadToForm(lead));
-        setActiveView('Assessment Scheduled');
-        if (result?.assessment?.id) {
-          navigate(ROUTES.AGENCY_ASSESSMENTS_EDIT.replace(':id', result.assessment.id));
-        }
+        // Schedule visit only — do not create an assessment here (still 2 steps ahead).
+        const schedulePayload = { ...payload, createAssessmentAfter: false };
+        const resultData = await dispatch(scheduleLeadAssessment({ id, payload: schedulePayload })).unwrap();
+        const scheduledLead = resultData?.lead || resultData;
+        const advanced = await dispatch(updateLead({
+          id,
+          payload: { stage: 'Proposal Sent' },
+        })).unwrap();
+        const mapped = leadToForm(advanced || scheduledLead);
+        setForm(mapped);
+        setErrors({});
+        setActiveView('Proposal Sent');
       } catch {
         // toast
       }
     });
   };
 
-  const handleCreateAssessment = () => runLocked(async () => {
-    try {
-      const result = await dispatch(createAssessmentFromLead({
-        id,
-        payload: {
-          assessorName: form.assignedToName || authUser?.fullName || '',
+  const handleProposalChange = (proposal) => {
+    setForm((prev) => ({
+      ...prev,
+      formData: {
+        ...prev.formData,
+        proposal: {
+          ...(prev.formData?.proposal || {}),
+          ...proposal,
         },
-      })).unwrap();
-      const lead = result?.lead || result;
-      setForm(leadToForm(lead));
-      if (result?.assessment?.id) {
-        navigate(ROUTES.AGENCY_ASSESSMENTS_EDIT.replace(':id', result.assessment.id));
+      },
+    }));
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.sentDate;
+      delete next.notes;
+      delete next.assessmentId;
+      return next;
+    });
+  };
+
+  const handleContinueFromProposal = () => {
+    if (!id) return;
+    const draft = {
+      ...form,
+      formData: {
+        ...form.formData,
+        proposal: {
+          ...(form.formData?.proposal || {}),
+        },
+      },
+    };
+    const result = validateProposalStep(draft);
+    if (!applyStepErrors(result, 'Complete proposal details before continuing.')) return;
+
+    return runLocked(async () => {
+      try {
+        const updated = await persistLead(draft, 'Proposal Sent');
+        const mapped = leadToForm(updated);
+        setForm(mapped);
+        setErrors({});
+        setActiveView('Converted');
+      } catch {
+        // toast in slice
       }
-    } catch {
-      // toast
-    }
-  });
+    });
+  };
+
+  const handleConvert = () => {
+    if (!id) return;
+    const result = validateConvertStep(form);
+    if (!applyStepErrors(result, 'Complete proposal details before converting.')) return;
+
+    return runLocked(async () => {
+      try {
+        await persistLead(form, 'Proposal Sent');
+        // Convert first so the client record exists, then create the assessment from it.
+        const convertResult = await dispatch(convertLead(id)).unwrap();
+        let mapped = leadToForm(convertResult?.lead || convertResult);
+        mapped = await ensureAssessmentFromLead(mapped);
+        setForm(mapped);
+        setErrors({});
+        setActiveView('Converted');
+      } catch {
+        // toast in slice
+      }
+    });
+  };
 
   const handleSelectStep = (step) => {
+    if (!canVisitLeadStep(form.stage || 'New Lead', step) && !isCreate) {
+      toast.info('Complete the current step before opening a later step.');
+      return;
+    }
     setActiveView(step);
-    // Keep status dropdown in sync when navigating steps
-    setForm((prev) => ({ ...prev, stage: step }));
+    setErrors({});
   };
 
   const fullName = joinLeadName(
@@ -262,7 +400,9 @@ export default function LeadFormPage() {
 
   const leadForForms = { ...form, id, formData: form.formData, assessmentId: form.assessmentId };
 
+  const stepReadOnly = readOnly || disqualified || form.stage === 'Converted';
   let stepBody = null;
+
   if (activeView === 'Contacted') {
     stepBody = (
       <LeadContactedForm
@@ -270,74 +410,68 @@ export default function LeadFormPage() {
         authUser={authUser}
         onSubmit={handleContactSubmit}
         submitting={saving}
-        readOnly={disqualified}
+        readOnly={stepReadOnly}
       />
     );
   } else if (activeView === 'Assessment Scheduled') {
     stepBody = (
-      <div className="space-y-4">
-        <ScheduleHomeAssessmentForm
-          lead={leadForForms}
-          authUser={authUser}
-          onSubmit={handleScheduleSubmit}
-          submitting={saving}
-          readOnly={disqualified || form.stage === 'Converted'}
-        />
-        {hasAssessment ? (
-          <div className="flex justify-end">
-            <Link
-              to={ROUTES.AGENCY_ASSESSMENTS_EDIT.replace(':id', form.assessmentId)}
-              className={btnPrimary}
-            >
-              <ClipboardPlus size={15} /> Open Assessment
-            </Link>
-          </div>
-        ) : null}
-      </div>
+      <ScheduleHomeAssessmentForm
+        lead={leadForForms}
+        authUser={authUser}
+        onSubmit={handleScheduleSubmit}
+        submitting={saving}
+        readOnly={stepReadOnly}
+        errors={errors}
+      />
+    );
+  } else if (activeView === 'Proposal Sent') {
+    stepBody = (
+      <LeadProposalStep
+        form={leadForForms}
+        onChange={handleProposalChange}
+        onContinue={handleContinueFromProposal}
+        saving={saving}
+        readOnly={stepReadOnly}
+        errors={errors}
+      />
+    );
+  } else if (activeView === 'Converted') {
+    stepBody = (
+      <LeadConvertedStep
+        form={leadForForms}
+        onConvert={handleConvert}
+        saving={saving}
+        readOnly={stepReadOnly}
+      />
     );
   } else {
-    // New Lead, Proposal Sent, Converted → overview form
+    // New Lead intake
     stepBody = (
       <>
         <LeadFormSections
           form={form}
           onFormDataChange={onFormDataChange}
           onHeaderChange={onHeaderChange}
-          readOnly={readOnly}
-          onSaveNote={handleSave}
-          saving={saving}
+          readOnly={stepReadOnly}
           errors={errors}
         />
-        {Object.keys(errors).length > 0 && !readOnly ? (
+        {Object.keys(errors).length > 0 && !stepReadOnly ? (
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            Please fix the highlighted fields before saving.
+            Please fix the highlighted fields before continuing to the next step.
           </div>
         ) : null}
-        {!readOnly ? (
+        {!stepReadOnly ? (
           <div className="flex justify-end gap-2">
             <Link to={ROUTES.AGENCY_LEADS} className={btnGhost}>
               Cancel
             </Link>
             <SubmitButton
               loading={saving}
-              onClick={handleSave}
+              onClick={handleSaveNewLead}
               icon={Save}
               className={btnPrimary}
             >
-              Save Lead
-            </SubmitButton>
-          </div>
-        ) : null}
-        {activeView === 'Proposal Sent' && !hasAssessment && id && !isCreate ? (
-          <div className="flex justify-end">
-            <SubmitButton
-              loading={saving}
-              onClick={handleCreateAssessment}
-              icon={ClipboardPlus}
-              loadingLabel="Creating..."
-              className={btnPrimary}
-            >
-              Create Assessment
+              {form.stage === 'New Lead' || isCreate ? 'Save & Continue' : 'Save Lead'}
             </SubmitButton>
           </div>
         ) : null}
@@ -396,14 +530,14 @@ export default function LeadFormPage() {
                     <button
                       type="button"
                       className="flex w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-                      onClick={() => { setMoreOpen(false); setActiveView('Contacted'); }}
+                      onClick={() => { setMoreOpen(false); handleSelectStep('Contacted'); }}
                     >
                       Contacted form
                     </button>
                     <button
                       type="button"
                       className="flex w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-                      onClick={() => { setMoreOpen(false); setActiveView('Assessment Scheduled'); }}
+                      onClick={() => { setMoreOpen(false); handleSelectStep('Assessment Scheduled'); }}
                     >
                       Schedule assessment
                     </button>
@@ -420,18 +554,16 @@ export default function LeadFormPage() {
                 ) : null}
               </div>
             </>
-          ) : (
-            <>
-              <SubmitButton
-                loading={saving}
-                onClick={handleSave}
-                icon={Save}
-                className={btnPrimary}
-              >
-                Save Lead
-              </SubmitButton>
-            </>
-          )}
+          ) : (isCreate || activeView === 'New Lead') ? (
+            <SubmitButton
+              loading={saving}
+              onClick={handleSaveNewLead}
+              icon={Save}
+              className={btnPrimary}
+            >
+              Save & Continue
+            </SubmitButton>
+          ) : null}
         </div>
       </div>
 
@@ -473,9 +605,10 @@ export default function LeadFormPage() {
       {/* Always visible status controls */}
       <LeadStatusPanel
         form={form}
+        activeView={activeView}
+        onViewChange={handleSelectStep}
         onHeaderChange={onHeaderChange}
         readOnly={false}
-        preferredStartDate={form.formData?.basicInfo?.preferredStartDate}
       />
 
       <LeadStageStepper

@@ -98,9 +98,12 @@ export const toDateInputValue = (value) => {
   return d.toISOString().slice(0, 10);
 };
 
+const todayIso = () => new Date().toISOString().slice(0, 10);
+
 export const evvEnrollmentToForm = (enrollment) => {
   const empty = buildEmptyFormData();
   const raw = enrollment?.formData || {};
+  const today = todayIso();
   const formData = {
     ...empty,
     ...raw,
@@ -118,8 +121,17 @@ export const evvEnrollmentToForm = (enrollment) => {
     evvMethods: { ...empty.evvMethods, ...(raw.evvMethods || {}) },
     mobileEnrollment: { ...empty.mobileEnrollment, ...(raw.mobileEnrollment || {}) },
     landlineEnrollment: { ...empty.landlineEnrollment, ...(raw.landlineEnrollment || {}) },
-    authorization: { ...empty.authorization, ...(raw.authorization || {}) },
-    trainingAck: { ...empty.trainingAck, ...(raw.trainingAck || {}) },
+    authorization: {
+      ...empty.authorization,
+      ...(raw.authorization || {}),
+      clientDate: toDateInputValue(raw.authorization?.clientDate) || '',
+      caregiverDate: toDateInputValue(raw.authorization?.caregiverDate) || today,
+    },
+    trainingAck: {
+      ...empty.trainingAck,
+      ...(raw.trainingAck || {}),
+      date: toDateInputValue(raw.trainingAck?.date) || today,
+    },
     officeUse: { ...empty.officeUse, ...(raw.officeUse || {}) },
   };
 

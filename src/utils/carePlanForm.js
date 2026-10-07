@@ -105,7 +105,14 @@ export const buildEmptyCareNeed = (area) => ({
 });
 
 export const buildEmptyFormData = () => ({
-  assessor: { name: '', title: '', phone: '', email: '', dateAssessed: '', photo: '' },
+  assessor: {
+    name: '',
+    title: '',
+    phone: '',
+    email: '',
+    dateAssessed: todayIso(),
+    photo: '',
+  },
   clientInfo: {
     clientName: '', dob: '', address: '', city: '', state: '', zip: '',
     phone: '', email: '', primaryLanguage: '',
@@ -195,6 +202,9 @@ export function carePlanToForm(plan, client = null) {
   const empty = buildEmptyFormData();
   if (!plan) {
     const patch = client ? clientToFormPatch(client) : {};
+    const clientInfo = mergeFilled(empty.clientInfo, patch.clientInfo);
+    const today = todayIso();
+    const clientName = clientInfo.clientName || '';
     return {
       clientId: '',
       version: 'v1',
@@ -204,9 +214,19 @@ export function carePlanToForm(plan, client = null) {
       clientPhoto: clientPhotoFrom(client),
       formData: {
         ...empty,
-        clientInfo: mergeFilled(empty.clientInfo, patch.clientInfo),
+        clientInfo,
         medicalInfo: mergeFilled(empty.medicalInfo, patch.medicalInfo),
         supplementary: mergeFilled(empty.supplementary, patch.supplementary),
+        authorization: {
+          ...empty.authorization,
+          representativeName: clientName,
+          date: today,
+        },
+        signatures: {
+          clientRep: { name: clientName, signature: '', date: today },
+          agencyStaff: { name: '', signature: '', date: today },
+          supervisor: { name: '', signature: '', date: today },
+        },
       },
     };
   }
@@ -228,9 +248,14 @@ export function carePlanToForm(plan, client = null) {
       responsibleStaff: row.responsibleStaff ?? base.responsibleStaff ?? '',
     };
   });
+  const mergedAssessor = { ...empty.assessor, ...(fd.assessor || {}) };
+  if (!mergedAssessor.dateAssessed) {
+    mergedAssessor.dateAssessed = todayIso();
+  }
   const merged = {
     ...empty,
     ...fd,
+    assessor: mergedAssessor,
     clientInfo: { ...empty.clientInfo, ...(fd.clientInfo || {}) },
     medicalInfo: { ...empty.medicalInfo, ...(fd.medicalInfo || {}) },
     supplementary: { ...empty.supplementary, ...(fd.supplementary || {}) },
@@ -246,6 +271,36 @@ export function carePlanToForm(plan, client = null) {
       merged.clientInfo.clientId = client.clientCode;
     }
   }
+
+  // Prefill signature names/dates for agency edit flow when blank
+  const today = todayIso();
+  const clientName = merged.clientInfo?.clientName || '';
+  const sig = { ...empty.signatures, ...(fd.signatures || {}) };
+  merged.signatures = {
+    clientRep: {
+      ...empty.signatures.clientRep,
+      ...(sig.clientRep || {}),
+      name: sig.clientRep?.name || clientName,
+      date: sig.clientRep?.date || today,
+    },
+    agencyStaff: {
+      ...empty.signatures.agencyStaff,
+      ...(sig.agencyStaff || {}),
+      date: sig.agencyStaff?.date || today,
+    },
+    supervisor: {
+      ...empty.signatures.supervisor,
+      ...(sig.supervisor || {}),
+      date: sig.supervisor?.date || today,
+    },
+  };
+  merged.authorization = {
+    ...empty.authorization,
+    ...(merged.authorization || {}),
+    representativeName: merged.authorization?.representativeName || clientName,
+    date: merged.authorization?.date || today,
+  };
+
   return {
     clientId: plan.clientId || '',
     version: plan.version || 'v1',

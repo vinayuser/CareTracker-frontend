@@ -15,9 +15,7 @@ import { ADMIN_NAV_ITEMS } from '../../routes/adminNav';
 import { ROUTES } from '../../routes/routes';
 
 const QUICK_CREATE = [
-  { label: 'Add Agency', to: ROUTES.ADMIN_AGENCIES },
   { label: 'Send Invitation', to: ROUTES.ADMIN_INVITATIONS, state: { openSendDrawer: true } },
-  { label: 'Create Plan', to: ROUTES.ADMIN_SUBSCRIPTION_PLANS },
   { label: 'View Reports', to: ROUTES.ADMIN_REPORTS },
 ];
 
@@ -154,18 +152,6 @@ export default function AdminHeader({ collapsed, onToggleSidebar }) {
         </div>
 
         <NotificationBell />
-        <button type="button" className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800" title="Messages">
-          <MessageSquare size={18} />
-          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-white">
-            9
-          </span>
-        </button>
-        <button type="button" className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800" title="Tasks">
-          <CheckSquare size={18} />
-          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-white">
-            7
-          </span>
-        </button>
 
         <UserMenuDropdown subtitle="Platform Administrator" />
       </div>

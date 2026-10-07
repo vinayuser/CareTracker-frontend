@@ -86,15 +86,29 @@ export default function AgencyLayout() {
     scrollAppToTop('auto');
   }, [pathname]);
 
+  // Keep document from scrolling under the app shell (prevents double scrollbars).
+  useEffect(() => {
+    const html = document.documentElement;
+    const { body } = document;
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyOverflow = body.style.overflow;
+    html.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    return () => {
+      html.style.overflow = prevHtmlOverflow;
+      body.style.overflow = prevBodyOverflow;
+    };
+  }, []);
+
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f0f4f8]">
+    <div className="fixed inset-0 flex overflow-hidden bg-[#f0f4f8]">
       <AgencySidebar collapsed={collapsed} onToggle={() => setCollapsed((p) => !p)} />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <AgencyHeader
           onToggleSidebar={() => setCollapsed((p) => !p)}
           title={getPageTitle(pathname)}
         />
-        <main className="flex-1 overflow-y-auto bg-[#f0f4f8] p-5">
+        <main className="app-main-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#f0f4f8] p-5">
           <Outlet />
         </main>
       </div>

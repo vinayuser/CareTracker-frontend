@@ -59,9 +59,9 @@ export default function CarePlans() {
           <h1 className="text-xl font-bold text-gray-900">Care Plans</h1>
           <p className="mt-1 text-sm text-gray-500">Create and manage personalized care plans for clients.</p>
         </div>
-        <Link to={ROUTES.AGENCY_CARE_PLANS_CREATE} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-hover">
+        {/* <Link to={ROUTES.AGENCY_CARE_PLANS_CREATE} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-hover">
           <Plus size={16} /> Generate Care Plan
-        </Link>
+        </Link> */}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

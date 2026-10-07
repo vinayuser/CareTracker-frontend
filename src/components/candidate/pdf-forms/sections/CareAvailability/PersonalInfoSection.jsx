@@ -1,87 +1,41 @@
-// components/forms/sections/CareAvailability/PersonalInfoSection.jsx
-import React from 'react';
+import { fieldInputErr, fieldInputOk } from '../../../../../utils/candidateFormPrefill';
 
-const PersonalInfoSection = ({ formData, onInputChange }) => {
-  // Format phone numbers
-  const handlePhoneChange = (field, value) => {
-    let cleaned = value.replace(/\D/g, '');
-    
-    if (cleaned.length > 3 && cleaned.length <= 6) {
-      cleaned = '(' + cleaned.slice(0, 3) + ') ' + cleaned.slice(3);
-    } else if (cleaned.length > 6) {
-      cleaned = '(' + cleaned.slice(0, 3) + ') ' + cleaned.slice(3, 6) + '-' + cleaned.slice(6, 10);
-    }
-    
-    onInputChange(field, cleaned);
-  };
+function FieldError({ message }) {
+  if (!message) return null;
+  return <p className="mt-1 text-xs text-red-600">{message}</p>;
+}
+
+const PersonalInfoSection = ({ formData, errors = {}, onInputChange }) => {
+  const fields = [
+    { key: 'Name', label: 'Name *', type: 'text' },
+    { key: 'Position', label: 'Position *', type: 'text' },
+    { key: 'Address', label: 'Address *', type: 'text', fullWidth: true },
+    { key: 'Cell Phone', label: 'Cell Phone *', type: 'tel', placeholder: '(555) 123-4567', maxLength: 14 },
+    { key: 'Home Phone', label: 'Home Phone', type: 'tel', placeholder: '(555) 123-4567', maxLength: 14 },
+    { key: 'Email', label: 'Email *', type: 'email', fullWidth: true },
+  ];
 
   return (
     <div className="mb-8">
-      <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-          <input
-            type="text"
-            value={formData["Name"]}
-            onChange={(e) => onInputChange("Name", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Position</label>
-          <input
-            type="text"
-            value={formData["Position"]}
-            onChange={(e) => onInputChange("Position", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-          <input
-            type="text"
-            value={formData["Address"]}
-            onChange={(e) => onInputChange("Address", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Cell Phone</label>
-          <input
-            type="text"
-            value={formData["Cell Phone"]}
-            onChange={(e) => handlePhoneChange("Cell Phone", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="(123) 456-7890"
-            maxLength={14}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Home Phone</label>
-          <input
-            type="text"
-            value={formData["Home Phone"]}
-            onChange={(e) => handlePhoneChange("Home Phone", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="(123) 456-7890"
-            maxLength={14}
-          />
-        </div>
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-          <input
-            type="email"
-            value={formData["Email"]}
-            onChange={(e) => onInputChange("Email", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
+      <h3 className="mb-4 text-lg font-semibold">Personal Information</h3>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {fields.map((field) => {
+          const hasError = Boolean(errors[field.key]);
+          return (
+            <div key={field.key} className={field.fullWidth ? 'md:col-span-2' : ''}>
+              <label className="mb-1 block text-sm font-medium text-gray-700">{field.label}</label>
+              <input
+                type={field.type}
+                value={formData[field.key] || ''}
+                onChange={(e) => onInputChange(field.key, e.target.value)}
+                className={hasError ? fieldInputErr : fieldInputOk}
+                placeholder={field.placeholder}
+                maxLength={field.maxLength}
+              />
+              <FieldError message={errors[field.key]} />
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -3,11 +3,14 @@ export default function ActionIconButton({
   onClick,
   className = '',
   children,
+  icon: Icon,
+  iconSize = 15,
   to,
   as: Component,
   disabled = false,
 }) {
   const classes = `rounded-lg p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${className}`;
+  const content = children ?? (Icon ? <Icon size={iconSize} /> : null);
 
   if (to && Component) {
     return (
@@ -17,7 +20,7 @@ export default function ActionIconButton({
         aria-label={label}
         className={classes}
       >
-        {children}
+        {content}
       </Component>
     );
   }
@@ -31,7 +34,7 @@ export default function ActionIconButton({
       disabled={disabled}
       className={classes}
     >
-      {children}
+      {content}
     </button>
   );
 }

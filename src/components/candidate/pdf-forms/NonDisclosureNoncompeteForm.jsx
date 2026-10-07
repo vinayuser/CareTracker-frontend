@@ -2,54 +2,64 @@ import React, { useState, useRef, useEffect } from 'react';
 import { fetchPdfTemplateBytes } from './pdfTemplateFetch';
 import { submitFilledPdfForm } from './pdfFormSubmit';
 import { PDFDocument } from 'pdf-lib';
-import axios from 'axios';
 import StatusModal from '../../ui/StatusModal';
+import { validateHiringPdfForm, formatHiringValidationMessage } from '../../../utils/hiringPdfFormValidation';
+import { getCandidatePrefill, mergeFormWithCandidate } from '../../../utils/candidateFormPrefill';
 import EmployeeSection from './sections/Nondisclosure/EmployeeSection';
 import CompanySection from './sections/Nondisclosure/CompanySection';
 import WitnessSection from './sections/Nondisclosure/WitnessSection';
 
-const NondisclosureNoncompeteForm = ({ document, token, onClose, onSuccess }) => {
-  const [formData, setFormData] = useState({
-    // Employee Information
-    "Employee": "",
-    "Employee Address": "",
-    
-    // Company Information
-    "Print Name and Title": "",
-    "Print Name and Title_2": "",
-    "Print Name": "",
-    "Address": "",
-    "City": "",
-    "State": "",
-    "Telephone": "",
-    
-    // Dates
-    "Effective Date": "",
-    "Date": "",
-    
-    // Signatures - CORRECTED MAPPING:
-    // Signature144 = Company Authorized Signature
-    // Signature145 = Witness Signature
-    // Signature146 = Employee Signature
-    "Signature144_es_:signer:signature": "",
-    "Signature145_es_:signer:signature": "",
-    "Signature146_es_:signer:signature": ""
+const EMPTY_4000 = {
+  Employee: '',
+  'Employee Address': '',
+  'Print Name and Title': '',
+  'Print Name and Title_2': '',
+  'Print Name': '',
+  Address: '',
+  City: '',
+  State: '',
+  Telephone: '',
+  'Effective Date': '',
+  Date: '',
+  'Signature144_es_:signer:signature': '',
+  'Signature145_es_:signer:signature': '',
+  'Signature146_es_:signer:signature': '',
+};
+
+function buildInitial4000(candidate, savedFormData) {
+  const p = getCandidatePrefill(candidate);
+  const merged = mergeFormWithCandidate(EMPTY_4000, savedFormData, {
+    Employee: p.fullName,
+    'Employee Address': p.location,
+    'Print Name': p.fullName,
+    'Effective Date': p.today,
+    Date: p.today,
   });
+  // Signature fields are image-only — strip legacy "Signed" placeholder text
+  ['Signature144_es_:signer:signature', 'Signature145_es_:signer:signature', 'Signature146_es_:signer:signature']
+    .forEach((key) => {
+      if (merged[key] === 'Signed') merged[key] = '';
+    });
+  return merged;
+}
+
+const NondisclosureNoncompeteForm = ({ document, candidate = null, token, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState(() =>
+    buildInitial4000(candidate || document?.candidate, document?.form_data),
+  );
 
   const [generatingPreview, setGeneratingPreview] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
   const [filledPdfBytes, setFilledPdfBytes] = useState(null);
-  
-  // Separate signature URLs for each signer
+  const [errors, setErrors] = useState({});
+
   const [employeeSignatureDataUrl, setEmployeeSignatureDataUrl] = useState('');
   const [companySignatureDataUrl, setCompanySignatureDataUrl] = useState('');
   const [witnessSignatureDataUrl, setWitnessSignatureDataUrl] = useState('');
-  
+
   const [activeSection, setActiveSection] = useState('employee');
-  
-  // Separate canvas refs for each signer
-  const employeeSigCanvasRef = useRef();
+
   const companySigCanvasRef = useRef();
   const witnessSigCanvasRef = useRef();
 
@@ -83,28 +93,34 @@ const NondisclosureNoncompeteForm = ({ document, token, onClose, onSuccess }) =>
     setStatusModal(prev => ({ ...prev, isOpen: false }));
   };
 
-  // Handler functions
-  const handleInputChange = (fieldName, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [fieldName]: value
-    }));
+  const clearFieldError = (...fields) => {
+    setErrors((prev) => {
+      if (!fields.some((f) => prev[f])) return prev;
+      const next = { ...prev };
+      fields.forEach((f) => { delete next[f]; });
+      return next;
+    });
   };
 
-  // Signature handling - separate for each signer
-  const handleEmployeeSignatureEnd = () => {
-    if (employeeSigCanvasRef.current && !employeeSigCanvasRef.current.isEmpty()) {
-      const signatureDataURL = employeeSigCanvasRef.current.toDataURL();
-      setEmployeeSignatureDataUrl(signatureDataURL);
-      handleInputChange("Signature146_es_:signer:signature", "");
-    }
+  const handleInputChange = (fieldName, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [fieldName]: value,
+    }));
+    clearFieldError(fieldName);
+  };
+
+  const handleEmployeeSignatureChange = (dataUrl) => {
+    setEmployeeSignatureDataUrl(dataUrl || '');
+    handleInputChange('Signature146_es_:signer:signature', '');
+    if (dataUrl) clearFieldError('Signature146_es_:signer:signature');
   };
 
   const handleCompanySignatureEnd = () => {
     if (companySigCanvasRef.current && !companySigCanvasRef.current.isEmpty()) {
       const signatureDataURL = companySigCanvasRef.current.toDataURL();
       setCompanySignatureDataUrl(signatureDataURL);
-      handleInputChange("Signature144_es_:signer:signature", "");
+      handleInputChange('Signature144_es_:signer:signature', '');
     }
   };
 
@@ -112,16 +128,7 @@ const NondisclosureNoncompeteForm = ({ document, token, onClose, onSuccess }) =>
     if (witnessSigCanvasRef.current && !witnessSigCanvasRef.current.isEmpty()) {
       const signatureDataURL = witnessSigCanvasRef.current.toDataURL();
       setWitnessSignatureDataUrl(signatureDataURL);
-      handleInputChange("Signature145_es_:signer:signature", "");
-    }
-  };
-
-  // Clear signatures only for the current section
-  const clearEmployeeSignature = () => {
-    if (employeeSigCanvasRef.current) {
-      employeeSigCanvasRef.current.clear();
-      setEmployeeSignatureDataUrl('');
-      handleInputChange("Signature146_es_:signer:signature", "");
+      handleInputChange('Signature145_es_:signer:signature', '');
     }
   };
 
@@ -169,35 +176,40 @@ const NondisclosureNoncompeteForm = ({ document, token, onClose, onSuccess }) =>
       // Fill text fields
       console.log('🔄 Filling text fields...');
       const textFields = [
-        "Print Name and Title",
-        "Print Name and Title_2",
-        "Date",
-        "Print Name",
-        "Address",
-        "City",
-        "State",
-        "Telephone",
-        "Signature144_es_:signer:signature",
-        "Signature145_es_:signer:signature",
-        "Signature146_es_:signer:signature",
-        "Effective Date",
-        "Employee",
-        "Employee Address"
+        'Print Name and Title',
+        'Print Name and Title_2',
+        'Date',
+        'Print Name',
+        'Address',
+        'City',
+        'State',
+        'Telephone',
+        'Effective Date',
+        'Employee',
+        'Employee Address',
       ];
 
-      textFields.forEach(fieldName => {
+      textFields.forEach((fieldName) => {
         try {
           const field = form.getTextField(fieldName);
           if (field) {
-            field.setText(formData[fieldName] || "");
-            console.log(`✅ Set text field: ${fieldName} = "${formData[fieldName]}"`);
-          } else {
-            console.log(`❌ Text field not found: ${fieldName}`);
+            field.setText(formData[fieldName] || '');
           }
-        } catch (error) {
-          console.log(`❌ Error setting text field ${fieldName}:`, error.message);
+        } catch {
+          // ignore
         }
       });
+
+      // Signature fields are image-only — never write placeholder text like "Signed"
+      ['Signature144_es_:signer:signature', 'Signature145_es_:signer:signature', 'Signature146_es_:signer:signature']
+        .forEach((fieldName) => {
+          try {
+            const field = form.getTextField(fieldName);
+            if (field) field.setText('');
+          } catch {
+            // ignore
+          }
+        });
 
       // Embed signatures for all three signers
       const embedSignature = async (signatureDataUrl, signatureField) => {
@@ -328,6 +340,16 @@ const NondisclosureNoncompeteForm = ({ document, token, onClose, onSuccess }) =>
   };
 
   const handleSubmit = async () => {
+    const validation = validateHiringPdfForm('4000', formData, {
+      hasEmployeeSignature: Boolean(employeeSignatureDataUrl),
+    });
+    setErrors(validation.fieldErrors || {});
+    if (!validation.ok) {
+      if (validation.firstSection) setActiveSection(validation.firstSection);
+      showStatusModal('error', 'Please fix the form', formatHiringValidationMessage(validation.messages));
+      return;
+    }
+
     try {
       setSubmitting(true);
 
@@ -379,11 +401,10 @@ const NondisclosureNoncompeteForm = ({ document, token, onClose, onSuccess }) =>
         return (
           <EmployeeSection
             formData={formData}
+            errors={errors}
             onInputChange={handleInputChange}
             signatureDataUrl={employeeSignatureDataUrl}
-            onSignatureEnd={handleEmployeeSignatureEnd}
-            onClearSignature={clearEmployeeSignature}
-            sigCanvasRef={employeeSigCanvasRef}
+            onSignatureChange={handleEmployeeSignatureChange}
           />
         );
       case 'company':
@@ -412,11 +433,10 @@ const NondisclosureNoncompeteForm = ({ document, token, onClose, onSuccess }) =>
         return (
           <EmployeeSection
             formData={formData}
+            errors={errors}
             onInputChange={handleInputChange}
             signatureDataUrl={employeeSignatureDataUrl}
-            onSignatureEnd={handleEmployeeSignatureEnd}
-            onClearSignature={clearEmployeeSignature}
-            sigCanvasRef={employeeSigCanvasRef}
+            onSignatureChange={handleEmployeeSignatureChange}
           />
         );
     }
@@ -427,33 +447,33 @@ const NondisclosureNoncompeteForm = ({ document, token, onClose, onSuccess }) =>
     <div className="mt-6 p-4 border border-gray-300 rounded bg-gray-50">
       <h4 className="text-md font-semibold text-gray-800 mb-2">Signature Status:</h4>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className={`p-3 rounded border ${formData["Signature146_es_:signer:signature"] ? 'border-green-500 bg-green-50' : 'border-gray-300'}`}>
+        <div className={`p-3 rounded border ${employeeSignatureDataUrl ? 'border-green-500 bg-green-50' : 'border-gray-300'}`}>
           <div className="flex items-center mb-2">
-            <span className={`w-3 h-3 rounded-full mr-2 ${formData["Signature146_es_:signer:signature"] ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+            <span className={`w-3 h-3 rounded-full mr-2 ${employeeSignatureDataUrl ? 'bg-green-500' : 'bg-gray-300'}`}></span>
             <span className="text-sm font-medium">Employee</span>
           </div>
           <p className="text-xs text-gray-600">
-            {formData["Signature146_es_:signer:signature"] ? '✓ Signed' : 'Required - Not signed yet'}
+            {employeeSignatureDataUrl ? '✓ Signed' : 'Required - Not signed yet'}
           </p>
         </div>
         
-        <div className={`p-3 rounded border ${formData["Signature144_es_:signer:signature"] ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}`}>
+        <div className={`p-3 rounded border ${companySignatureDataUrl ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}`}>
           <div className="flex items-center mb-2">
-            <span className={`w-3 h-3 rounded-full mr-2 ${formData["Signature144_es_:signer:signature"] ? 'bg-blue-500' : 'bg-gray-300'}`}></span>
+            <span className={`w-3 h-3 rounded-full mr-2 ${companySignatureDataUrl ? 'bg-blue-500' : 'bg-gray-300'}`}></span>
             <span className="text-sm font-medium">Company</span>
           </div>
           <p className="text-xs text-gray-600">
-            {formData["Signature144_es_:signer:signature"] ? '✓ Signed' : 'Optional - Not signed yet'}
+            {companySignatureDataUrl ? '✓ Signed' : 'Optional - Not signed yet'}
           </p>
         </div>
         
-        <div className={`p-3 rounded border ${formData["Signature145_es_:signer:signature"] ? 'border-purple-500 bg-purple-50' : 'border-gray-300'}`}>
+        <div className={`p-3 rounded border ${witnessSignatureDataUrl ? 'border-purple-500 bg-purple-50' : 'border-gray-300'}`}>
           <div className="flex items-center mb-2">
-            <span className={`w-3 h-3 rounded-full mr-2 ${formData["Signature145_es_:signer:signature"] ? 'bg-purple-500' : 'bg-gray-300'}`}></span>
+            <span className={`w-3 h-3 rounded-full mr-2 ${witnessSignatureDataUrl ? 'bg-purple-500' : 'bg-gray-300'}`}></span>
             <span className="text-sm font-medium">Witness</span>
           </div>
           <p className="text-xs text-gray-600">
-            {formData["Signature145_es_:signer:signature"] ? '✓ Signed' : 'Optional - Not signed yet'}
+            {witnessSignatureDataUrl ? '✓ Signed' : 'Optional - Not signed yet'}
           </p>
         </div>
       </div>

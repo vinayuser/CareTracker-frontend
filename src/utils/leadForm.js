@@ -6,6 +6,14 @@ export const LEAD_STAGES = [
   'Converted',
 ];
 
+/** Immediate next stage in the lead pipeline (null if already Converted). */
+export const nextLeadStage = (stage = 'New Lead') => {
+  const idx = LEAD_STAGES.indexOf(stage);
+  if (idx < 0) return 'Contacted';
+  if (idx >= LEAD_STAGES.length - 1) return null;
+  return LEAD_STAGES[idx + 1];
+};
+
 export const LEAD_PRIORITIES = ['Hot', 'High', 'Medium', 'Low'];
 
 export const PREFERRED_CONTACT_METHODS = ['Phone', 'Email', 'SMS', 'WhatsApp', 'In Person'];
@@ -172,6 +180,11 @@ export const buildEmptyLeadFormData = () => ({
     priority: 'High',
     nextAction: 'Schedule Home Assessment',
   },
+  proposal: {
+    sentDate: '',
+    notes: '',
+    amount: '',
+  },
   internalNotes: '',
 });
 
@@ -209,9 +222,14 @@ export const leadToForm = (lead) => {
           ...empty.careRecipient,
           ...(fd.careRecipient || {}),
         }, 'name'),
-        medicalConditions: Array.isArray(fd.careRecipient?.medicalConditions)
-          ? fd.careRecipient.medicalConditions
-          : [],
+        medicalConditions: (() => {
+          const raw = fd.careRecipient?.medicalConditions;
+          if (Array.isArray(raw)) return raw.map(String);
+          if (typeof raw === 'string' && raw.trim()) {
+            return raw.split(',').map((s) => s.trim()).filter(Boolean);
+          }
+          return [];
+        })(),
       },
       familyRep: { ...empty.familyRep, ...(fd.familyRep || {}) },
       careSummary: {
@@ -231,6 +249,12 @@ export const leadToForm = (lead) => {
       internalNotes: fd.internalNotes ?? lead.notes ?? '',
       contactLog: fd.contactLog || null,
       homeAssessment: fd.homeAssessment || null,
+      proposal: {
+        sentDate: '',
+        notes: '',
+        amount: '',
+        ...(fd.proposal || {}),
+      },
       activities: Array.isArray(fd.activities) ? fd.activities : [],
       disqualified: Boolean(fd.disqualified || fd.contactLog?.disqualified),
     },
@@ -240,6 +264,7 @@ export const leadToForm = (lead) => {
 export const formToPayload = (form) => {
   const basic = normalizeLeadPerson(form.formData?.basicInfo || {}, 'fullName');
   const recipient = normalizeLeadPerson(form.formData?.careRecipient || {}, 'name');
+  const careSummary = form.formData?.careSummary || {};
   const fd = {
     ...form.formData,
     basicInfo: {
@@ -249,6 +274,15 @@ export const formToPayload = (form) => {
     careRecipient: {
       ...recipient,
       name: joinLeadName(recipient.firstName, recipient.lastName),
+      medicalConditions: Array.isArray(recipient.medicalConditions)
+        ? recipient.medicalConditions
+        : [],
+    },
+    careSummary: {
+      ...careSummary,
+      primaryNeeds: Array.isArray(careSummary.primaryNeeds)
+        ? careSummary.primaryNeeds
+        : [],
     },
     statusInfo: {
       ...(form.formData.statusInfo || {}),

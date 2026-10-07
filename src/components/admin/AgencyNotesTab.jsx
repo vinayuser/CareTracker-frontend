@@ -161,8 +161,8 @@ export default function AgencyNotesTab({ agencyId }) {
     const confirmed = await confirmAlert({
       title: 'Delete note?',
       text: `${note.title} will be removed.`,
-      confirmButtonText: 'Delete',
-      confirmButtonColor: '#dc2626',
+      confirmText: 'Delete',
+      danger: true,
     });
     if (!confirmed) return;
     await axiosInstance.delete(`${API_ROUTES.ADMIN.AGENCY.NOTES}/${agencyId}/notes/${note.id}`);

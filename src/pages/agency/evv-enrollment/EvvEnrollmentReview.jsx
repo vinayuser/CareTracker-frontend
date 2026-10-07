@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { toast } from 'react-toastify';
 import { ArrowLeft, ArrowRight, CheckCircle, Printer, XCircle } from 'lucide-react';
 import { EvvEnrollmentStepOne, EvvEnrollmentStepTwo } from '../../../components/agency/evv-enrollment/EvvEnrollmentSteps';
 import SubmitButton from '../../../components/ui/SubmitButton';
@@ -9,6 +10,9 @@ import { evvEnrollmentToForm, WIZARD_STEPS } from '../../../utils/evvEnrollmentF
 import { ROUTES } from '../../../routes/routes';
 import useSubmitLock from '../../../hooks/useSubmitLock';
 import useScrollToTopOnChange from '../../../hooks/useScrollToTopOnChange';
+
+const todayIso = () => new Date().toISOString().slice(0, 10);
+const hasInk = (value) => Boolean(value && String(value).startsWith('data:image'));
 
 function Stepper({ currentStep }) {
   return (
@@ -42,7 +46,23 @@ export default function EvvEnrollmentReview() {
   }, [dispatch, id, navigate]);
 
   useEffect(() => {
-    if (selected) setForm(evvEnrollmentToForm(selected));
+    if (!selected) return;
+    const next = evvEnrollmentToForm(selected);
+    // Prefill client sign date when agency will capture a missing client signature.
+    if (
+      next.status === 'Submitted'
+      && !hasInk(next.formData?.authorization?.clientSignature)
+      && !next.formData?.authorization?.clientDate
+    ) {
+      next.formData = {
+        ...next.formData,
+        authorization: {
+          ...next.formData.authorization,
+          clientDate: todayIso(),
+        },
+      };
+    }
+    setForm(next);
   }, [selected]);
 
   const onFormDataChange = (section, patch) => {
@@ -55,7 +75,23 @@ export default function EvvEnrollmentReview() {
     }));
   };
 
+  const clientSigned = hasInk(form.formData?.authorization?.clientSignature);
+  const caregiverSigned = hasInk(form.formData?.authorization?.caregiverSignature);
+  const bothSigned = clientSigned && caregiverSigned;
+  const canVerify = form.status === 'Submitted';
+  const canApprove = canVerify && bothSigned;
+  const allowClientSignCapture = canVerify && !clientSigned;
+
   const handleVerify = (action) => runLocked(async () => {
+    if (action === 'verify' && !bothSigned) {
+      if (!caregiverSigned) {
+        toast.error('Caregiver signature is required before verification.');
+      } else {
+        toast.error('Add the client signature below (or have the client sign in their portal), then verify.');
+        setStep(2);
+      }
+      return;
+    }
     try {
       await dispatch(verifyEvvEnrollment({
         id,
@@ -67,13 +103,6 @@ export default function EvvEnrollmentReview() {
   });
 
   if (loading) return <div className="flex min-h-[40vh] items-center justify-center text-sm text-gray-500">Loading enrollment...</div>;
-
-  const hasInk = (value) => Boolean(value && String(value).startsWith('data:image'));
-  const clientSigned = hasInk(form.formData?.authorization?.clientSignature);
-  const caregiverSigned = hasInk(form.formData?.authorization?.caregiverSignature);
-  const bothSigned = clientSigned && caregiverSigned;
-  const canVerify = form.status === 'Submitted';
-  const canApprove = canVerify && bothSigned;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 pb-10">
@@ -107,12 +136,21 @@ export default function EvvEnrollmentReview() {
 
       {canVerify && !bothSigned && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Waiting for signatures before verification:
-          {' '}
-          {!clientSigned ? 'client signature missing' : null}
-          {!clientSigned && !caregiverSigned ? ' · ' : null}
-          {!caregiverSigned ? 'caregiver signature missing' : null}.
-          You can still reject the enrollment.
+          {!clientSigned && caregiverSigned ? (
+            <>
+              Client signature is missing. Go to step 2 and capture the client / representative signature
+              here (or ask the client to sign in their portal). Verify unlocks after that signature is added.
+            </>
+          ) : (
+            <>
+              Waiting for signatures before verification:
+              {' '}
+              {!clientSigned ? 'client signature missing' : null}
+              {!clientSigned && !caregiverSigned ? ' · ' : null}
+              {!caregiverSigned ? 'caregiver signature missing' : null}.
+              You can still reject the enrollment.
+            </>
+          )}
         </div>
       )}
 
@@ -121,7 +159,13 @@ export default function EvvEnrollmentReview() {
         {step === 1 ? (
           <EvvEnrollmentStepOne form={form} onFormDataChange={onFormDataChange} readOnly />
         ) : (
-          <EvvEnrollmentStepTwo form={form} onFormDataChange={onFormDataChange} readOnly showOfficeUse />
+          <EvvEnrollmentStepTwo
+            form={form}
+            onFormDataChange={onFormDataChange}
+            readOnly
+            showOfficeUse
+            clientSignatureEditable={allowClientSignCapture}
+          />
         )}
 
         <div className="mt-8 flex flex-wrap justify-between gap-3 border-t border-gray-100 pt-6">

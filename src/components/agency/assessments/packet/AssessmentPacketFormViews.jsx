@@ -5,6 +5,7 @@ import {
 } from '../../../../utils/assessmentPacket';
 import {
   agencyDisplayName,
+  getForm324Copy,
   getForm325Copy,
   getForm800Copy,
   parseConsentAgreementSections,
@@ -16,17 +17,25 @@ import {
   CheckboxRow,
   Field,
   LegalText,
+  PacketInput,
+  PacketTextarea,
   RadioRow,
+  ReadOnlyClientFields,
+  ReadOnlyClientGrid,
   SectionCard,
   SignatureBlock,
   YnRRow,
   inputClass,
+  readOnlyInputClass,
 } from './PacketFields';
 import AssessmentFormBrandingHeader from './AssessmentFormBrandingHeader';
 import {
   applyForm110PhoneFormat,
   clearAllergiesWhenNo,
+  formatUsPhone,
 } from '../../../../utils/form110Validation';
+import { RELATIONSHIPS } from '../../../../utils/leadForm';
+import { Plus } from 'lucide-react';
 
 const inputErrorClass =
   'w-full rounded-lg border border-red-400 px-3 py-2 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200';
@@ -107,13 +116,60 @@ function nest(onChange, key, current = {}) {
   return (patch) => onChange({ [key]: { ...current, ...patch } });
 }
 
+function clientDisplayName(d = {}) {
+  return d.clientName
+    || d.client?.printedName
+    || [d.firstName, d.lastName].filter(Boolean).join(' ')
+    || d.printName
+    || '';
+}
+
+function clientDisplayDob(d = {}) {
+  return d.dob || d.clientDob || '';
+}
+
 function BoolCheck({ label, checked, onChange }) {
   return (
     <label className="flex items-start gap-2 text-sm text-gray-700">
-      <input type="checkbox" className="mt-0.5" checked={!!checked} onChange={(e) => onChange(e.target.checked)} />
+      <PacketInput type="checkbox" className="mt-0.5" checked={!!checked} onChange={(e) => onChange(e.target.checked)} />
       <span>{label}</span>
     </label>
   );
+}
+
+/** Keep only a non-negative decimal (optional digits after point). */
+function sanitizeDecimalInput(value, maxDecimals = 2) {
+  const raw = String(value || '').replace(/[^\d.]/g, '');
+  const firstDot = raw.indexOf('.');
+  if (firstDot === -1) return raw.slice(0, 12);
+  const whole = raw.slice(0, firstDot).slice(0, 12);
+  const frac = raw
+    .slice(firstDot + 1)
+    .replace(/\./g, '')
+    .slice(0, maxDecimals);
+  return `${whole}.${frac}`;
+}
+
+function onDecimalFieldChange(onChange, key, maxDecimals = 2) {
+  return (e) => onChange({ [key]: sanitizeDecimalInput(e.target.value, maxDecimals) });
+}
+
+/** Percent 0–100 with optional decimals. */
+function sanitizePercentInput(value) {
+  const cleaned = sanitizeDecimalInput(value, 2);
+  if (cleaned === '' || cleaned === '.') return cleaned;
+  const n = Number(cleaned);
+  if (!Number.isNaN(n) && n > 100) return '100';
+  return cleaned;
+}
+
+function onPercentFieldChange(onChange, key) {
+  return (e) => onChange({ [key]: sanitizePercentInput(e.target.value) });
+}
+
+/** Policy / claim IDs: letters, digits, hyphen, space. */
+function sanitizePolicyIdInput(value) {
+  return String(value || '').replace(/[^a-zA-Z0-9\- ]/g, '').slice(0, 40);
 }
 
 /** Full HIPAA notice body (same source as print) for the fillable Form 1082. */
@@ -202,6 +258,21 @@ function Form110({ data, onChange, shared, errors = {} }) {
   };
   const showAllergies = d.allergicReactions === 'YES';
 
+  // Client identity is always read-only — populated from the client record / snapshot.
+  const client = {
+    firstName: shared?.clientSnapshot?.firstName || d.firstName || '',
+    lastName: shared?.clientSnapshot?.lastName || d.lastName || '',
+    dob: shared?.clientSnapshot?.dob || d.dob || '',
+    sex: shared?.clientSnapshot?.sex || d.sex || '',
+    address: shared?.clientSnapshot?.address || d.address || '',
+    phone: shared?.clientSnapshot?.phone || d.phone || '',
+    cellPhone: shared?.clientSnapshot?.cellPhone || d.cellPhone || '',
+    email: shared?.clientSnapshot?.email || d.email || '',
+    city: shared?.clientSnapshot?.city || d.city || '',
+    state: shared?.clientSnapshot?.state || d.state || '',
+    zip: shared?.clientSnapshot?.zip || d.zip || '',
+  };
+
   return (
     <div className="space-y-4">
       {(shared?.assessmentDate || shared?.assessorName) ? (
@@ -211,87 +282,54 @@ function Form110({ data, onChange, shared, errors = {} }) {
         </p>
       ) : null}
 
-      <SectionCard title="Client Information">
+      <SectionCard
+        title="Client Information"
+        subtitle="Pulled from the client record and cannot be edited here."
+      >
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Field label="First Name" error={errors.firstName}>
-            <input
-              className={fieldInputClass(errors.firstName)}
-              value={d.firstName || ''}
-              onChange={(e) => {
-                const firstName = e.target.value;
-                onChange({
-                  firstName,
-                  clientName: `${firstName} ${d.lastName || ''}`.trim(),
-                });
-              }}
-            />
+            <PacketInput readOnly disabled className={readOnlyInputClass} value={client.firstName} tabIndex={-1} />
           </Field>
           <Field label="Last Name" error={errors.lastName}>
-            <input
-              className={fieldInputClass(errors.lastName)}
-              value={d.lastName || ''}
-              onChange={(e) => {
-                const lastName = e.target.value;
-                onChange({
-                  lastName,
-                  clientName: `${d.firstName || ''} ${lastName}`.trim(),
-                });
-              }}
-            />
+            <PacketInput readOnly disabled className={readOnlyInputClass} value={client.lastName} tabIndex={-1} />
           </Field>
-          <Field label="Date"><input type="date" className={inputClass} value={d.date || ''} onChange={(e) => onChange({ date: e.target.value })} /></Field>
-          <Field label="DOB"><input type="date" className={inputClass} value={d.dob || ''} onChange={(e) => onChange({ dob: e.target.value })} /></Field>
-          <Field label="Code Status"><input className={inputClass} value={d.codeStatus || ''} onChange={(e) => onChange({ codeStatus: e.target.value })} /></Field>
-          <Field label="Sex"><RadioRow name="sex" options={['Male', 'Female']} value={d.sex || ''} onChange={(sex) => onChange({ sex })} /></Field>
-          <Field label="Address" className="sm:col-span-2 lg:col-span-3"><input className={inputClass} value={d.address || ''} onChange={(e) => onChange({ address: e.target.value })} /></Field>
+          <Field label="Date"><PacketInput type="date" className={inputClass} value={d.date || ''} onChange={(e) => onChange({ date: e.target.value })} /></Field>
+          <Field label="DOB">
+            <PacketInput readOnly disabled type="date" className={readOnlyInputClass} value={client.dob} tabIndex={-1} />
+          </Field>
+          <Field label="Code Status"><PacketInput className={inputClass} value={d.codeStatus || ''} onChange={(e) => onChange({ codeStatus: e.target.value })} /></Field>
+          <Field label="Sex">
+            <PacketInput readOnly disabled className={readOnlyInputClass} value={client.sex} tabIndex={-1} />
+          </Field>
+          <Field label="Address" className="sm:col-span-2 lg:col-span-3">
+            <PacketInput readOnly disabled className={readOnlyInputClass} value={client.address} tabIndex={-1} maxLength={100} />
+          </Field>
           <Field label="Phone" error={errors.phone}>
-            <input
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              placeholder="(555) 123-4567"
-              className={fieldInputClass(errors.phone)}
-              value={d.phone || ''}
-              onChange={setPhone('phone')}
-            />
+            <PacketInput readOnly disabled type="tel" className={readOnlyInputClass} value={client.phone} tabIndex={-1} />
           </Field>
           <Field label="Cell Phone" error={errors.cellPhone}>
-            <input
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              placeholder="(555) 123-4567"
-              className={fieldInputClass(errors.cellPhone)}
-              value={d.cellPhone || ''}
-              onChange={setPhone('cellPhone')}
-            />
+            <PacketInput readOnly disabled type="tel" className={readOnlyInputClass} value={client.cellPhone} tabIndex={-1} />
           </Field>
           <Field label="Email" error={errors.email}>
-            <input
-              type="email"
-              className={fieldInputClass(errors.email)}
-              value={d.email || ''}
-              onChange={(e) => onChange({ email: e.target.value })}
-            />
+            <PacketInput readOnly disabled type="email" className={readOnlyInputClass} value={client.email} tabIndex={-1} />
           </Field>
-          <Field label="City"><input className={inputClass} value={d.city || ''} onChange={(e) => onChange({ city: e.target.value })} /></Field>
-          <Field label="State"><input className={inputClass} value={d.state || ''} onChange={(e) => onChange({ state: e.target.value })} /></Field>
+          <Field label="City">
+            <PacketInput readOnly disabled className={readOnlyInputClass} value={client.city} tabIndex={-1} />
+          </Field>
+          <Field label="State">
+            <PacketInput readOnly disabled className={readOnlyInputClass} value={client.state} tabIndex={-1} />
+          </Field>
           <Field label="ZIP" error={errors.zip}>
-            <input
-              className={fieldInputClass(errors.zip)}
-              value={d.zip || ''}
-              onChange={(e) => onChange({ zip: e.target.value.replace(/[^\d-]/g, '').slice(0, 10) })}
-              placeholder="78701"
-            />
+            <PacketInput readOnly disabled className={readOnlyInputClass} value={client.zip} tabIndex={-1} />
           </Field>
         </div>
       </SectionCard>
 
       <SectionCard title="Emergency & Care Team">
         <div className="grid gap-3 sm:grid-cols-3">
-          <Field label="Emergency Contact"><input className={inputClass} value={d.emergencyContact || ''} onChange={(e) => onChange({ emergencyContact: e.target.value })} /></Field>
+          <Field label="Emergency Contact"><PacketInput className={inputClass} value={d.emergencyContact || ''} onChange={(e) => onChange({ emergencyContact: e.target.value })} /></Field>
           <Field label="Phone" error={errors.emergencyPhone}>
-            <input
+            <PacketInput
               type="tel"
               inputMode="tel"
               placeholder="(555) 123-4567"
@@ -300,10 +338,24 @@ function Form110({ data, onChange, shared, errors = {} }) {
               onChange={setPhone('emergencyPhone')}
             />
           </Field>
-          <Field label="Relationship"><input className={inputClass} value={d.emergencyRelationship || ''} onChange={(e) => onChange({ emergencyRelationship: e.target.value })} /></Field>
-          <Field label="Primary Caregiver"><input className={inputClass} value={d.primaryCaregiver || ''} onChange={(e) => onChange({ primaryCaregiver: e.target.value })} /></Field>
+          <Field label="Relationship">
+            <select
+              className={inputClass}
+              value={d.emergencyRelationship || ''}
+              onChange={(e) => onChange({ emergencyRelationship: e.target.value })}
+            >
+              <option value="">Select relationship</option>
+              {RELATIONSHIPS.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+              {d.emergencyRelationship && !RELATIONSHIPS.includes(d.emergencyRelationship) ? (
+                <option value={d.emergencyRelationship}>{d.emergencyRelationship}</option>
+              ) : null}
+            </select>
+          </Field>
+          <Field label="Primary Caregiver"><PacketInput className={inputClass} value={d.primaryCaregiver || ''} onChange={(e) => onChange({ primaryCaregiver: e.target.value })} /></Field>
           <Field label="Phone" error={errors.primaryCaregiverPhone}>
-            <input
+            <PacketInput
               type="tel"
               inputMode="tel"
               placeholder="(555) 123-4567"
@@ -312,10 +364,24 @@ function Form110({ data, onChange, shared, errors = {} }) {
               onChange={setPhone('primaryCaregiverPhone')}
             />
           </Field>
-          <Field label="Relationship"><input className={inputClass} value={d.primaryCaregiverRelationship || ''} onChange={(e) => onChange({ primaryCaregiverRelationship: e.target.value })} /></Field>
-          <Field label="Primary Care Physician"><input className={inputClass} value={d.primaryCarePhysician || ''} onChange={(e) => onChange({ primaryCarePhysician: e.target.value })} /></Field>
+          <Field label="Relationship">
+            <select
+              className={inputClass}
+              value={d.primaryCaregiverRelationship || ''}
+              onChange={(e) => onChange({ primaryCaregiverRelationship: e.target.value })}
+            >
+              <option value="">Select relationship</option>
+              {RELATIONSHIPS.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+              {d.primaryCaregiverRelationship && !RELATIONSHIPS.includes(d.primaryCaregiverRelationship) ? (
+                <option value={d.primaryCaregiverRelationship}>{d.primaryCaregiverRelationship}</option>
+              ) : null}
+            </select>
+          </Field>
+          <Field label="Primary Care Physician"><PacketInput className={inputClass} value={d.primaryCarePhysician || ''} onChange={(e) => onChange({ primaryCarePhysician: e.target.value })} /></Field>
           <Field label="PCP Phone" error={errors.pcpPhone}>
-            <input
+            <PacketInput
               type="tel"
               inputMode="tel"
               placeholder="(555) 123-4567"
@@ -324,10 +390,18 @@ function Form110({ data, onChange, shared, errors = {} }) {
               onChange={setPhone('pcpPhone')}
             />
           </Field>
-          <Field label="PCP Address"><input className={inputClass} value={d.pcpAddress || ''} onChange={(e) => onChange({ pcpAddress: e.target.value })} /></Field>
-          <Field label="Pharmacy"><input className={inputClass} value={d.pharmacy || ''} onChange={(e) => onChange({ pharmacy: e.target.value })} /></Field>
+          <Field label="PCP Address" className="sm:col-span-3">
+            <PacketTextarea
+              rows={3}
+              className={`${inputClass} min-h-[72px]`}
+              value={d.pcpAddress || ''}
+              onChange={(e) => onChange({ pcpAddress: e.target.value })}
+              placeholder="Street, city, state, ZIP"
+            />
+          </Field>
+          <Field label="Pharmacy"><PacketInput className={inputClass} value={d.pharmacy || ''} onChange={(e) => onChange({ pharmacy: e.target.value })} /></Field>
           <Field label="Pharmacy Phone" error={errors.pharmacyPhone}>
-            <input
+            <PacketInput
               type="tel"
               inputMode="tel"
               placeholder="(555) 123-4567"
@@ -336,13 +410,21 @@ function Form110({ data, onChange, shared, errors = {} }) {
               onChange={setPhone('pharmacyPhone')}
             />
           </Field>
-          <Field label="Pharmacy Address"><input className={inputClass} value={d.pharmacyAddress || ''} onChange={(e) => onChange({ pharmacyAddress: e.target.value })} /></Field>
+          <Field label="Pharmacy Address" className="sm:col-span-3">
+            <PacketTextarea
+              rows={3}
+              className={`${inputClass} min-h-[72px]`}
+              value={d.pharmacyAddress || ''}
+              onChange={(e) => onChange({ pharmacyAddress: e.target.value })}
+              placeholder="Street, city, state, ZIP"
+            />
+          </Field>
         </div>
         <div className="mt-3">
           <p className="mb-1 text-xs font-medium text-gray-600">Source Information – Client / Family / Other</p>
           <CheckboxRow options={['Client', 'Family', 'Other']} value={d.sourceInfo || []} onChange={(sourceInfo) => onChange({ sourceInfo })} columns={3} />
           {(d.sourceInfo || []).includes('Other') ? (
-            <Field label="Other source" className="mt-2"><input className={inputClass} value={d.sourceOther || ''} onChange={(e) => onChange({ sourceOther: e.target.value })} /></Field>
+            <Field label="Other source" className="mt-2"><PacketInput className={inputClass} value={d.sourceOther || ''} onChange={(e) => onChange({ sourceOther: e.target.value })} /></Field>
           ) : null}
         </div>
       </SectionCard>
@@ -351,11 +433,11 @@ function Form110({ data, onChange, shared, errors = {} }) {
         <div className="grid gap-3 sm:grid-cols-5">
           {['temperature', 'bp', 'hr', 'respirations', 'o2sat'].map((k) => (
             <Field key={k} label={k === 'o2sat' ? 'O2 sat' : k.toUpperCase()}>
-              <input className={inputClass} value={d.vitals?.[k] || ''} onChange={(e) => setVitals({ [k]: e.target.value })} />
+              <PacketInput className={inputClass} value={d.vitals?.[k] || ''} onChange={(e) => setVitals({ [k]: e.target.value })} />
             </Field>
           ))}
         </div>
-        <Field label="Special Diet" className="mt-3"><input className={inputClass} value={d.specialDiet || ''} onChange={(e) => onChange({ specialDiet: e.target.value })} /></Field>
+        <Field label="Special Diet" className="mt-3"><PacketInput className={inputClass} value={d.specialDiet || ''} onChange={(e) => onChange({ specialDiet: e.target.value })} /></Field>
       </SectionCard>
 
       <SectionCard title="Diagnoses & Medications">
@@ -363,16 +445,16 @@ function Form110({ data, onChange, shared, errors = {} }) {
           <div className="space-y-2">
             <p className="text-xs font-medium text-gray-600">Client Diagnosis</p>
             {Array.from({ length: 10 }, (_, i) => (
-              <input key={i} className={inputClass} placeholder={`${i + 1}.`} value={d.diagnoses?.[i] || ''} onChange={(e) => setDiag(i, e.target.value)} />
+              <PacketInput key={i} className={inputClass} placeholder={`${i + 1}.`} value={d.diagnoses?.[i] || ''} onChange={(e) => setDiag(i, e.target.value)} />
             ))}
           </div>
           <div className="space-y-2">
             <p className="text-xs font-medium text-gray-600">Current Medications (Name / Dose / Frequency)</p>
             {Array.from({ length: 10 }, (_, i) => (
               <div key={i} className="grid grid-cols-3 gap-1">
-                <input className={inputClass} placeholder="Name" value={d.medications?.[i]?.name || ''} onChange={(e) => setMed(i, 'name', e.target.value)} />
-                <input className={inputClass} placeholder="Dose" value={d.medications?.[i]?.dose || ''} onChange={(e) => setMed(i, 'dose', e.target.value)} />
-                <input className={inputClass} placeholder="Freq" value={d.medications?.[i]?.frequency || ''} onChange={(e) => setMed(i, 'frequency', e.target.value)} />
+                <PacketInput className={inputClass} placeholder="Name" value={d.medications?.[i]?.name || ''} onChange={(e) => setMed(i, 'name', e.target.value)} />
+                <PacketInput className={inputClass} placeholder="Dose" value={d.medications?.[i]?.dose || ''} onChange={(e) => setMed(i, 'dose', e.target.value)} />
+                <PacketInput className={inputClass} placeholder="Freq" value={d.medications?.[i]?.frequency || ''} onChange={(e) => setMed(i, 'frequency', e.target.value)} />
               </div>
             ))}
           </div>
@@ -393,8 +475,8 @@ function Form110({ data, onChange, shared, errors = {} }) {
             <div className="mt-2 space-y-2">
               {Array.from({ length: 3 }, (_, i) => (
                 <div key={i} className="grid gap-2 sm:grid-cols-2">
-                  <input className={inputClass} placeholder={`Allergy ${i + 1}`} value={d.allergies?.[i]?.allergy || ''} onChange={(e) => setAllergy(i, 'allergy', e.target.value)} />
-                  <input className={inputClass} placeholder="Reaction" value={d.allergies?.[i]?.reaction || ''} onChange={(e) => setAllergy(i, 'reaction', e.target.value)} />
+                  <PacketInput className={inputClass} placeholder={`Allergy ${i + 1}`} value={d.allergies?.[i]?.allergy || ''} onChange={(e) => setAllergy(i, 'allergy', e.target.value)} />
+                  <PacketInput className={inputClass} placeholder="Reaction" value={d.allergies?.[i]?.reaction || ''} onChange={(e) => setAllergy(i, 'reaction', e.target.value)} />
                 </div>
               ))}
               {errors.allergies ? <p className="text-xs text-red-600">{errors.allergies}</p> : null}
@@ -405,7 +487,7 @@ function Form110({ data, onChange, shared, errors = {} }) {
           <p className="mb-1 text-xs font-medium text-gray-600">Pertinent information for care / employee welfare?</p>
           <RadioRow name="pertinent" options={['Yes', 'No']} value={d.pertinentInfoYesNo || ''} onChange={(pertinentInfoYesNo) => onChange({ pertinentInfoYesNo })} />
           {d.pertinentInfoYesNo === 'Yes' ? (
-            <textarea className={`${inputClass} mt-2 min-h-[72px]`} value={d.pertinentInfoDetails || ''} onChange={(e) => onChange({ pertinentInfoDetails: e.target.value })} />
+            <PacketTextarea className={`${inputClass} mt-2 min-h-[72px]`} value={d.pertinentInfoDetails || ''} onChange={(e) => onChange({ pertinentInfoDetails: e.target.value })} />
           ) : null}
         </div>
       </SectionCard>
@@ -416,21 +498,21 @@ function Form110({ data, onChange, shared, errors = {} }) {
             <p className="mb-2 text-sm font-semibold text-gray-800">Neuro</p>
             <p className="mb-1 text-xs font-medium text-gray-600">Level of Consciousness</p>
             <CheckboxRow options={LOC_OPTS} value={neuro.loc || []} onChange={(loc) => setNeuro({ loc })} />
-            <Field label="Other" className="mt-2"><input className={inputClass} value={neuro.locOther || ''} onChange={(e) => setNeuro({ locOther: e.target.value })} /></Field>
+            <Field label="Other" className="mt-2"><PacketInput className={inputClass} value={neuro.locOther || ''} onChange={(e) => setNeuro({ locOther: e.target.value })} /></Field>
             <div className="mt-2 space-y-1">
               <BoolCheck label="PERRLA" checked={neuro.perrla} onChange={(perrla) => setNeuro({ perrla })} />
               <BoolCheck label="Moves all extremities without problems" checked={neuro.movesExtremities} onChange={(movesExtremities) => setNeuro({ movesExtremities })} />
               <BoolCheck label="Paralysis" checked={neuro.paralysis} onChange={(paralysis) => setNeuro({ paralysis })} />
               <BoolCheck label="Weakness" checked={neuro.weakness} onChange={(weakness) => setNeuro({ weakness })} />
-              {neuro.weakness ? <Field label="Side"><input className={inputClass} value={neuro.weaknessSide || ''} onChange={(e) => setNeuro({ weaknessSide: e.target.value })} /></Field> : null}
+              {neuro.weakness ? <Field label="Side"><PacketInput className={inputClass} value={neuro.weaknessSide || ''} onChange={(e) => setNeuro({ weaknessSide: e.target.value })} /></Field> : null}
               <BoolCheck label="Abnormal gait" checked={neuro.abnormalGait} onChange={(abnormalGait) => setNeuro({ abnormalGait })} />
-              <Field label="Pain (out of 10)"><input className={inputClass} value={neuro.painScore || ''} onChange={(e) => setNeuro({ painScore: e.target.value })} /></Field>
+              <Field label="Pain (out of 10)"><PacketInput className={inputClass} value={neuro.painScore || ''} onChange={(e) => setNeuro({ painScore: e.target.value })} /></Field>
             </div>
           </div>
           <div>
             <p className="mb-2 text-sm font-semibold text-gray-800">Skin</p>
             <CheckboxRow options={SKIN_OPTS} value={skin.items || []} onChange={(items) => setSkin({ items })} />
-            <Field label="Edema where" className="mt-2"><input className={inputClass} value={skin.edemaWhere || ''} onChange={(e) => setSkin({ edemaWhere: e.target.value })} /></Field>
+            <Field label="Edema where" className="mt-2"><PacketInput className={inputClass} value={skin.edemaWhere || ''} onChange={(e) => setSkin({ edemaWhere: e.target.value })} /></Field>
             <p className="mb-1 mt-2 text-xs font-medium text-gray-600">Color</p>
             <CheckboxRow options={SKIN_COLOR} value={skin.color || []} onChange={(color) => setSkin({ color })} columns={3} />
           </div>
@@ -441,47 +523,47 @@ function Form110({ data, onChange, shared, errors = {} }) {
           <div>
             <p className="mb-2 text-sm font-semibold text-gray-800">Gastrointestinal</p>
             <CheckboxRow options={GI_OPTS} value={d.gastrointestinal?.items || []} onChange={(items) => onChange({ gastrointestinal: { ...d.gastrointestinal, items } })} />
-            <Field label="Tenderness present" className="mt-2"><input className={inputClass} value={d.gastrointestinal?.tenderness || ''} onChange={(e) => onChange({ gastrointestinal: { ...d.gastrointestinal, tenderness: e.target.value } })} /></Field>
-            <Field label="Other" className="mt-2"><input className={inputClass} value={d.gastrointestinal?.other || ''} onChange={(e) => onChange({ gastrointestinal: { ...d.gastrointestinal, other: e.target.value } })} /></Field>
+            <Field label="Tenderness present" className="mt-2"><PacketInput className={inputClass} value={d.gastrointestinal?.tenderness || ''} onChange={(e) => onChange({ gastrointestinal: { ...d.gastrointestinal, tenderness: e.target.value } })} /></Field>
+            <Field label="Other" className="mt-2"><PacketInput className={inputClass} value={d.gastrointestinal?.other || ''} onChange={(e) => onChange({ gastrointestinal: { ...d.gastrointestinal, other: e.target.value } })} /></Field>
           </div>
           <div>
             <p className="mb-2 text-sm font-semibold text-gray-800">Genitourinary</p>
             <CheckboxRow options={GU_OPTS} value={d.genitourinary?.items || []} onChange={(items) => onChange({ genitourinary: { ...d.genitourinary, items } })} />
-            <Field label="Other" className="mt-2"><input className={inputClass} value={d.genitourinary?.other || ''} onChange={(e) => onChange({ genitourinary: { ...d.genitourinary, other: e.target.value } })} /></Field>
+            <Field label="Other" className="mt-2"><PacketInput className={inputClass} value={d.genitourinary?.other || ''} onChange={(e) => onChange({ genitourinary: { ...d.genitourinary, other: e.target.value } })} /></Field>
           </div>
           <div>
             <p className="mb-2 text-sm font-semibold text-gray-800">Respiratory</p>
             <CheckboxRow options={RESP_OPTS} value={d.respiratory?.items || []} onChange={(items) => onChange({ respiratory: { ...d.respiratory, items } })} />
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              <Field label="Abnormal breath sounds"><input className={inputClass} value={d.respiratory?.abnormalSounds || ''} onChange={(e) => onChange({ respiratory: { ...d.respiratory, abnormalSounds: e.target.value } })} /></Field>
-              <Field label="O2 liters/min"><input className={inputClass} value={d.respiratory?.o2Liters || ''} onChange={(e) => onChange({ respiratory: { ...d.respiratory, o2Liters: e.target.value } })} /></Field>
-              <Field label="COPD"><input className={inputClass} value={d.respiratory?.copd || ''} onChange={(e) => onChange({ respiratory: { ...d.respiratory, copd: e.target.value } })} /></Field>
+              <Field label="Abnormal breath sounds"><PacketInput className={inputClass} value={d.respiratory?.abnormalSounds || ''} onChange={(e) => onChange({ respiratory: { ...d.respiratory, abnormalSounds: e.target.value } })} /></Field>
+              <Field label="O2 liters/min"><PacketInput className={inputClass} value={d.respiratory?.o2Liters || ''} onChange={(e) => onChange({ respiratory: { ...d.respiratory, o2Liters: e.target.value } })} /></Field>
+              <Field label="COPD"><PacketInput className={inputClass} value={d.respiratory?.copd || ''} onChange={(e) => onChange({ respiratory: { ...d.respiratory, copd: e.target.value } })} /></Field>
               <BoolCheck label="Smoker" checked={d.respiratory?.smoker} onChange={(smoker) => onChange({ respiratory: { ...d.respiratory, smoker } })} />
             </div>
           </div>
           <div>
             <p className="mb-2 text-sm font-semibold text-gray-800">Endocrine</p>
             <CheckboxRow options={ENDO_OPTS} value={d.endocrine?.items || []} onChange={(items) => onChange({ endocrine: { ...d.endocrine, items } })} />
-            <Field label="Thyroid disease" className="mt-2"><input className={inputClass} value={d.endocrine?.thyroid || ''} onChange={(e) => onChange({ endocrine: { ...d.endocrine, thyroid: e.target.value } })} /></Field>
-            <Field label="Other" className="mt-2"><input className={inputClass} value={d.endocrine?.other || ''} onChange={(e) => onChange({ endocrine: { ...d.endocrine, other: e.target.value } })} /></Field>
+            <Field label="Thyroid disease" className="mt-2"><PacketInput className={inputClass} value={d.endocrine?.thyroid || ''} onChange={(e) => onChange({ endocrine: { ...d.endocrine, thyroid: e.target.value } })} /></Field>
+            <Field label="Other" className="mt-2"><PacketInput className={inputClass} value={d.endocrine?.other || ''} onChange={(e) => onChange({ endocrine: { ...d.endocrine, other: e.target.value } })} /></Field>
           </div>
           <div>
             <p className="mb-2 text-sm font-semibold text-gray-800">Musculoskeletal</p>
             <CheckboxRow options={MSK_OPTS} value={d.musculoskeletal?.items || []} onChange={(items) => onChange({ musculoskeletal: { ...d.musculoskeletal, items } })} />
-            <Field label="Other" className="mt-2"><input className={inputClass} value={d.musculoskeletal?.other || ''} onChange={(e) => onChange({ musculoskeletal: { ...d.musculoskeletal, other: e.target.value } })} /></Field>
+            <Field label="Other" className="mt-2"><PacketInput className={inputClass} value={d.musculoskeletal?.other || ''} onChange={(e) => onChange({ musculoskeletal: { ...d.musculoskeletal, other: e.target.value } })} /></Field>
           </div>
           <div>
             <p className="mb-2 text-sm font-semibold text-gray-800">Psychological</p>
             <CheckboxRow options={PSYCH_OPTS} value={d.psychological?.items || []} onChange={(items) => onChange({ psychological: { ...d.psychological, items } })} />
-            <Field label="Other" className="mt-2"><input className={inputClass} value={d.psychological?.other || ''} onChange={(e) => onChange({ psychological: { ...d.psychological, other: e.target.value } })} /></Field>
+            <Field label="Other" className="mt-2"><PacketInput className={inputClass} value={d.psychological?.other || ''} onChange={(e) => onChange({ psychological: { ...d.psychological, other: e.target.value } })} /></Field>
           </div>
         </div>
       </SectionCard>
 
       <SectionCard title="Medical History">
-        <Field label="Hospital admissions within 5 years"><textarea className={`${inputClass} min-h-[64px]`} value={d.hospitalAdmissions || ''} onChange={(e) => onChange({ hospitalAdmissions: e.target.value })} /></Field>
-        <Field label="Surgeries" className="mt-2"><textarea className={`${inputClass} min-h-[64px]`} value={d.surgeries || ''} onChange={(e) => onChange({ surgeries: e.target.value })} /></Field>
-        <Field label="On-going medical problems" className="mt-2"><textarea className={`${inputClass} min-h-[64px]`} value={d.ongoingProblems || ''} onChange={(e) => onChange({ ongoingProblems: e.target.value })} /></Field>
+        <Field label="Hospital admissions within 5 years"><PacketTextarea className={`${inputClass} min-h-[64px]`} value={d.hospitalAdmissions || ''} onChange={(e) => onChange({ hospitalAdmissions: e.target.value })} /></Field>
+        <Field label="Surgeries" className="mt-2"><PacketTextarea className={`${inputClass} min-h-[64px]`} value={d.surgeries || ''} onChange={(e) => onChange({ surgeries: e.target.value })} /></Field>
+        <Field label="On-going medical problems" className="mt-2"><PacketTextarea className={`${inputClass} min-h-[64px]`} value={d.ongoingProblems || ''} onChange={(e) => onChange({ ongoingProblems: e.target.value })} /></Field>
       </SectionCard>
 
       <SectionCard title="ADLs & Equipment">
@@ -506,7 +588,7 @@ function Form110({ data, onChange, shared, errors = {} }) {
             <p className="mb-1 text-xs font-medium text-gray-600">Walking / Ambulation</p>
             <RadioRow name="ambulation" options={AMB_OPTS} value={d.ambulation || ''} onChange={(ambulation) => onChange({ ambulation })} />
             {d.ambulation === 'Needs device to ambulate' ? (
-              <Field label="Device" className="mt-2"><input className={inputClass} value={d.ambulationDevice || ''} onChange={(e) => onChange({ ambulationDevice: e.target.value })} /></Field>
+              <Field label="Device" className="mt-2"><PacketInput className={inputClass} value={d.ambulationDevice || ''} onChange={(e) => onChange({ ambulationDevice: e.target.value })} /></Field>
             ) : null}
           </div>
         </div>
@@ -515,42 +597,51 @@ function Form110({ data, onChange, shared, errors = {} }) {
           <CheckboxRow options={EQUIP_OPTS} value={d.equipment || []} onChange={(equipment) => onChange({ equipment })} columns={3} />
           <p className="mb-1 mt-2 text-xs font-medium text-gray-600">Dentures</p>
           <CheckboxRow options={DENTURE_OPTS} value={d.dentures || []} onChange={(dentures) => onChange({ dentures })} columns={2} />
-          <Field label="Other equipment" className="mt-2"><input className={inputClass} value={d.equipmentOther || ''} onChange={(e) => onChange({ equipmentOther: e.target.value })} /></Field>
+          <Field label="Other equipment" className="mt-2"><PacketInput className={inputClass} value={d.equipmentOther || ''} onChange={(e) => onChange({ equipmentOther: e.target.value })} /></Field>
         </div>
       </SectionCard>
 
       <SectionCard title="Social">
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Primary Language"><input className={inputClass} value={d.primaryLanguage || ''} onChange={(e) => onChange({ primaryLanguage: e.target.value })} /></Field>
-          <Field label="Highest Level of Schooling"><input className={inputClass} value={d.schooling || ''} onChange={(e) => onChange({ schooling: e.target.value })} /></Field>
-          <Field label="Former Occupation"><input className={inputClass} value={d.formerOccupation || ''} onChange={(e) => onChange({ formerOccupation: e.target.value })} /></Field>
-          <Field label="Hobbies and Interests"><input className={inputClass} value={d.hobbies || ''} onChange={(e) => onChange({ hobbies: e.target.value })} /></Field>
+          <Field label="Primary Language"><PacketInput className={inputClass} value={d.primaryLanguage || ''} onChange={(e) => onChange({ primaryLanguage: e.target.value })} /></Field>
+          <Field label="Highest Level of Schooling"><PacketInput className={inputClass} value={d.schooling || ''} onChange={(e) => onChange({ schooling: e.target.value })} /></Field>
+          <Field label="Former Occupation"><PacketInput className={inputClass} value={d.formerOccupation || ''} onChange={(e) => onChange({ formerOccupation: e.target.value })} /></Field>
+          <Field label="Hobbies and Interests"><PacketInput className={inputClass} value={d.hobbies || ''} onChange={(e) => onChange({ hobbies: e.target.value })} /></Field>
         </div>
         <p className="mb-1 mt-3 text-xs font-medium text-gray-600">Client Lives</p>
         <RadioRow name="livesWith" options={LIVES_OPTS} value={d.livesWith || ''} onChange={(livesWith) => onChange({ livesWith })} />
         {d.livesWith === 'Other' ? (
-          <Field label="Other" className="mt-2"><input className={inputClass} value={d.livesWithOther || ''} onChange={(e) => onChange({ livesWithOther: e.target.value })} /></Field>
+          <Field label="Other" className="mt-2"><PacketInput className={inputClass} value={d.livesWithOther || ''} onChange={(e) => onChange({ livesWithOther: e.target.value })} /></Field>
         ) : null}
       </SectionCard>
 
       <SectionCard title="Assessor Signature">
         <SignatureBlock
           title="Assessor"
-          value={{ signature: d.assessorSignature || '', printedName: d.assessorPrintName || '', date: d.assessorDate || '' }}
-          onChange={(s) => onChange({ assessorSignature: s.signature, assessorPrintName: s.printedName, assessorDate: s.date })}
+          value={{
+            signature: d.assessorSignature || '',
+            printedName: d.assessorPrintName || shared?.assessorName || '',
+            date: d.assessorDate || shared?.assessmentDate || '',
+          }}
+          onChange={(s) => onChange({
+            assessorSignature: s.signature,
+            assessorPrintName: s.printedName,
+            assessorDate: s.date,
+          })}
+          lockPrintedName
         />
       </SectionCard>
 
       <SectionCard title="Quote / Care Plan Helpers" subtitle="Used to seed quote and care-plan fields">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="First Name"><input className={inputClass} value={d.firstName || ''} onChange={(e) => onChange({ firstName: e.target.value })} /></Field>
-          <Field label="Last Name"><input className={inputClass} value={d.lastName || ''} onChange={(e) => onChange({ lastName: e.target.value })} /></Field>
-          <Field label="Email"><input type="email" className={inputClass} value={d.email || ''} onChange={(e) => onChange({ email: e.target.value })} /></Field>
-          <Field label="City"><input className={inputClass} value={d.city || ''} onChange={(e) => onChange({ city: e.target.value })} /></Field>
-          <Field label="State"><input className={inputClass} value={d.state || ''} onChange={(e) => onChange({ state: e.target.value })} /></Field>
-          <Field label="ZIP"><input className={inputClass} value={d.zip || ''} onChange={(e) => onChange({ zip: e.target.value })} /></Field>
-          <Field label="Recommended Weekly Hours"><input className={inputClass} value={d.recommendedWeeklyHours || ''} onChange={(e) => onChange({ recommendedWeeklyHours: e.target.value })} /></Field>
-          <Field label="Start of Care Date"><input type="date" className={inputClass} value={d.startOfCareDate || ''} onChange={(e) => onChange({ startOfCareDate: e.target.value })} /></Field>
+          <Field label="First Name"><PacketInput readOnly disabled className={readOnlyInputClass} value={client.firstName} tabIndex={-1} /></Field>
+          <Field label="Last Name"><PacketInput readOnly disabled className={readOnlyInputClass} value={client.lastName} tabIndex={-1} /></Field>
+          <Field label="Email"><PacketInput readOnly disabled type="email" className={readOnlyInputClass} value={client.email} tabIndex={-1} /></Field>
+          <Field label="City"><PacketInput readOnly disabled className={readOnlyInputClass} value={client.city} tabIndex={-1} /></Field>
+          <Field label="State"><PacketInput readOnly disabled className={readOnlyInputClass} value={client.state} tabIndex={-1} /></Field>
+          <Field label="ZIP"><PacketInput readOnly disabled className={readOnlyInputClass} value={client.zip} tabIndex={-1} /></Field>
+          <Field label="Recommended Weekly Hours"><PacketInput className={inputClass} value={d.recommendedWeeklyHours || ''} onChange={(e) => onChange({ recommendedWeeklyHours: e.target.value })} /></Field>
+          <Field label="Start of Care Date"><PacketInput type="date" className={inputClass} value={d.startOfCareDate || ''} onChange={(e) => onChange({ startOfCareDate: e.target.value })} /></Field>
           <Field label="Risk Level">
             <RadioRow name="risk" options={['Low', 'Moderate', 'High']} value={d.riskLevel || ''} onChange={(riskLevel) => onChange({ riskLevel })} />
           </Field>
@@ -564,20 +655,30 @@ function Form110({ data, onChange, shared, errors = {} }) {
 
 function Form324({ data, onChange, shared }) {
   const d = data || {};
-  const agency = shared?.agencyName || 'the agency';
+  const copy = getForm324Copy(shared?.agencyName || shared?.agencyBranding);
   return (
     <div className="space-y-4">
-      <SectionCard title="What Personal Assistants May NOT Do">
+      <ReadOnlyClientFields
+        clientName={clientDisplayName(d)}
+        dob={clientDisplayDob(d)}
+      />
+
+      <SectionCard title={copy.title}>
         <LegalText>
-          <p>Personal Assistants do not: perform tasks not on the Care Plan; give enemas or remove impactions; irrigate Foley, supra-pubic, or colostomy; provide decubitus/wound care; care for tracheotomy tubes or suctioning; vaginal irrigation or tampon insertion; tube feeding; massage/rub legs; cut fingernails or toenails; restrain clients; change sterile dressings; give medical or legal advice; heavy lifting unrelated to client care; household repairs; care for family members; handle checkbooks/finances; accept gifts or extra pay; landscaping/yard work; smoke on shift; eat client food; text/talk on phone while on shift; drive without prior office approval; enter the home without the client present; or call clients to cancel/reschedule shifts.</p>
+          <p className="font-medium text-gray-900">{copy.intro}</p>
+          <ul className="list-disc space-y-1.5 pl-5">
+            {copy.bullets.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
           <BoolCheck
-            label={`I have read and understand what a ${agency} Personal Assistant may not do. If I have questions about my service, I will contact my Service Supervisor.`}
+            label={copy.acknowledgement}
             checked={d.acknowledged}
             onChange={(acknowledged) => onChange({ acknowledged })}
           />
         </LegalText>
       </SectionCard>
-      <SignatureBlock title="Client / Client Representative" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship />
+      <SignatureBlock title="Client / Client Representative" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship lockPrintedName />
       <SignatureBlock title="Agency Representative" value={d.agency || {}} onChange={(agencySig) => onChange({ agency: agencySig })} />
     </div>
   );
@@ -604,10 +705,12 @@ function Form325({ data, onChange, shared }) {
             ))}
             <div className="pt-2">
               <Field label="Print Name">
-                <input
-                  className={inputClass}
-                  value={d.printName || ''}
-                  onChange={(e) => onChange({ printName: e.target.value })}
+                <PacketInput
+                  readOnly
+                  disabled
+                  className={readOnlyInputClass}
+                  value={d.printName || clientDisplayName(d)}
+                  tabIndex={-1}
                 />
               </Field>
               <p className="mt-2 text-sm text-gray-700">{copy.printNameLeadIn}</p>
@@ -615,7 +718,7 @@ function Form325({ data, onChange, shared }) {
           </div>
         </div>
       </SectionCard>
-      <SignatureBlock title="Client Signature" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship />
+      <SignatureBlock title="Client Signature" value={d.client || {}} onChange={(client) => onChange({ client })} lockPrintedName />
     </div>
   );
 }
@@ -630,11 +733,13 @@ function Form350({ data, onChange, shared }) {
           <div className="flex flex-wrap items-end gap-x-2 gap-y-1 text-sm leading-relaxed text-gray-800">
             <span className="pb-2 font-medium">I,</span>
             <label className="inline-flex min-w-[14rem] flex-1 flex-col items-stretch sm:min-w-[18rem]">
-              <input
-                className={`${inputClass} border-0 border-b border-gray-400 bg-transparent px-1 py-1 shadow-none focus:border-primary focus:ring-0`}
-                value={d.printName || ''}
-                onChange={(e) => onChange({ printName: e.target.value })}
+              <PacketInput
+                readOnly
+                disabled
+                className={`${readOnlyInputClass} border-0 border-b border-slate-300 bg-transparent px-1 py-1 shadow-none`}
+                value={d.printName || clientDisplayName(d)}
                 aria-label="Print First and Last Name"
+                tabIndex={-1}
               />
               <span className="mt-0.5 text-center text-[10px] italic text-gray-500">
                 Print First and Last Name
@@ -647,8 +752,49 @@ function Form350({ data, onChange, shared }) {
           </p>
         </LegalText>
       </SectionCard>
-      <SignatureBlock title="Client / Legal Guardian" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship />
+      <SignatureBlock title="Client / Legal Guardian" value={d.client || {}} onChange={(client) => onChange({ client })} lockPrintedName />
       <SignatureBlock title="Agency Representative" value={d.agency || {}} onChange={(agencySig) => onChange({ agency: agencySig })} />
+    </div>
+  );
+}
+
+/** PDF Form 400 column order: left stack then right stack. */
+const CARE_400_LEFT = ['assessment', 'activityComfort', 'elimination', 'personalCare', 'medications'];
+const CARE_400_RIGHT = ['housekeeping', 'mobility', 'nutrition', 'specialty', 'safety', 'records'];
+
+function CareInstructionGroup({ groupKey, tasks, setTask }) {
+  const labels = CARE_INSTRUCTION_GROUPS[groupKey] || [];
+  return (
+    <div className="rounded-lg border border-gray-100 bg-gray-50/40 p-3">
+      <div className="mb-2 flex items-end justify-between gap-2 border-b border-gray-200 pb-1.5">
+        <h4 className="text-sm font-semibold text-gray-900">{CARE_GROUP_TITLES[groupKey] || groupKey}</h4>
+        <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-gray-400">Frequency</span>
+      </div>
+      <div className="space-y-1">
+        {labels.map((label) => {
+          const row = tasks[label] || { enabled: false, frequency: '' };
+          return (
+            <div key={label} className="grid grid-cols-[minmax(0,1fr)_6.5rem] items-start gap-2 py-1">
+              <label className="flex items-start gap-2 text-sm text-gray-700">
+                <PacketInput
+                  type="checkbox"
+                  className="mt-0.5 shrink-0"
+                  checked={!!row.enabled}
+                  onChange={(e) => setTask(label, { enabled: e.target.checked })}
+                />
+                <span className="leading-snug">{label}</span>
+              </label>
+              <PacketInput
+                className={`${inputClass} px-2 py-1 text-xs`}
+                placeholder="Freq."
+                value={row.frequency || ''}
+                onChange={(e) => setTask(label, { frequency: e.target.value })}
+                disabled={!row.enabled}
+              />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -662,35 +808,20 @@ function Form400({ data, onChange }) {
   return (
     <div className="space-y-4">
       <SectionCard title="Care Instructions">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Client Name"><input className={inputClass} value={d.clientName || ''} onChange={(e) => onChange({ clientName: e.target.value })} /></Field>
-          <Field label="DOB"><input type="date" className={inputClass} value={d.dob || ''} onChange={(e) => onChange({ dob: e.target.value })} /></Field>
+        <ReadOnlyClientGrid clientName={clientDisplayName(d)} dob={clientDisplayDob(d)} />
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <div className="space-y-3">
+            {CARE_400_LEFT.map((key) => (
+              <CareInstructionGroup key={key} groupKey={key} tasks={tasks} setTask={setTask} />
+            ))}
+          </div>
+          <div className="space-y-3">
+            {CARE_400_RIGHT.map((key) => (
+              <CareInstructionGroup key={key} groupKey={key} tasks={tasks} setTask={setTask} />
+            ))}
+          </div>
         </div>
       </SectionCard>
-      {Object.entries(CARE_INSTRUCTION_GROUPS).map(([key, labels]) => (
-        <SectionCard key={key} title={CARE_GROUP_TITLES[key] || key}>
-          <div className="space-y-2">
-            {labels.map((label) => {
-              const row = tasks[label] || { enabled: false, frequency: '' };
-              return (
-                <div key={label} className="flex flex-wrap items-center gap-2 border-b border-gray-50 py-1.5">
-                  <label className="flex min-w-[12rem] flex-1 items-start gap-2 text-sm text-gray-700">
-                    <input type="checkbox" className="mt-0.5" checked={!!row.enabled} onChange={(e) => setTask(label, { enabled: e.target.checked })} />
-                    <span>{label}</span>
-                  </label>
-                  <input
-                    className={`${inputClass} w-40`}
-                    placeholder="Frequency"
-                    value={row.frequency || ''}
-                    onChange={(e) => setTask(label, { frequency: e.target.value })}
-                    disabled={!row.enabled}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </SectionCard>
-      ))}
     </div>
   );
 }
@@ -705,11 +836,13 @@ function Form410({ data, onChange, shared }) {
           <div className="flex flex-wrap items-end gap-x-2 gap-y-1 text-sm leading-relaxed text-gray-800">
             <span className="pb-2 font-medium">I,</span>
             <label className="inline-flex min-w-[14rem] flex-1 flex-col items-stretch sm:min-w-[18rem]">
-              <input
-                className={`${inputClass} border-0 border-b border-gray-400 bg-transparent px-1 py-1 shadow-none focus:border-primary focus:ring-0`}
-                value={d.printName || ''}
-                onChange={(e) => onChange({ printName: e.target.value })}
+              <PacketInput
+                readOnly
+                disabled
+                className={`${readOnlyInputClass} border-0 border-b border-slate-300 bg-transparent px-1 py-1 shadow-none`}
+                value={d.printName || clientDisplayName(d)}
                 aria-label="Print First and Last Name"
+                tabIndex={-1}
               />
               <span className="mt-0.5 text-center text-[10px] italic text-gray-500">
                 Print First and Last Name
@@ -721,14 +854,11 @@ function Form410({ data, onChange, shared }) {
             {`${agency} for the following client and have carefully read and understand the services identified for this client.`}
           </p>
         </LegalText>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <Field label="Client Name"><input className={inputClass} value={d.clientName || ''} onChange={(e) => onChange({ clientName: e.target.value })} /></Field>
-          <Field label="DOB"><input type="date" className={inputClass} value={d.dob || ''} onChange={(e) => onChange({ dob: e.target.value })} /></Field>
-        </div>
-        <Field label="Comments" className="mt-3"><textarea className={`${inputClass} min-h-[80px]`} value={d.comments || ''} onChange={(e) => onChange({ comments: e.target.value })} /></Field>
+        <ReadOnlyClientGrid clientName={clientDisplayName(d)} dob={clientDisplayDob(d)} className="mt-3" />
+        <Field label="Comments" className="mt-3"><PacketTextarea className={`${inputClass} min-h-[80px]`} value={d.comments || ''} onChange={(e) => onChange({ comments: e.target.value })} /></Field>
       </SectionCard>
       <SignatureBlock title="Employee" value={d.employee || {}} onChange={(employee) => onChange({ employee })} />
-      <SignatureBlock title="Client" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship />
+      <SignatureBlock title="Client" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship lockPrintedName />
       <SignatureBlock title="Agency Representative" value={d.agency || {}} onChange={(agencySig) => onChange({ agency: agencySig })} />
     </div>
   );
@@ -749,37 +879,54 @@ function Form610({ data, onChange, shared }) {
           />
         </LegalText>
       </SectionCard>
-      <SignatureBlock title="Client / Legal Representative" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship />
+      <SignatureBlock title="Client / Legal Representative" value={d.client || {}} onChange={(client) => onChange({ client })} lockPrintedName />
     </div>
   );
 }
 
+const CASE_NOTES_DEFAULT_ROWS = 5;
+const emptyCaseNoteEntry = () => ({ date: '', time: '', notes: '' });
+
 function Form790({ data, onChange }) {
   const d = data || {};
-  const entries = d.entries || [];
+  const stored = Array.isArray(d.entries) ? d.entries : [];
+  const entries = stored.length >= CASE_NOTES_DEFAULT_ROWS
+    ? stored
+    : [
+      ...stored.map((e) => ({ ...emptyCaseNoteEntry(), ...e })),
+      ...Array.from({ length: CASE_NOTES_DEFAULT_ROWS - stored.length }, emptyCaseNoteEntry),
+    ];
   const setEntry = (i, patch) => {
-    const next = Array.from({ length: Math.max(8, entries.length) }, (_, idx) => ({ date: '', time: '', notes: '', ...entries[idx] }));
-    next[i] = { ...next[i], ...patch };
+    const next = entries.map((e, idx) => (idx === i ? { ...e, ...patch } : e));
     onChange({ entries: next });
   };
+  const addEntry = () => onChange({ entries: [...entries, emptyCaseNoteEntry()] });
   return (
     <div className="space-y-4">
       <SectionCard title="Case Notes">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Client ID"><input className={inputClass} value={d.clientId || ''} onChange={(e) => onChange({ clientId: e.target.value })} /></Field>
-          <Field label="Client Name"><input className={inputClass} value={d.clientName || ''} onChange={(e) => onChange({ clientName: e.target.value })} /></Field>
-          <Field label="Client DOB"><input type="date" className={inputClass} value={d.clientDob || ''} onChange={(e) => onChange({ clientDob: e.target.value })} /></Field>
-          <Field label="Representative Name"><input className={inputClass} value={d.representativeName || ''} onChange={(e) => onChange({ representativeName: e.target.value })} /></Field>
-          <Field label="Representative Title"><input className={inputClass} value={d.representativeTitle || ''} onChange={(e) => onChange({ representativeTitle: e.target.value })} /></Field>
+          <Field label="Client ID"><PacketInput readOnly disabled className={readOnlyInputClass} value={d.clientId || ''} tabIndex={-1} /></Field>
+          <Field label="Client Name"><PacketInput readOnly disabled className={readOnlyInputClass} value={clientDisplayName(d)} tabIndex={-1} /></Field>
+          <Field label="Client DOB"><PacketInput readOnly disabled type="date" className={readOnlyInputClass} value={clientDisplayDob(d)} tabIndex={-1} /></Field>
+          <Field label="Representative Name"><PacketInput className={inputClass} value={d.representativeName || ''} onChange={(e) => onChange({ representativeName: e.target.value })} /></Field>
+          <Field label="Representative Title"><PacketInput className={inputClass} value={d.representativeTitle || ''} onChange={(e) => onChange({ representativeTitle: e.target.value })} /></Field>
         </div>
         <div className="mt-4 space-y-3">
-          {Array.from({ length: Math.max(8, entries.length) }, (_, i) => (
+          {entries.map((entry, i) => (
             <div key={i} className="grid gap-2 rounded-lg border border-gray-100 p-3 sm:grid-cols-[8rem_6rem_1fr]">
-              <Field label="Date"><input type="date" className={inputClass} value={entries[i]?.date || ''} onChange={(e) => setEntry(i, { date: e.target.value })} /></Field>
-              <Field label="Time"><input type="time" className={inputClass} value={entries[i]?.time || ''} onChange={(e) => setEntry(i, { time: e.target.value })} /></Field>
-              <Field label="Notes"><textarea className={`${inputClass} min-h-[56px]`} value={entries[i]?.notes || ''} onChange={(e) => setEntry(i, { notes: e.target.value })} /></Field>
+              <Field label="Date"><PacketInput type="date" className={inputClass} value={entry.date || ''} onChange={(e) => setEntry(i, { date: e.target.value })} /></Field>
+              <Field label="Time"><PacketInput type="time" className={inputClass} value={entry.time || ''} onChange={(e) => setEntry(i, { time: e.target.value })} /></Field>
+              <Field label="Notes"><PacketTextarea className={`${inputClass} min-h-[56px]`} value={entry.notes || ''} onChange={(e) => setEntry(i, { notes: e.target.value })} /></Field>
             </div>
           ))}
+          <button
+            type="button"
+            onClick={addEntry}
+            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-primary hover:border-primary/40 hover:bg-primary/5"
+          >
+            <Plus size={16} />
+            Add case note
+          </button>
         </div>
       </SectionCard>
     </div>
@@ -815,7 +962,7 @@ function Form800({ data, onChange, shared }) {
           />
         </div>
       </SectionCard>
-      <SignatureBlock title="Client / Representative" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship />
+      <SignatureBlock title="Client / Representative" value={d.client || {}} onChange={(client) => onChange({ client })} lockPrintedName />
     </div>
   );
 }
@@ -831,10 +978,7 @@ function Form1009({ data, onChange, shared }) {
   return (
     <div className="space-y-4">
       <SectionCard title="Consent for Homecare Services & Client Agreement">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Client Name"><input className={inputClass} value={d.clientName || ''} onChange={(e) => onChange({ clientName: e.target.value })} /></Field>
-          <Field label="DOB"><input type="date" className={inputClass} value={d.dob || ''} onChange={(e) => onChange({ dob: e.target.value })} /></Field>
-        </div>
+        <ReadOnlyClientGrid clientName={clientDisplayName(d)} dob={clientDisplayDob(d)} />
 
         <div className="mt-4 space-y-5 rounded-xl border border-gray-100 bg-white p-4 sm:p-5">
           {sections.map((section) => {
@@ -856,7 +1000,7 @@ function Form1009({ data, onChange, shared }) {
                       <CheckboxRow options={PDN} value={d.privateDutyNursing || []} onChange={(privateDutyNursing) => onChange({ privateDutyNursing })} columns={2} />
                     </div>
                     <Field label="Frequency by Discipline">
-                      <input className={inputClass} value={d.frequencyByDiscipline || ''} onChange={(e) => onChange({ frequencyByDiscipline: e.target.value })} />
+                      <PacketInput className={inputClass} value={d.frequencyByDiscipline || ''} onChange={(e) => onChange({ frequencyByDiscipline: e.target.value })} />
                     </Field>
                   </div>
                 ) : null}
@@ -872,14 +1016,58 @@ function Form1009({ data, onChange, shared }) {
                           <RadioRow name="billing" options={['Weekly', 'Bi-Weekly', 'Monthly']} value={d.billingCycle || ''} onChange={(billingCycle) => onChange({ billingCycle })} />
                           <div className="mt-3 space-y-2">
                             <BoolCheck label="Private Medical Insurance / Managed Care / Third-Party / LTC will pay" checked={d.privateInsurancePays} onChange={(privateInsurancePays) => onChange({ privateInsurancePays })} />
-                            {d.privateInsurancePays ? <Field label="Estimated co-pay / deductible ($)"><input className={inputClass} value={d.copayEstimate || ''} onChange={(e) => onChange({ copayEstimate: e.target.value })} /></Field> : null}
+                            {d.privateInsurancePays ? (
+                              <Field label="Estimated co-pay / deductible ($)">
+                                <PacketInput
+                                  className={inputClass}
+                                  inputMode="decimal"
+                                  value={d.copayEstimate || ''}
+                                  onChange={onDecimalFieldChange(onChange, 'copayEstimate')}
+                                  placeholder="0.00"
+                                />
+                              </Field>
+                            ) : null}
                             <BoolCheck label="Private Pay — I am responsible for the total amount due" checked={d.privatePay} onChange={(privatePay) => onChange({ privatePay })} />
-                            {d.privatePay ? <Field label="Charges ($)"><input className={inputClass} value={d.privatePayCharges || ''} onChange={(e) => onChange({ privatePayCharges: e.target.value })} /></Field> : null}
+                            {d.privatePay ? (
+                              <Field label="Charges ($)">
+                                <PacketInput
+                                  className={inputClass}
+                                  inputMode="decimal"
+                                  value={d.privatePayCharges || ''}
+                                  onChange={onDecimalFieldChange(onChange, 'privatePayCharges')}
+                                  placeholder="0.00"
+                                />
+                              </Field>
+                            ) : null}
                             <div className="grid gap-2 sm:grid-cols-2">
-                              <Field label="Other payment source"><input className={inputClass} value={d.otherPayment || ''} onChange={(e) => onChange({ otherPayment: e.target.value })} /></Field>
-                              <Field label="Other amount ($)"><input className={inputClass} value={d.otherPaymentAmount || ''} onChange={(e) => onChange({ otherPaymentAmount: e.target.value })} /></Field>
-                              <Field label="2-week deposit hours"><input className={inputClass} value={d.depositHours || ''} onChange={(e) => onChange({ depositHours: e.target.value })} /></Field>
-                              <Field label="Deposit amount ($)"><input className={inputClass} value={d.depositAmount || ''} onChange={(e) => onChange({ depositAmount: e.target.value })} /></Field>
+                              <Field label="Other payment source"><PacketInput className={inputClass} value={d.otherPayment || ''} onChange={(e) => onChange({ otherPayment: e.target.value })} /></Field>
+                              <Field label="Other amount ($)">
+                                <PacketInput
+                                  className={inputClass}
+                                  inputMode="decimal"
+                                  value={d.otherPaymentAmount || ''}
+                                  onChange={onDecimalFieldChange(onChange, 'otherPaymentAmount')}
+                                  placeholder="0.00"
+                                />
+                              </Field>
+                              <Field label="2-week deposit hours">
+                                <PacketInput
+                                  className={inputClass}
+                                  inputMode="decimal"
+                                  value={d.depositHours || ''}
+                                  onChange={onDecimalFieldChange(onChange, 'depositHours', 1)}
+                                  placeholder="0"
+                                />
+                              </Field>
+                              <Field label="Deposit amount ($)">
+                                <PacketInput
+                                  className={inputClass}
+                                  inputMode="decimal"
+                                  value={d.depositAmount || ''}
+                                  onChange={onDecimalFieldChange(onChange, 'depositAmount')}
+                                  placeholder="0.00"
+                                />
+                              </Field>
                             </div>
                           </div>
                         </div>
@@ -893,8 +1081,22 @@ function Form1009({ data, onChange, shared }) {
                     <p className="mb-1 text-xs font-medium text-gray-600">Advance Directive</p>
                     <RadioRow name="adv" options={ADV_DIR(agency)} value={d.advancedDirective || ''} onChange={(advancedDirective) => onChange({ advancedDirective })} />
                     <div className="grid gap-2 sm:grid-cols-2">
-                      <Field label="Directive holder name"><input className={inputClass} value={d.advancedDirectiveHolder || ''} onChange={(e) => onChange({ advancedDirectiveHolder: e.target.value })} /></Field>
-                      <Field label="Relationship"><input className={inputClass} value={d.advancedDirectiveRelationship || ''} onChange={(e) => onChange({ advancedDirectiveRelationship: e.target.value })} /></Field>
+                      <Field label="Directive holder name"><PacketInput className={inputClass} value={d.advancedDirectiveHolder || ''} onChange={(e) => onChange({ advancedDirectiveHolder: e.target.value })} /></Field>
+                      <Field label="Relationship">
+                        <select
+                          className={inputClass}
+                          value={d.advancedDirectiveRelationship || ''}
+                          onChange={(e) => onChange({ advancedDirectiveRelationship: e.target.value })}
+                        >
+                          <option value="">Select relationship</option>
+                          {RELATIONSHIPS.map((r) => (
+                            <option key={r} value={r}>{r}</option>
+                          ))}
+                          {d.advancedDirectiveRelationship && !RELATIONSHIPS.includes(d.advancedDirectiveRelationship) ? (
+                            <option value={d.advancedDirectiveRelationship}>{d.advancedDirectiveRelationship}</option>
+                          ) : null}
+                        </select>
+                      </Field>
                     </div>
                   </div>
                 ) : null}
@@ -903,7 +1105,7 @@ function Form1009({ data, onChange, shared }) {
           })}
         </div>
       </SectionCard>
-      <SignatureBlock title="Client / Representative" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship />
+      <SignatureBlock title="Client / Representative" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship lockPrintedName />
       <SignatureBlock title="Agency Representative" value={d.agency || {}} onChange={(agencySig) => onChange({ agency: agencySig })} />
     </div>
   );
@@ -920,10 +1122,7 @@ function Form1081({ data, onChange }) {
   return (
     <div className="space-y-4">
       <SectionCard title="Consent to Release / Obtain Information">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Client Name"><input className={inputClass} value={d.clientName || ''} onChange={(e) => onChange({ clientName: e.target.value })} /></Field>
-          <Field label="DOB"><input type="date" className={inputClass} value={d.dob || ''} onChange={(e) => onChange({ dob: e.target.value })} /></Field>
-        </div>
+        <ReadOnlyClientGrid clientName={clientDisplayName(d)} dob={clientDisplayDob(d)} />
         <LegalText>
           <p className="mt-3">Under HIPAA I have privacy rights regarding protected health information (PHI). PHI may be used to conduct treatment among providers, obtain payment from third-party payers, and conduct normal agency operations such as quality reviews. I may request restrictions (the agency is not required to agree) and may revoke this consent in writing except for information already used or disclosed.</p>
         </LegalText>
@@ -934,19 +1133,19 @@ function Form1081({ data, onChange }) {
           <BoolCheck label="Include Mental Health Records" checked={d.includeMentalHealth} onChange={(includeMentalHealth) => onChange({ includeMentalHealth })} />
           <BoolCheck label="Include Alcohol / Drug Treatment" checked={d.includeAlcoholDrug} onChange={(includeAlcoholDrug) => onChange({ includeAlcoholDrug })} />
           <BoolCheck label="Include Communicable Diseases (including HIV & AIDS)" checked={d.includeCommunicable} onChange={(includeCommunicable) => onChange({ includeCommunicable })} />
-          <Field label="Medical records from"><input className={inputClass} value={d.medicalRecordsFrom || ''} onChange={(e) => onChange({ medicalRecordsFrom: e.target.value })} /></Field>
-          <Field label="Other"><input className={inputClass} value={d.other || ''} onChange={(e) => onChange({ other: e.target.value })} /></Field>
+          <Field label="Medical records from"><PacketInput className={inputClass} value={d.medicalRecordsFrom || ''} onChange={(e) => onChange({ medicalRecordsFrom: e.target.value })} /></Field>
+          <Field label="Other"><PacketInput className={inputClass} value={d.other || ''} onChange={(e) => onChange({ other: e.target.value })} /></Field>
         </div>
         <p className="mb-1 mt-3 text-xs font-medium text-gray-600">Release from / to</p>
         <div className="space-y-2">
           {parties.map((p, i) => (
             <Field key={i} label={`${String.fromCharCode(97 + i)}.`}>
-              <input className={inputClass} value={p} onChange={(e) => setParty(i, e.target.value)} />
+              <PacketInput className={inputClass} value={p} onChange={(e) => setParty(i, e.target.value)} />
             </Field>
           ))}
         </div>
       </SectionCard>
-      <SignatureBlock title="Person Giving Consent" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship />
+      <SignatureBlock title="Person Giving Consent" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship lockPrintedName />
     </div>
   );
 }
@@ -956,11 +1155,10 @@ function Form1082({ data, onChange, shared }) {
   return (
     <div className="space-y-4">
       <SectionCard title="HIPAA Notice of Privacy Practices" subtitle={`Effective ${d.effectiveDate || '01/01/2016'}`}>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Client Name"><input className={inputClass} value={d.clientName || ''} onChange={(e) => onChange({ clientName: e.target.value })} /></Field>
-          <Field label="DOB"><input type="date" className={inputClass} value={d.dob || ''} onChange={(e) => onChange({ dob: e.target.value })} /></Field>
-          <Field label="Effective Date"><input className={inputClass} value={d.effectiveDate || ''} onChange={(e) => onChange({ effectiveDate: e.target.value })} /></Field>
-        </div>
+        <ReadOnlyClientGrid clientName={clientDisplayName(d)} dob={clientDisplayDob(d)} />
+        <Field label="Effective Date" className="mt-3 max-w-xs">
+          <PacketInput className={inputClass} value={d.effectiveDate || ''} onChange={(e) => onChange({ effectiveDate: e.target.value })} />
+        </Field>
         <div className="mt-4 rounded-xl border border-gray-100 bg-white p-4 sm:p-5">
           <HipaaNoticeBody
             agencyName={shared?.agencyName}
@@ -975,7 +1173,7 @@ function Form1082({ data, onChange, shared }) {
           />
         </div>
       </SectionCard>
-      <SignatureBlock title="Client / Representative" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship />
+      <SignatureBlock title="Client / Representative" value={d.client || {}} onChange={(client) => onChange({ client })} lockPrintedName />
     </div>
   );
 }
@@ -986,30 +1184,67 @@ function Form1083({ data, onChange }) {
     <div className="space-y-4">
       <SectionCard title="Assignment of Benefits">
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="First Name"><input className={inputClass} value={d.firstName || ''} onChange={(e) => onChange({ firstName: e.target.value })} /></Field>
-          <Field label="Last Name"><input className={inputClass} value={d.lastName || ''} onChange={(e) => onChange({ lastName: e.target.value })} /></Field>
-          <Field label="DOB"><input type="date" className={inputClass} value={d.dob || ''} onChange={(e) => onChange({ dob: e.target.value })} /></Field>
-          <Field label="Phone"><input className={inputClass} value={d.phone || ''} onChange={(e) => onChange({ phone: e.target.value })} /></Field>
-          <Field label="Address" className="sm:col-span-2"><input className={inputClass} value={d.address || ''} onChange={(e) => onChange({ address: e.target.value })} /></Field>
+          <Field label="First Name"><PacketInput readOnly disabled className={readOnlyInputClass} value={d.firstName || ''} tabIndex={-1} /></Field>
+          <Field label="Last Name"><PacketInput readOnly disabled className={readOnlyInputClass} value={d.lastName || ''} tabIndex={-1} /></Field>
+          <Field label="DOB"><PacketInput readOnly disabled type="date" className={readOnlyInputClass} value={clientDisplayDob(d)} tabIndex={-1} /></Field>
+          <Field label="Phone"><PacketInput readOnly disabled className={readOnlyInputClass} value={d.phone || ''} tabIndex={-1} /></Field>
+          <Field label="Address" className="sm:col-span-2"><PacketInput readOnly disabled className={readOnlyInputClass} value={d.address || ''} tabIndex={-1} /></Field>
         </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <Field label="Insurance Carrier"><input className={inputClass} value={d.insuranceCarrier || ''} onChange={(e) => onChange({ insuranceCarrier: e.target.value })} /></Field>
+          <Field label="Insurance Carrier"><PacketInput className={inputClass} value={d.insuranceCarrier || ''} onChange={(e) => onChange({ insuranceCarrier: e.target.value })} /></Field>
           <div className="flex flex-wrap gap-4 pt-6">
             <BoolCheck label="TriWest" checked={d.triWest} onChange={(triWest) => onChange({ triWest })} />
             <BoolCheck label="VA Referral" checked={d.vaReferral} onChange={(vaReferral) => onChange({ vaReferral })} />
           </div>
-          <Field label="Insurance Address"><input className={inputClass} value={d.insuranceAddress || ''} onChange={(e) => onChange({ insuranceAddress: e.target.value })} /></Field>
-          <Field label="Insurance Phone"><input className={inputClass} value={d.insurancePhone || ''} onChange={(e) => onChange({ insurancePhone: e.target.value })} /></Field>
-          <Field label="Policy Number"><input className={inputClass} value={d.policyNumber || ''} onChange={(e) => onChange({ policyNumber: e.target.value })} /></Field>
-          <Field label="Claim Number"><input className={inputClass} value={d.claimNumber || ''} onChange={(e) => onChange({ claimNumber: e.target.value })} /></Field>
-          <Field label="Client Pays (%)"><input className={inputClass} value={d.clientPaysPercent || ''} onChange={(e) => onChange({ clientPaysPercent: e.target.value })} /></Field>
-          <Field label="Insurance Pays (%)"><input className={inputClass} value={d.insurancePaysPercent || ''} onChange={(e) => onChange({ insurancePaysPercent: e.target.value })} /></Field>
+          <Field label="Insurance Address"><PacketInput className={inputClass} value={d.insuranceAddress || ''} onChange={(e) => onChange({ insuranceAddress: e.target.value })} /></Field>
+          <Field label="Insurance Phone">
+            <PacketInput
+              type="tel"
+              inputMode="tel"
+              placeholder="(555) 123-4567"
+              className={inputClass}
+              value={d.insurancePhone || ''}
+              onChange={(e) => onChange({ insurancePhone: formatUsPhone(e.target.value) })}
+            />
+          </Field>
+          <Field label="Policy Number">
+            <PacketInput
+              className={inputClass}
+              value={d.policyNumber || ''}
+              onChange={(e) => onChange({ policyNumber: sanitizePolicyIdInput(e.target.value) })}
+            />
+          </Field>
+          <Field label="Claim Number">
+            <PacketInput
+              className={inputClass}
+              value={d.claimNumber || ''}
+              onChange={(e) => onChange({ claimNumber: sanitizePolicyIdInput(e.target.value) })}
+            />
+          </Field>
+          <Field label="Client Pays (%)">
+            <PacketInput
+              className={inputClass}
+              inputMode="decimal"
+              placeholder="0–100"
+              value={d.clientPaysPercent || ''}
+              onChange={onPercentFieldChange(onChange, 'clientPaysPercent')}
+            />
+          </Field>
+          <Field label="Insurance Pays (%)">
+            <PacketInput
+              className={inputClass}
+              inputMode="decimal"
+              placeholder="0–100"
+              value={d.insurancePaysPercent || ''}
+              onChange={onPercentFieldChange(onChange, 'insurancePaysPercent')}
+            />
+          </Field>
         </div>
         <LegalText>
           <p className="mt-3">I assign Long-Term Care benefits to the agency and direct my carrier to pay the agency directly. I remain responsible for amounts not covered. I authorize release of information needed to process claims. I am financially responsible for charges incurred as set forth in the Client Service Agreement.</p>
         </LegalText>
       </SectionCard>
-      <SignatureBlock title="Client or Legal Representative" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship />
+      <SignatureBlock title="Client or Legal Representative" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship lockPrintedName />
       <SignatureBlock title="Agency Representative" value={d.agency || {}} onChange={(agency) => onChange({ agency })} />
     </div>
   );
@@ -1026,54 +1261,119 @@ function Form7000({ data, onChange }) {
     <div className="space-y-4">
       <SectionCard title="Emergency Plan">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Date"><input type="date" className={inputClass} value={d.date || ''} onChange={(e) => onChange({ date: e.target.value })} /></Field>
-          <Field label="Reassessment Date"><input type="date" className={inputClass} value={d.reassessmentDate || ''} onChange={(e) => onChange({ reassessmentDate: e.target.value })} /></Field>
-          <Field label="Client Name"><input className={inputClass} value={d.clientName || ''} onChange={(e) => onChange({ clientName: e.target.value })} /></Field>
-          <Field label="DOB"><input type="date" className={inputClass} value={d.dob || ''} onChange={(e) => onChange({ dob: e.target.value })} /></Field>
-          <Field label="Address" className="sm:col-span-2"><input className={inputClass} value={d.address || ''} onChange={(e) => onChange({ address: e.target.value })} /></Field>
-          <Field label="Phone"><input className={inputClass} value={d.phone || ''} onChange={(e) => onChange({ phone: e.target.value })} /></Field>
-          <Field label="Cell"><input className={inputClass} value={d.cell || ''} onChange={(e) => onChange({ cell: e.target.value })} /></Field>
-          <Field label="Major Crossroads"><input className={inputClass} value={d.majorCrossroads || ''} onChange={(e) => onChange({ majorCrossroads: e.target.value })} /></Field>
-          <Field label="Emergency Contact"><input className={inputClass} value={d.emergencyContact || ''} onChange={(e) => onChange({ emergencyContact: e.target.value })} /></Field>
-          <Field label="Phone"><input className={inputClass} value={d.emergencyPhone || ''} onChange={(e) => onChange({ emergencyPhone: e.target.value })} /></Field>
-          <Field label="Relationship"><input className={inputClass} value={d.emergencyRelationship || ''} onChange={(e) => onChange({ emergencyRelationship: e.target.value })} /></Field>
-          <Field label="Cell"><input className={inputClass} value={d.emergencyCell || ''} onChange={(e) => onChange({ emergencyCell: e.target.value })} /></Field>
+          <Field label="Date"><PacketInput type="date" className={inputClass} value={d.date || ''} onChange={(e) => onChange({ date: e.target.value })} /></Field>
+          <Field label="Reassessment Date"><PacketInput type="date" className={inputClass} value={d.reassessmentDate || ''} onChange={(e) => onChange({ reassessmentDate: e.target.value })} /></Field>
+          <Field label="Client Name"><PacketInput readOnly disabled className={readOnlyInputClass} value={clientDisplayName(d)} tabIndex={-1} /></Field>
+          <Field label="DOB"><PacketInput readOnly disabled type="date" className={readOnlyInputClass} value={clientDisplayDob(d)} tabIndex={-1} /></Field>
+          <Field label="Address" className="sm:col-span-2"><PacketInput readOnly disabled className={readOnlyInputClass} value={d.address || ''} tabIndex={-1} /></Field>
+          <Field label="Phone"><PacketInput readOnly disabled className={readOnlyInputClass} value={d.phone || ''} tabIndex={-1} /></Field>
+          <Field label="Cell"><PacketInput readOnly disabled className={readOnlyInputClass} value={d.cell || ''} tabIndex={-1} /></Field>
+          <Field label="Major Crossroads"><PacketInput className={inputClass} value={d.majorCrossroads || ''} onChange={(e) => onChange({ majorCrossroads: e.target.value })} /></Field>
+          <Field label="Emergency Contact"><PacketInput className={inputClass} value={d.emergencyContact || ''} onChange={(e) => onChange({ emergencyContact: e.target.value })} /></Field>
+          <Field label="Phone">
+            <PacketInput
+              type="tel"
+              inputMode="tel"
+              placeholder="(555) 123-4567"
+              className={inputClass}
+              value={d.emergencyPhone || ''}
+              onChange={(e) => onChange({ emergencyPhone: formatUsPhone(e.target.value) })}
+            />
+          </Field>
+          <Field label="Relationship">
+            <select
+              className={inputClass}
+              value={d.emergencyRelationship || ''}
+              onChange={(e) => onChange({ emergencyRelationship: e.target.value })}
+            >
+              <option value="">Select relationship</option>
+              {RELATIONSHIPS.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+              {d.emergencyRelationship && !RELATIONSHIPS.includes(d.emergencyRelationship) ? (
+                <option value={d.emergencyRelationship}>{d.emergencyRelationship}</option>
+              ) : null}
+            </select>
+          </Field>
+          <Field label="Cell">
+            <PacketInput
+              type="tel"
+              inputMode="tel"
+              placeholder="(555) 123-4567"
+              className={inputClass}
+              value={d.emergencyCell || ''}
+              onChange={(e) => onChange({ emergencyCell: formatUsPhone(e.target.value) })}
+            />
+          </Field>
         </div>
         <p className="mb-2 mt-4 text-sm font-semibold text-gray-800">Local Numbers</p>
         <div className="space-y-2">
           {physicians.map((p, i) => (
             <div key={i} className="grid gap-2 sm:grid-cols-2">
-              <Field label={`Physician ${i + 1}`}><input className={inputClass} value={p.name} onChange={(e) => setPhys(i, { name: e.target.value })} /></Field>
-              <Field label="Phone"><input className={inputClass} value={p.phone} onChange={(e) => setPhys(i, { phone: e.target.value })} /></Field>
+              <Field label={`Physician ${i + 1}`}><PacketInput className={inputClass} value={p.name} onChange={(e) => setPhys(i, { name: e.target.value })} /></Field>
+              <Field label="Phone">
+                <PacketInput
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="(555) 123-4567"
+                  className={inputClass}
+                  value={p.phone}
+                  onChange={(e) => setPhys(i, { phone: formatUsPhone(e.target.value) })}
+                />
+              </Field>
             </div>
           ))}
           <div className="grid gap-2 sm:grid-cols-2">
-            <Field label="Hospital"><input className={inputClass} value={d.hospital || ''} onChange={(e) => onChange({ hospital: e.target.value })} /></Field>
-            <Field label="Hospital Phone"><input className={inputClass} value={d.hospitalPhone || ''} onChange={(e) => onChange({ hospitalPhone: e.target.value })} /></Field>
-            <Field label="Pharmacy"><input className={inputClass} value={d.pharmacy || ''} onChange={(e) => onChange({ pharmacy: e.target.value })} /></Field>
+            <Field label="Hospital"><PacketInput className={inputClass} value={d.hospital || ''} onChange={(e) => onChange({ hospital: e.target.value })} /></Field>
+            <Field label="Hospital Phone">
+              <PacketInput
+                type="tel"
+                inputMode="tel"
+                placeholder="(555) 123-4567"
+                className={inputClass}
+                value={d.hospitalPhone || ''}
+                onChange={(e) => onChange({ hospitalPhone: formatUsPhone(e.target.value) })}
+              />
+            </Field>
+            <Field label="Pharmacy"><PacketInput className={inputClass} value={d.pharmacy || ''} onChange={(e) => onChange({ pharmacy: e.target.value })} /></Field>
           </div>
         </div>
-        <Field label="Evacuation Plan" className="mt-3"><input className={inputClass} value={d.evacuationPlan || ''} onChange={(e) => onChange({ evacuationPlan: e.target.value })} /></Field>
+        <Field label="Evacuation Plan" className="mt-3"><PacketInput className={inputClass} value={d.evacuationPlan || ''} onChange={(e) => onChange({ evacuationPlan: e.target.value })} /></Field>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <Field label="Temporary Relocation Name"><input className={inputClass} value={d.relocationName || ''} onChange={(e) => onChange({ relocationName: e.target.value })} /></Field>
-          <Field label="Phone"><input className={inputClass} value={d.relocationPhone || ''} onChange={(e) => onChange({ relocationPhone: e.target.value })} /></Field>
-          <Field label="Electric Company"><input className={inputClass} value={d.electricCompany || ''} onChange={(e) => onChange({ electricCompany: e.target.value })} /></Field>
-          <Field label="Gas Company"><input className={inputClass} value={d.gasCompany || ''} onChange={(e) => onChange({ gasCompany: e.target.value })} /></Field>
+          <Field label="Temporary Relocation Name"><PacketInput className={inputClass} value={d.relocationName || ''} onChange={(e) => onChange({ relocationName: e.target.value })} /></Field>
+          <Field label="Phone">
+            <PacketInput
+              type="tel"
+              inputMode="tel"
+              placeholder="(555) 123-4567"
+              className={inputClass}
+              value={d.relocationPhone || ''}
+              onChange={(e) => onChange({ relocationPhone: formatUsPhone(e.target.value) })}
+            />
+          </Field>
+          <Field label="Electric Company"><PacketInput className={inputClass} value={d.electricCompany || ''} onChange={(e) => onChange({ electricCompany: e.target.value })} /></Field>
+          <Field label="Gas Company"><PacketInput className={inputClass} value={d.gasCompany || ''} onChange={(e) => onChange({ gasCompany: e.target.value })} /></Field>
         </div>
         <div className="mt-4">
           <p className="mb-2 text-xs font-medium text-gray-600">Priority Classification</p>
           <div className="space-y-2">
             {PRIORITY_OPTS.map((o) => (
               <label key={o.value} className="flex items-start gap-2 text-sm text-gray-700">
-                <input type="radio" checked={d.priorityLevel === o.value} onChange={() => onChange({ priorityLevel: o.value })} />
-                <span>{o.label}</span>
+                <PacketInput
+                  type="radio"
+                  name="priorityLevel"
+                  className="mt-0.5 shrink-0"
+                  checked={d.priorityLevel === o.value}
+                  onChange={() => onChange({ priorityLevel: o.value })}
+                />
+                <span className="leading-snug">{o.label}</span>
               </label>
             ))}
           </div>
           <p className="mt-2 text-xs text-gray-500">Agency staff will not make home visits during times of emergency or disaster.</p>
         </div>
       </SectionCard>
-      <SignatureBlock title="Client" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship />
+      <SignatureBlock title="Client" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship lockPrintedName />
       <SignatureBlock title="Agency Representative" value={d.agency || {}} onChange={(agency) => onChange({ agency })} />
     </div>
   );
@@ -1086,12 +1386,12 @@ function Form7050({ data, onChange }) {
     <div className="space-y-4">
       <SectionCard title="Home Environment Safety Checklist" subtitle="Y = Yes · N = No · R = Requires attention">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Performed By"><input className={inputClass} value={d.performedBy || ''} onChange={(e) => onChange({ performedBy: e.target.value })} /></Field>
-          <Field label="Date"><input type="date" className={inputClass} value={d.date || ''} onChange={(e) => onChange({ date: e.target.value })} /></Field>
-          <Field label="Client Name"><input className={inputClass} value={d.clientName || ''} onChange={(e) => onChange({ clientName: e.target.value })} /></Field>
-          <Field label="Address" className="sm:col-span-2"><input className={inputClass} value={d.address || ''} onChange={(e) => onChange({ address: e.target.value })} /></Field>
-          <Field label="Telephone"><input className={inputClass} value={d.telephone || ''} onChange={(e) => onChange({ telephone: e.target.value })} /></Field>
-          <Field label="Emergency Contact"><input className={inputClass} value={d.emergencyContact || ''} onChange={(e) => onChange({ emergencyContact: e.target.value })} /></Field>
+          <Field label="Performed By"><PacketInput className={inputClass} value={d.performedBy || ''} onChange={(e) => onChange({ performedBy: e.target.value })} /></Field>
+          <Field label="Date"><PacketInput type="date" className={inputClass} value={d.date || ''} onChange={(e) => onChange({ date: e.target.value })} /></Field>
+          <Field label="Client Name"><PacketInput readOnly disabled className={readOnlyInputClass} value={clientDisplayName(d)} tabIndex={-1} /></Field>
+          <Field label="Address" className="sm:col-span-2"><PacketInput readOnly disabled className={readOnlyInputClass} value={d.address || ''} tabIndex={-1} /></Field>
+          <Field label="Telephone"><PacketInput readOnly disabled className={readOnlyInputClass} value={d.telephone || ''} tabIndex={-1} /></Field>
+          <Field label="Emergency Contact"><PacketInput readOnly disabled className={readOnlyInputClass} value={d.emergencyContact || ''} tabIndex={-1} /></Field>
         </div>
         <div className="mt-4 space-y-0.5">
           {SAFETY_ITEMS.map((item) => (
@@ -1104,13 +1404,13 @@ function Form7050({ data, onChange }) {
           ))}
         </div>
         <div className="mt-4 grid gap-3">
-          <Field label="Other problems?"><input className={inputClass} value={d.otherProblems || ''} onChange={(e) => onChange({ otherProblems: e.target.value })} /></Field>
-          <Field label="Other problems list"><textarea className={`${inputClass} min-h-[64px]`} value={d.otherProblemsList || ''} onChange={(e) => onChange({ otherProblemsList: e.target.value })} /></Field>
-          <Field label="Comments"><textarea className={`${inputClass} min-h-[64px]`} value={d.comments || ''} onChange={(e) => onChange({ comments: e.target.value })} /></Field>
-          <Field label="Advice given"><textarea className={`${inputClass} min-h-[64px]`} value={d.adviceGiven || ''} onChange={(e) => onChange({ adviceGiven: e.target.value })} /></Field>
+          <Field label="Other problems?"><PacketInput className={inputClass} value={d.otherProblems || ''} onChange={(e) => onChange({ otherProblems: e.target.value })} /></Field>
+          <Field label="Other problems list"><PacketTextarea className={`${inputClass} min-h-[64px]`} value={d.otherProblemsList || ''} onChange={(e) => onChange({ otherProblemsList: e.target.value })} /></Field>
+          <Field label="Comments"><PacketTextarea className={`${inputClass} min-h-[64px]`} value={d.comments || ''} onChange={(e) => onChange({ comments: e.target.value })} /></Field>
+          <Field label="Advice given"><PacketTextarea className={`${inputClass} min-h-[64px]`} value={d.adviceGiven || ''} onChange={(e) => onChange({ adviceGiven: e.target.value })} /></Field>
         </div>
       </SectionCard>
-      <SignatureBlock title="Client" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship />
+      <SignatureBlock title="Client" value={d.client || {}} onChange={(client) => onChange({ client })} showRelationship lockPrintedName />
       <SignatureBlock title="Agency Representative" value={d.agency || {}} onChange={(agency) => onChange({ agency })} />
     </div>
   );

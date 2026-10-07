@@ -5,7 +5,7 @@ const WorkPreferencesSection = ({ formData, onInputChange, onCheckboxChange }) =
   const workTypes = ["Full Time Only", "Part Time Only", "Full or Part Time"];
   const yesNoQuestions = [
     { key: "Nights Yes", label: "Available to Work Nights" },
-    { key: "Work US Yes", label: "Authorized to Work in US", required: true },
+    { key: "Work US Yes", label: "Authorized to Work in US" },
     { key: "Test Yes", label: "Willing to Take Pre-employment Test" },
     { key: "Accommodation Yes", label: "Need Accommodation" }
   ];
@@ -99,7 +99,7 @@ const WorkPreferencesSection = ({ formData, onInputChange, onCheckboxChange }) =
         </div>
       </div>
 
-      {/* Yes/No Questions */}
+      {/* Yes/No Questions — all optional */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         {yesNoQuestions.map(question => (
           <label key={question.key} className="flex items-center">
@@ -108,7 +108,6 @@ const WorkPreferencesSection = ({ formData, onInputChange, onCheckboxChange }) =
               checked={formData[question.key]}
               onChange={(e) => onCheckboxChange(question.key, e.target.checked)}
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-2"
-              required={question.required}
             />
             {question.label}
           </label>

@@ -9,8 +9,11 @@ import countryList from '../../../utils/countryList';
 import {
   validateCandidateForm,
   parseExperienceValue,
+  sanitizeCandidateField,
+  candidateFieldMaxLength,
   EXPERIENCE_OPTIONS,
 } from '../../../utils/candidateFormValidator';
+import { getImageUploadError, MAX_IMAGE_UPLOAD_LABEL } from '../../../utils/imageUploadValidation';
 import useSubmitLock from '../../../hooks/useSubmitLock';
 import SelectFormsToSendModal from './SelectFormsToSendModal';
 
@@ -37,11 +40,18 @@ const EMPTY = {
 const inputClass =
   'w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
 
-function FileField({ label, accept, file, onChange, hint }) {
+const inputErrorClass =
+  'w-full rounded-lg border border-red-400 px-3 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200';
+
+function fieldClass(hasError) {
+  return hasError ? inputErrorClass : inputClass;
+}
+
+function FileField({ label, accept, file, onChange, hint, error }) {
   return (
     <div>
       <label className="mb-1.5 block text-sm font-medium text-gray-700">{label}</label>
-      <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-6 hover:border-primary/40 hover:bg-primary/5">
+      <label className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed bg-gray-50 px-4 py-6 hover:border-primary/40 hover:bg-primary/5 ${error ? 'border-red-400' : 'border-gray-300'}`}>
         <Upload size={20} className="mb-2 text-gray-400" />
         <span className="text-sm font-medium text-gray-700">
           {file ? file.name : 'Choose file'}
@@ -51,9 +61,14 @@ function FileField({ label, accept, file, onChange, hint }) {
           type="file"
           accept={accept}
           className="hidden"
-          onChange={(e) => onChange(e.target.files?.[0] || null)}
+          onChange={(e) => {
+            const next = e.target.files?.[0] || null;
+            e.target.value = '';
+            onChange(next);
+          }}
         />
       </label>
+      {error ? <p className="mt-1 text-xs text-red-600">{error}</p> : null}
     </div>
   );
 }
@@ -91,13 +106,25 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
   ), [firstStage]);
 
   const set = (field) => (e) => {
-    const value = e?.target ? e.target.value : e;
+    const raw = e?.target ? e.target.value : e;
+    const value = sanitizeCandidateField(field, raw);
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
+  const max = candidateFieldMaxLength;
+
   const setFile = (field) => (file) => {
+    if (field === 'profilePic' && file) {
+      const message = getImageUploadError(file);
+      if (message) {
+        setErrors((prev) => ({ ...prev, profilePic: message }));
+        setForm((prev) => ({ ...prev, profilePic: null }));
+        return;
+      }
+    }
     setForm((prev) => ({ ...prev, [field]: file }));
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
   const job = useMemo(
@@ -193,7 +220,7 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
 
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Job *</label>
-          <select value={form.jobId} onChange={set('jobId')} className={inputClass} disabled={!!selectedJob}>
+          <select value={form.jobId} onChange={set('jobId')} className={fieldClass(errors.jobId)} disabled={!!selectedJob}>
             <option value="">Select job</option>
             {jobs.map((j) => (
               <option key={j.id} value={j.id}>
@@ -207,22 +234,22 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">First Name *</label>
-            <input value={form.firstName} onChange={set('firstName')} className={inputClass} />
+            <input value={form.firstName} onChange={set('firstName')} maxLength={max('firstName')} className={fieldClass(errors.firstName)} />
             {errors.firstName && <p className="mt-1 text-xs text-red-600">{errors.firstName}</p>}
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Last Name *</label>
-            <input value={form.lastName} onChange={set('lastName')} className={inputClass} />
+            <input value={form.lastName} onChange={set('lastName')} maxLength={max('lastName')} className={fieldClass(errors.lastName)} />
             {errors.lastName && <p className="mt-1 text-xs text-red-600">{errors.lastName}</p>}
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Location *</label>
-            <input value={form.location} onChange={set('location')} className={inputClass} />
+            <input value={form.location} onChange={set('location')} maxLength={max('location')} className={fieldClass(errors.location)} />
             {errors.location && <p className="mt-1 text-xs text-red-600">{errors.location}</p>}
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Country *</label>
-            <select value={form.country} onChange={set('country')} className={inputClass}>
+            <select value={form.country} onChange={set('country')} className={fieldClass(errors.country)}>
               <option value="">Select country</option>
               {countryList.map((c) => (
                 <option key={c} value={c}>{c}</option>
@@ -232,17 +259,17 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Current Designation *</label>
-            <input value={form.designation} onChange={set('designation')} className={inputClass} />
+            <input value={form.designation} onChange={set('designation')} maxLength={max('designation')} className={fieldClass(errors.designation)} />
             {errors.designation && <p className="mt-1 text-xs text-red-600">{errors.designation}</p>}
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Education *</label>
-            <input value={form.education} onChange={set('education')} className={inputClass} />
+            <input value={form.education} onChange={set('education')} maxLength={max('education')} className={fieldClass(errors.education)} />
             {errors.education && <p className="mt-1 text-xs text-red-600">{errors.education}</p>}
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Work Experience *</label>
-            <select value={form.experience} onChange={set('experience')} className={inputClass}>
+            <select value={form.experience} onChange={set('experience')} className={fieldClass(errors.experience)}>
               <option value="">Select experience</option>
               {EXPERIENCE_OPTIONS.map((opt) => (
                 <option key={opt} value={opt}>{opt}</option>
@@ -252,35 +279,58 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Phone Number *</label>
-            <input type="tel" value={form.phone} onChange={set('phone')} className={inputClass} maxLength={10} />
+            <input
+              type="tel"
+              inputMode="tel"
+              placeholder="(555) 123-4567"
+              value={form.phone}
+              onChange={set('phone')}
+              maxLength={max('phone')}
+              className={fieldClass(errors.phone)}
+            />
             {errors.phone && <p className="mt-1 text-xs text-red-600">{errors.phone}</p>}
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Email *</label>
-            <input type="email" value={form.email} onChange={set('email')} className={inputClass} />
+            <input type="email" value={form.email} onChange={set('email')} maxLength={max('email')} className={fieldClass(errors.email)} />
             {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email}</p>}
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Date of Birth</label>
-            <input type="date" value={form.dateOfBirth} onChange={set('dateOfBirth')} className={inputClass} />
+            <input type="date" value={form.dateOfBirth} onChange={set('dateOfBirth')} className={fieldClass(errors.dateOfBirth)} />
+            {errors.dateOfBirth && <p className="mt-1 text-xs text-red-600">{errors.dateOfBirth}</p>}
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Current CTC</label>
-            <input type="number" min="0" value={form.currentCtc} onChange={set('currentCtc')} className={inputClass} />
+            <input
+              inputMode="decimal"
+              value={form.currentCtc}
+              onChange={set('currentCtc')}
+              maxLength={max('currentCtc')}
+              className={fieldClass(errors.currentCtc)}
+              placeholder="0.00"
+            />
             {errors.currentCtc && <p className="mt-1 text-xs text-red-600">{errors.currentCtc}</p>}
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Expected CTC</label>
-            <input type="number" min="0" value={form.expectedCtc} onChange={set('expectedCtc')} className={inputClass} />
+            <input
+              inputMode="decimal"
+              value={form.expectedCtc}
+              onChange={set('expectedCtc')}
+              maxLength={max('expectedCtc')}
+              className={fieldClass(errors.expectedCtc)}
+              placeholder="0.00"
+            />
             {errors.expectedCtc && <p className="mt-1 text-xs text-red-600">{errors.expectedCtc}</p>}
           </div>
           <div className="sm:col-span-2">
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Summary</label>
-            <input value={form.summary} onChange={set('summary')} className={inputClass} />
+            <input value={form.summary} onChange={set('summary')} maxLength={max('summary')} className={inputClass} />
           </div>
           <div className="sm:col-span-2">
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Skills</label>
-            <input value={form.skills} onChange={set('skills')} className={inputClass} placeholder="e.g. CPR, First Aid, Patient Care" />
+            <input value={form.skills} onChange={set('skills')} maxLength={max('skills')} className={inputClass} placeholder="e.g. CPR, First Aid, Patient Care" />
           </div>
         </div>
 
@@ -290,7 +340,8 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
             accept=".jpg,.jpeg,.png"
             file={form.profilePic}
             onChange={setFile('profilePic')}
-            hint="JPG, JPEG, or PNG — max 5 MB"
+            hint={`JPG, JPEG, or PNG — max ${MAX_IMAGE_UPLOAD_LABEL}`}
+            error={errors.profilePic}
           />
           <FileField
             label="Upload Resume"
@@ -298,6 +349,7 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
             file={form.resume}
             onChange={setFile('resume')}
             hint="PDF only — max 10 MB"
+            error={errors.resume}
           />
         </div>
       </form>

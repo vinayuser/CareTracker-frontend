@@ -2,38 +2,57 @@ import React, { useState, useRef, useEffect } from 'react';
 import { fetchPdfTemplateBytes } from './pdfTemplateFetch';
 import { submitFilledPdfForm } from './pdfFormSubmit';
 import { PDFDocument } from 'pdf-lib';
-import axios from 'axios';
 import StatusModal from '../../ui/StatusModal';
+import { validateHiringPdfForm, formatHiringValidationMessage } from '../../../utils/hiringPdfFormValidation';
+import {
+  getCandidatePrefill,
+  mergeFormWithCandidate,
+} from '../../../utils/candidateFormPrefill';
 import IssuanceSection from './sections/IDBadge/IssuanceSection';
 import ReturnsSection from './sections/IDBadge/ReturnsSection';
+import { stripSignedSignaturePlaceholders } from './pdfSignatureUtils';
 
-const IDBadgeAgreementForm = ({ document, token, onClose, onSuccess }) => {
-    const [formData, setFormData] = useState({
-        // Agreement Text with blank for name
-        "by CareTraker I agree to maintain my ID badge in a wellkept condition I also agree that in the event":
-            "I, [Employee Name], agree to accept this I.D. badge which is provided to me by CareTraker. I agree to maintain my I.D. badge in a well-kept condition. I also agree, that in the event that I leave my employment with CareTraker within 30 days, I will return my I.D. badge within one (1) week after my last day of employment. In the event I do not return my I.D. badge, I understand that the cost of the I.D. badge is $5.00, which if I have not returned, will be deducted from my final paycheck.",
+const EMPTY_2900 = {
+  'by CareTraker I agree to maintain my ID badge in a wellkept condition I also agree that in the event':
+    'I, [Employee Name], agree to accept this I.D. badge which is provided to me by CareTraker. I agree to maintain my I.D. badge in a well-kept condition. I also agree, that in the event that I leave my employment with CareTraker within 30 days, I will return my I.D. badge within one (1) week after my last day of employment. In the event I do not return my I.D. badge, I understand that the cost of the I.D. badge is $5.00, which if I have not returned, will be deducted from my final paycheck.',
+  EmployeeNameBlank: '',
+  'Date IssuedID Badge': '',
+  'Quantity IssuedID Badge': '1',
+  'Employee Name': '',
+  Date: '',
+  'Manager Name': '',
+  Date_2: '',
+  DateReturnedRow1: '',
+  'Date ReturnedRow1': '',
+  'Items ReturnedRow1': '',
+  'Items Not ReturnedRow1': '',
+  fill_12: '',
+  Date_3: '',
+  'Signature136_es_:signer:signature': '',
+  'Signature137_es_:signer:signature': '',
+  'Signature138_es_:signer:signature': '',
+};
 
-        // Employee Name for the blank in the agreement
-        "EmployeeNameBlank": "",
+function buildInitial2900(candidate, savedFormData) {
+  const p = getCandidatePrefill(candidate);
+  const merged = mergeFormWithCandidate(EMPTY_2900, savedFormData, {
+    EmployeeNameBlank: p.fullName,
+    'Employee Name': p.fullName,
+    Date: p.today,
+    'Date IssuedID Badge': p.today,
+  });
+  return stripSignedSignaturePlaceholders(merged, [
+    'Signature136_es_:signer:signature',
+    'Signature137_es_:signer:signature',
+    'Signature138_es_:signer:signature',
+  ]);
+}
 
-        // Rest of the fields remain the same...
-        "Date IssuedID Badge": "",
-        "Quantity IssuedID Badge": "1",
-        "Employee Name": "",
-        "Date": "",
-        "Manager Name": "",
-        "Date_2": "",
-        "Date ReturnedRow1": "",
-        "Items ReturnedRow1": "",
-        "Items Not ReturnedRow1": "",
-        "fill_12": "",
-        "Date_3": "",
-        "Signature136_es_:signer:signature": "",
-        "Signature137_es_:signer:signature": "",
-        "Signature138_es_:signer:signature": ""
-    });
+const IDBadgeAgreementForm = ({ document, candidate = null, token, onClose, onSuccess }) => {
+    const [formData, setFormData] = useState(() =>
+      buildInitial2900(candidate || document?.candidate, document?.form_data),
+    );
 
-    const [generatingPreview, setGeneratingPreview] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [previewUrl, setPreviewUrl] = useState('');
     const [filledPdfBytes, setFilledPdfBytes] = useState(null);
@@ -41,9 +60,8 @@ const IDBadgeAgreementForm = ({ document, token, onClose, onSuccess }) => {
     const [managerSignatureUrl, setManagerSignatureUrl] = useState('');
     const [returnManagerSignatureUrl, setReturnManagerSignatureUrl] = useState('');
     const [activeSection, setActiveSection] = useState('issuance');
-    const [activeSignature, setActiveSignature] = useState('employee'); // 'employee', 'manager', 'returnManager'
-    const employeeSigCanvasRef = useRef();
-    const managerSigCanvasRef = useRef();
+    const [activeSignature, setActiveSignature] = useState('employee');
+    const [errors, setErrors] = useState({});
     const returnManagerSigCanvasRef = useRef();
 
     // Status modal state
@@ -75,72 +93,53 @@ const IDBadgeAgreementForm = ({ document, token, onClose, onSuccess }) => {
         setStatusModal(prev => ({ ...prev, isOpen: false }));
     };
 
-    // Handler functions
-    const handleInputChange = (fieldName, value) => {
-        setFormData(prev => ({
-            ...prev,
-            [fieldName]: value
-        }));
+    const clearFieldError = (...fields) => {
+        setErrors((prev) => {
+            if (!fields.some((f) => prev[f])) return prev;
+            const next = { ...prev };
+            fields.forEach((f) => { delete next[f]; });
+            return next;
+        });
     };
 
-    // Signature handling
-    const handleSignatureEnd = (type) => {
-        let canvasRef, signatureField, signatureUrlSetter;
-
-        switch (type) {
-            case 'employee':
-                canvasRef = employeeSigCanvasRef;
-                signatureField = "Signature136_es_:signer:signature";
-                signatureUrlSetter = setEmployeeSignatureUrl;
-                break;
-            case 'manager':
-                canvasRef = managerSigCanvasRef;
-                signatureField = "Signature137_es_:signer:signature";
-                signatureUrlSetter = setManagerSignatureUrl;
-                break;
-            case 'returnManager':
-                canvasRef = returnManagerSigCanvasRef;
-                signatureField = "Signature138_es_:signer:signature";
-                signatureUrlSetter = setReturnManagerSignatureUrl;
-                break;
-            default:
-                return;
+    const handleInputChange = (fieldName, value) => {
+        setFormData((prev) => ({
+            ...prev,
+            [fieldName]: value,
+        }));
+        clearFieldError(fieldName);
+        if (fieldName === 'EmployeeNameBlank' || fieldName === 'Employee Name') {
+            clearFieldError('Employee Name', 'EmployeeNameBlank');
         }
+    };
 
+    const handleEmployeeSignatureChange = (dataUrl) => {
+        setEmployeeSignatureUrl(dataUrl || '');
+        handleInputChange('Signature136_es_:signer:signature', '');
+        if (dataUrl) clearFieldError('Signature136_es_:signer:signature');
+    };
+
+    const handleManagerSignatureChange = (dataUrl) => {
+        setManagerSignatureUrl(dataUrl || '');
+        handleInputChange('Signature137_es_:signer:signature', '');
+    };
+
+    const handleSignatureEnd = (type) => {
+        if (type !== 'returnManager') return;
+        const canvasRef = returnManagerSigCanvasRef;
         if (canvasRef.current && !canvasRef.current.isEmpty()) {
             const signatureDataURL = canvasRef.current.toDataURL();
-            signatureUrlSetter(signatureDataURL);
-            handleInputChange(signatureField, "");
+            setReturnManagerSignatureUrl(signatureDataURL);
+            handleInputChange('Signature138_es_:signer:signature', '');
         }
     };
 
     const clearSignature = (type) => {
-        let canvasRef, signatureField, signatureUrlSetter;
-
-        switch (type) {
-            case 'employee':
-                canvasRef = employeeSigCanvasRef;
-                signatureField = "Signature136_es_:signer:signature";
-                signatureUrlSetter = setEmployeeSignatureUrl;
-                break;
-            case 'manager':
-                canvasRef = managerSigCanvasRef;
-                signatureField = "Signature137_es_:signer:signature";
-                signatureUrlSetter = setManagerSignatureUrl;
-                break;
-            case 'returnManager':
-                canvasRef = returnManagerSigCanvasRef;
-                signatureField = "Signature138_es_:signer:signature";
-                signatureUrlSetter = setReturnManagerSignatureUrl;
-                break;
-            default:
-                return;
-        }
-
-        if (canvasRef.current) {
-            canvasRef.current.clear();
-            signatureUrlSetter('');
-            handleInputChange(signatureField, "");
+        if (type !== 'returnManager') return;
+        if (returnManagerSigCanvasRef.current) {
+            returnManagerSigCanvasRef.current.clear();
+            setReturnManagerSignatureUrl('');
+            handleInputChange('Signature138_es_:signer:signature', '');
         }
     };
 
@@ -244,14 +243,11 @@ const IDBadgeAgreementForm = ({ document, token, onClose, onSuccess }) => {
                     }
                 }
 
-                // Also set signature text
                 try {
                     const field = form.getTextField(signature.field);
-                    if (field) {
-                        field.setText(formData[signature.field] || "");
-                    }
-                } catch (error) {
-                    console.log(`Error setting signature text field ${signature.field}:`, error.message);
+                    if (field) field.setText('');
+                } catch {
+                    // ignore
                 }
             }
 
@@ -363,6 +359,15 @@ const IDBadgeAgreementForm = ({ document, token, onClose, onSuccess }) => {
 
     const handleSubmit = async () => {
         try {
+            const validation = validateHiringPdfForm('2900', formData, { hasEmployeeSignature: Boolean(employeeSignatureUrl) });
+            if (!validation.ok) {
+                setErrors(validation.fieldErrors || {});
+                if (validation.firstSection) setActiveSection(validation.firstSection);
+                showStatusModal('error', 'Please fix the form', formatHiringValidationMessage(validation.messages));
+                return;
+            }
+            setErrors({});
+
             setSubmitting(true);
 
             let bytes = filledPdfBytes;
@@ -413,17 +418,12 @@ const IDBadgeAgreementForm = ({ document, token, onClose, onSuccess }) => {
                 return (
                     <IssuanceSection
                         formData={formData}
+                        errors={errors}
                         onInputChange={handleInputChange}
                         employeeSignatureUrl={employeeSignatureUrl}
                         managerSignatureUrl={managerSignatureUrl}
-                        onEmployeeSignatureEnd={() => handleSignatureEnd('employee')}
-                        onManagerSignatureEnd={() => handleSignatureEnd('manager')}
-                        onClearEmployeeSignature={() => clearSignature('employee')}
-                        onClearManagerSignature={() => clearSignature('manager')}
-                        employeeSigCanvasRef={employeeSigCanvasRef}
-                        managerSigCanvasRef={managerSigCanvasRef}
-                        activeSignature={activeSignature}
-                        setActiveSignature={setActiveSignature}
+                        onEmployeeSignatureChange={handleEmployeeSignatureChange}
+                        onManagerSignatureChange={handleManagerSignatureChange}
                     />
                 );
             case 'returns':
@@ -443,33 +443,21 @@ const IDBadgeAgreementForm = ({ document, token, onClose, onSuccess }) => {
                 return (
                     <IssuanceSection
                         formData={formData}
+                        errors={errors}
                         onInputChange={handleInputChange}
                         employeeSignatureUrl={employeeSignatureUrl}
                         managerSignatureUrl={managerSignatureUrl}
-                        onEmployeeSignatureEnd={() => handleSignatureEnd('employee')}
-                        onManagerSignatureEnd={() => handleSignatureEnd('manager')}
-                        onClearEmployeeSignature={() => clearSignature('employee')}
-                        onClearManagerSignature={() => clearSignature('manager')}
-                        employeeSigCanvasRef={employeeSigCanvasRef}
-                        managerSigCanvasRef={managerSigCanvasRef}
-                        activeSignature={activeSignature}
-                        setActiveSignature={setActiveSignature}
+                        onEmployeeSignatureChange={handleEmployeeSignatureChange}
+                        onManagerSignatureChange={handleManagerSignatureChange}
                     />
                 );
         }
     };
 
-    // cleanup on unmount
     useEffect(() => {
         return () => {
             if (previewUrl) {
                 try { URL.revokeObjectURL(previewUrl); } catch (e) { /* ignore */ }
-            }
-            if (employeeSigCanvasRef.current) {
-                try { employeeSigCanvasRef.current.clear(); } catch (e) { /* ignore */ }
-            }
-            if (managerSigCanvasRef.current) {
-                try { managerSigCanvasRef.current.clear(); } catch (e) { /* ignore */ }
             }
             if (returnManagerSigCanvasRef.current) {
                 try { returnManagerSigCanvasRef.current.clear(); } catch (e) { /* ignore */ }

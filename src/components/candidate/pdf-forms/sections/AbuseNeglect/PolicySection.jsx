@@ -1,6 +1,12 @@
 import React from 'react';
+import { fieldInputErr, fieldInputOk } from '../../../../../utils/candidateFormPrefill';
 
-const PolicySection = ({ formData, onInputChange }) => {
+function FieldError({ message }) {
+  if (!message) return null;
+  return <p className="mt-1 text-xs text-red-600">{message}</p>;
+}
+
+const PolicySection = ({ formData, errors = {}, onInputChange }) => {
   return (
     <div className="mb-8">
       <h3 className="text-lg font-semibold mb-4">Abuse and Neglect Policy</h3>
@@ -158,17 +164,17 @@ const PolicySection = ({ formData, onInputChange }) => {
         </p>
         
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Your Full Name
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Your Full Name *
           </label>
           <input
             type="text"
-            value={formData["I"]}
-            onChange={(e) => onInputChange("I", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={formData.I || ''}
+            onChange={(e) => onInputChange('I', e.target.value)}
+            className={errors.I ? fieldInputErr : fieldInputOk}
             placeholder="Enter your full name"
-            required
           />
+          <FieldError message={errors.I} />
         </div>
       </div>
     </div>

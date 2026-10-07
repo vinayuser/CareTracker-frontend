@@ -2,12 +2,14 @@ import { useState } from 'react';
 import {
   CreditCard, FileText, HeartPulse, IdCard, Pill, Users, Upload, Trash2, ExternalLink, Loader2,
 } from 'lucide-react';
+import { toast } from 'react-toastify';
 import DigitalSignaturePad from '../../ui/DigitalSignaturePad';
 import {
   AUTH_STATUSES, GENDERS, MARITAL_STATUSES, MEDICARE_TYPES,
   PRIMARY_INSURANCE_TYPES, RELATIONSHIPS, REQUIRED_DOCUMENTS,
-  hasUploadedDocument,
+  formatPhoneInput, hasUploadedDocument, todayDateInputValue,
 } from '../../../utils/insuranceIntakeForm';
+import { validateImageUpload, MAX_IMAGE_UPLOAD_LABEL } from '../../../utils/imageUploadValidation';
 
 const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
 const readOnlyClass = `${inputClass} cursor-not-allowed bg-gray-50 text-gray-700`;
@@ -40,11 +42,16 @@ function Section({ n, title, subtitle, children }) {
   );
 }
 
-function Chips({ label, options, values, onToggle, single, disabled }) {
+function Chips({ label, options, values, onToggle, single, disabled, required, error }) {
   return (
     <div>
-      {label && <p className={labelClass}>{label}</p>}
-      <div className="flex flex-wrap gap-2">
+      {label && (
+        <p className={labelClass}>
+          {label}
+          {required ? <span className="text-red-500"> *</span> : null}
+        </p>
+      )}
+      <div className={`flex flex-wrap gap-2 rounded-xl p-0.5 ${error ? 'ring-2 ring-red-200' : ''}`}>
         {options.map((opt) => {
           const on = single ? values === opt : (values || []).includes(opt);
           return (
@@ -62,6 +69,7 @@ function Chips({ label, options, values, onToggle, single, disabled }) {
           );
         })}
       </div>
+      {error ? <p className="mt-1 text-xs text-red-600">{error}</p> : null}
     </div>
   );
 }
@@ -97,8 +105,7 @@ export function InsuranceIntakeStepOne({
   const d = form.formData;
   const set = (section, field) => (e) => onFormDataChange(section, { [field]: e.target.value });
   const setPhone = (section, field) => (e) => {
-    const digits = String(e.target.value || '').replace(/\D/g, '').slice(0, 15);
-    onFormDataChange(section, { [field]: digits });
+    onFormDataChange(section, { [field]: formatPhoneInput(e.target.value) });
   };
   const ci = d.clientInfo;
   const pri = d.primaryInsurance;
@@ -111,7 +118,7 @@ export function InsuranceIntakeStepOne({
   const togglePrimaryType = (type) => {
     const types = pri.types || [];
     const next = types.includes(type) ? types.filter((t) => t !== type) : [...types, type];
-    onFormDataChange('primaryInsurance', { ...pri, types: next });
+    onFormDataChange('primaryInsurance', { types: next });
   };
 
   return (
@@ -124,6 +131,7 @@ export function InsuranceIntakeStepOne({
             <input
               type="date"
               value={form.intakeDate || ''}
+              max={new Date().toISOString().slice(0, 10)}
               onChange={(e) => onHeaderChange('intakeDate', e.target.value)}
               className={`${inputClass}${errorClass('intakeDate')}`}
             />
@@ -157,14 +165,20 @@ export function InsuranceIntakeStepOne({
       >
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-4">
-            <Field label="Client Full Name">
-              <input value={ci.clientFullName} onChange={set('clientInfo', 'clientFullName')} readOnly={locked} className={clientInputClass} />
+            <Field label="Client Full Name" required={!locked} error={errors.clientFullName}>
+              <input
+                value={ci.clientFullName}
+                onChange={set('clientInfo', 'clientFullName')}
+                readOnly={locked}
+                className={`${clientInputClass}${errorClass('clientFullName')}`}
+              />
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Date of Birth" required={!locked} error={errors.dob}>
                 <input
                   type="date"
                   value={ci.dob || ''}
+                  max={new Date().toISOString().slice(0, 10)}
                   onChange={set('clientInfo', 'dob')}
                   readOnly={locked}
                   className={`${clientInputClass}${errorClass('dob')}`}
@@ -175,25 +189,38 @@ export function InsuranceIntakeStepOne({
                 options={GENDERS}
                 values={ci.gender}
                 single
+                required={!locked}
                 disabled={locked}
-                onToggle={(v) => onFormDataChange('clientInfo', { ...ci, gender: ci.gender === v ? '' : v })}
+                error={errors.gender}
+                onToggle={(v) => onFormDataChange('clientInfo', { gender: ci.gender === v ? '' : v })}
               />
             </div>
-            <Field label="Address">
-              <input value={ci.address} onChange={set('clientInfo', 'address')} readOnly={locked} className={clientInputClass} />
+            <Field label="Address" required={!locked} error={errors.address}>
+              <input
+                value={ci.address}
+                onChange={set('clientInfo', 'address')}
+                readOnly={locked}
+                className={`${clientInputClass}${errorClass('address')}`}
+              />
             </Field>
             <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="City"><input value={ci.city} onChange={set('clientInfo', 'city')} readOnly={locked} className={clientInputClass} /></Field>
-              <Field label="State"><input value={ci.state} onChange={set('clientInfo', 'state')} readOnly={locked} className={clientInputClass} /></Field>
-              <Field label="ZIP"><input value={ci.zip} onChange={set('clientInfo', 'zip')} readOnly={locked} className={clientInputClass} /></Field>
+              <Field label="City" required={!locked} error={errors.city}>
+                <input value={ci.city} onChange={set('clientInfo', 'city')} readOnly={locked} className={`${clientInputClass}${errorClass('city')}`} />
+              </Field>
+              <Field label="State" required={!locked} error={errors.state}>
+                <input value={ci.state} onChange={set('clientInfo', 'state')} readOnly={locked} className={`${clientInputClass}${errorClass('state')}`} />
+              </Field>
+              <Field label="ZIP" required={!locked} error={errors.zip}>
+                <input value={ci.zip} onChange={set('clientInfo', 'zip')} readOnly={locked} className={`${clientInputClass}${errorClass('zip')}`} />
+              </Field>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Phone (Home)" error={errors.phoneHome}>
                 <input
                   type="tel"
-                  inputMode="numeric"
+                  inputMode="tel"
                   autoComplete="tel"
-                  placeholder="10-digit phone"
+                  placeholder="(555) 123-4567"
                   value={ci.phoneHome}
                   onChange={setPhone('clientInfo', 'phoneHome')}
                   className={`${inputClass}${errorClass('phoneHome')}`}
@@ -202,16 +229,24 @@ export function InsuranceIntakeStepOne({
               <Field label="Phone (Mobile)" required error={errors.phoneMobile}>
                 <input
                   type="tel"
-                  inputMode="numeric"
+                  inputMode="tel"
                   autoComplete="tel"
-                  placeholder="10-digit phone"
+                  placeholder="(555) 123-4567"
                   value={ci.phoneMobile}
                   onChange={setPhone('clientInfo', 'phoneMobile')}
                   className={`${inputClass}${errorClass('phoneMobile')}`}
                 />
               </Field>
             </div>
-            <Field label="Email"><input type="email" value={ci.email} onChange={set('clientInfo', 'email')} readOnly={locked} className={clientInputClass} /></Field>
+            <Field label="Email" required={!locked} error={errors.email}>
+              <input
+                type="email"
+                value={ci.email}
+                onChange={set('clientInfo', 'email')}
+                readOnly={locked}
+                className={`${clientInputClass}${errorClass('email')}`}
+              />
+            </Field>
           </div>
           <div className="space-y-4">
             <Chips
@@ -220,10 +255,17 @@ export function InsuranceIntakeStepOne({
               values={ci.maritalStatus}
               single
               disabled={locked}
-              onToggle={(v) => onFormDataChange('clientInfo', { ...ci, maritalStatus: ci.maritalStatus === v ? '' : v })}
+              onToggle={(v) => onFormDataChange('clientInfo', { maritalStatus: ci.maritalStatus === v ? '' : v })}
             />
-            <Field label="SSN (Last 4)">
-              <input value={ci.ssnLast4} onChange={set('clientInfo', 'ssnLast4')} maxLength={4} placeholder="XXXX" readOnly={locked} className={clientInputClass} />
+            <Field label="SSN (Last 4)" error={errors.ssnLast4}>
+              <input
+                value={ci.ssnLast4}
+                onChange={(e) => onFormDataChange('clientInfo', { ssnLast4: e.target.value.replace(/\D/g, '').slice(0, 4) })}
+                maxLength={4}
+                placeholder="XXXX"
+                readOnly={locked}
+                className={`${clientInputClass}${errorClass('ssnLast4')}`}
+              />
             </Field>
             <Field label="Preferred Language">
               <input value={ci.preferredLanguage} onChange={set('clientInfo', 'preferredLanguage')} readOnly={locked} className={clientInputClass} />
@@ -240,7 +282,7 @@ export function InsuranceIntakeStepOne({
                   type="tel"
                   inputMode="numeric"
                   autoComplete="tel"
-                  placeholder="10-digit phone"
+                  placeholder="(555) 123-4567"
                   value={ci.emergencyPhone}
                   onChange={setPhone('clientInfo', 'emergencyPhone')}
                   className={`${inputClass}${errorClass('emergencyPhone')}`}
@@ -252,24 +294,69 @@ export function InsuranceIntakeStepOne({
       </Section>
 
       <Section n="2" title="Primary Insurance Information">
-        <Chips label="Insurance Type" options={PRIMARY_INSURANCE_TYPES} values={pri.types} onToggle={togglePrimaryType} />
+        <Chips
+          label="Insurance Type"
+          options={PRIMARY_INSURANCE_TYPES}
+          values={pri.types}
+          required
+          error={errors.insuranceTypes}
+          onToggle={togglePrimaryType}
+        />
         {pri.types?.includes('Other') && (
-          <Field label="Other Insurance Type"><input value={pri.otherType} onChange={set('primaryInsurance', 'otherType')} className={inputClass} /></Field>
+          <Field label="Other Insurance Type" required error={errors.otherType}>
+            <input
+              value={pri.otherType}
+              onChange={set('primaryInsurance', 'otherType')}
+              className={`${inputClass}${errorClass('otherType')}`}
+            />
+          </Field>
         )}
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-4">
-            <Field label="Insurance Company Name"><input value={pri.companyName} onChange={set('primaryInsurance', 'companyName')} className={inputClass} /></Field>
-            <Field label="Member ID / Policy #"><input value={pri.memberId} onChange={set('primaryInsurance', 'memberId')} className={inputClass} /></Field>
-            <Field label="Policy Holder Name (if different)"><input value={pri.policyHolderName} onChange={set('primaryInsurance', 'policyHolderName')} className={inputClass} /></Field>
-            <Chips label="Relationship to Client" options={RELATIONSHIPS} values={pri.policyHolderRelationship} single onToggle={(v) => onFormDataChange('primaryInsurance', { ...pri, policyHolderRelationship: pri.policyHolderRelationship === v ? '' : v })} />
+            <Field label="Insurance Company Name" required error={errors.companyName}>
+              <input
+                value={pri.companyName}
+                onChange={set('primaryInsurance', 'companyName')}
+                className={`${inputClass}${errorClass('companyName')}`}
+              />
+            </Field>
+            <Field label="Member ID / Policy #" required error={errors.memberId}>
+              <input
+                value={pri.memberId}
+                onChange={set('primaryInsurance', 'memberId')}
+                className={`${inputClass}${errorClass('memberId')}`}
+              />
+            </Field>
+            <Field label="Policy Holder Name (if different)">
+              <input value={pri.policyHolderName} onChange={set('primaryInsurance', 'policyHolderName')} className={inputClass} />
+            </Field>
+            <Chips
+              label="Relationship to Client"
+              options={RELATIONSHIPS}
+              values={pri.policyHolderRelationship}
+              single
+              required
+              error={errors.policyHolderRelationship}
+              onToggle={(v) =>
+                onFormDataChange('primaryInsurance', {
+                  policyHolderRelationship: pri.policyHolderRelationship === v ? '' : v,
+                })
+              }
+            />
             {pri.policyHolderRelationship === 'Other' && (
-              <Field label="Specify Relationship"><input value={pri.policyHolderRelationshipOther} onChange={set('primaryInsurance', 'policyHolderRelationshipOther')} className={inputClass} /></Field>
+              <Field label="Specify Relationship" required error={errors.policyHolderRelationshipOther}>
+                <input
+                  value={pri.policyHolderRelationshipOther}
+                  onChange={set('primaryInsurance', 'policyHolderRelationshipOther')}
+                  className={`${inputClass}${errorClass('policyHolderRelationshipOther')}`}
+                />
+              </Field>
             )}
             <Field label="Insurance Phone Number" error={errors.insurancePhone}>
               <input
                 type="tel"
                 inputMode="numeric"
-                placeholder="10-digit phone"
+                placeholder="(555) 123-4567"
                 value={pri.insurancePhone}
                 onChange={setPhone('primaryInsurance', 'insurancePhone')}
                 className={`${inputClass}${errorClass('insurancePhone')}`}
@@ -279,8 +366,23 @@ export function InsuranceIntakeStepOne({
           <div className="space-y-4">
             <Field label="Plan Name"><input value={pri.planName} onChange={set('primaryInsurance', 'planName')} className={inputClass} /></Field>
             <Field label="Group #"><input value={pri.groupNumber} onChange={set('primaryInsurance', 'groupNumber')} className={inputClass} /></Field>
-            <Field label="Policy Holder Date of Birth"><input type="date" value={pri.policyHolderDob || ''} onChange={set('primaryInsurance', 'policyHolderDob')} className={inputClass} /></Field>
-            <Field label="Effective Date"><input type="date" value={pri.effectiveDate || ''} onChange={set('primaryInsurance', 'effectiveDate')} className={inputClass} /></Field>
+            <Field label="Policy Holder Date of Birth" error={errors.policyHolderDob}>
+              <input
+                type="date"
+                value={pri.policyHolderDob || ''}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={set('primaryInsurance', 'policyHolderDob')}
+                className={`${inputClass}${errorClass('policyHolderDob')}`}
+              />
+            </Field>
+            <Field label="Effective Date" error={errors.effectiveDate}>
+              <input
+                type="date"
+                value={pri.effectiveDate || ''}
+                onChange={set('primaryInsurance', 'effectiveDate')}
+                className={`${inputClass}${errorClass('effectiveDate')}`}
+              />
+            </Field>
             <Field label="Claims Address (if known)"><textarea value={pri.claimsAddress} onChange={set('primaryInsurance', 'claimsAddress')} rows={2} className={inputClass} /></Field>
           </div>
         </div>
@@ -294,8 +396,26 @@ export function InsuranceIntakeStepOne({
             <Field label="Group #"><input value={sec.groupNumber} onChange={set('secondaryInsurance', 'groupNumber')} className={inputClass} /></Field>
           </div>
           <Field label="Policy Holder Name"><input value={sec.policyHolderName} onChange={set('secondaryInsurance', 'policyHolderName')} className={inputClass} /></Field>
-          <Field label="Date of Birth"><input type="date" value={sec.dob || ''} onChange={set('secondaryInsurance', 'dob')} className={inputClass} /></Field>
-          <Chips label="Relationship to Client" options={RELATIONSHIPS} values={sec.relationship} single onToggle={(v) => onFormDataChange('secondaryInsurance', { ...sec, relationship: sec.relationship === v ? '' : v })} />
+          <Field label="Date of Birth" error={errors.secondaryDob}>
+            <input
+              type="date"
+              value={sec.dob || ''}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={set('secondaryInsurance', 'dob')}
+              className={`${inputClass}${errorClass('secondaryDob')}`}
+            />
+          </Field>
+          <Chips
+            label="Relationship to Client"
+            options={RELATIONSHIPS}
+            values={sec.relationship}
+            single
+            onToggle={(v) =>
+              onFormDataChange('secondaryInsurance', {
+                relationship: sec.relationship === v ? '' : v,
+              })
+            }
+          />
         </Section>
 
         <Section n="4" title="Prescription Coverage">
@@ -312,7 +432,7 @@ export function InsuranceIntakeStepOne({
             <input
               type="tel"
               inputMode="numeric"
-              placeholder="10-digit phone"
+              placeholder="(555) 123-4567"
               value={rx.phone}
               onChange={setPhone('prescriptionCoverage', 'phone')}
               className={`${inputClass}${errorClass('rxPhone')}`}
@@ -337,8 +457,7 @@ export function InsuranceIntakeStepTwo({
   const d = form.formData;
   const set = (section, field) => (e) => onFormDataChange(section, { [field]: e.target.value });
   const setPhone = (section, field) => (e) => {
-    const digits = String(e.target.value || '').replace(/\D/g, '').slice(0, 15);
-    onFormDataChange(section, { [field]: digits });
+    onFormDataChange(section, { [field]: formatPhoneInput(e.target.value) });
   };
   const med = d.medicare;
   const mcd = d.medicaid;
@@ -348,15 +467,21 @@ export function InsuranceIntakeStepTwo({
   const office = d.officeUse;
   const errorClass = (key) => (errors[key] ? ' border-red-400 focus:border-red-500 focus:ring-red-200' : '');
   const [localBusy, setLocalBusy] = useState(null);
+  const requireCoreDocs = String(form.status || 'Draft') !== 'Draft';
 
   const toggleMedicareType = (type) => {
     const types = med.types || [];
     const next = types.includes(type) ? types.filter((t) => t !== type) : [...types, type];
-    onFormDataChange('medicare', { ...med, types: next });
+    onFormDataChange('medicare', { types: next });
   };
 
   const handleFilePick = async (key, file) => {
     if (!file || !onUploadDocument) return;
+    const { ok, error } = validateImageUpload(file, { imagesOnly: false });
+    if (!ok) {
+      toast.error(error || `Image must be ${MAX_IMAGE_UPLOAD_LABEL} or smaller`);
+      return;
+    }
     setLocalBusy(key);
     try {
       await onUploadDocument(key, file);
@@ -382,8 +507,22 @@ export function InsuranceIntakeStepTwo({
           <Field label="Medicare Number"><input value={med.number} onChange={set('medicare', 'number')} className={inputClass} /></Field>
           <Chips label="Medicare Type" options={MEDICARE_TYPES} values={med.types} onToggle={toggleMedicareType} />
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Medicare Part A Effective Date"><input type="date" value={med.partAEffectiveDate || ''} onChange={set('medicare', 'partAEffectiveDate')} className={inputClass} /></Field>
-            <Field label="Medicare Part B Effective Date"><input type="date" value={med.partBEffectiveDate || ''} onChange={set('medicare', 'partBEffectiveDate')} className={inputClass} /></Field>
+            <Field label="Medicare Part A Effective Date" error={errors.partAEffectiveDate}>
+              <input
+                type="date"
+                value={med.partAEffectiveDate || ''}
+                onChange={set('medicare', 'partAEffectiveDate')}
+                className={`${inputClass}${errorClass('partAEffectiveDate')}`}
+              />
+            </Field>
+            <Field label="Medicare Part B Effective Date" error={errors.partBEffectiveDate}>
+              <input
+                type="date"
+                value={med.partBEffectiveDate || ''}
+                onChange={set('medicare', 'partBEffectiveDate')}
+                className={`${inputClass}${errorClass('partBEffectiveDate')}`}
+              />
+            </Field>
           </div>
           <Field label="Medicare Advantage Plan Name"><input value={med.advantagePlanName} onChange={set('medicare', 'advantagePlanName')} className={inputClass} /></Field>
           <Field label="Plan ID Number"><input value={med.planIdNumber} onChange={set('medicare', 'planIdNumber')} className={inputClass} /></Field>
@@ -394,14 +533,22 @@ export function InsuranceIntakeStepTwo({
           <Field label="State"><input value={mcd.state} onChange={set('medicaid', 'state')} className={inputClass} /></Field>
           <Field label="Managed Care Plan (if any)"><input value={mcd.managedCarePlan} onChange={set('medicaid', 'managedCarePlan')} className={inputClass} /></Field>
           <Field label="Member ID"><input value={mcd.memberId} onChange={set('medicaid', 'memberId')} className={inputClass} /></Field>
-          <Field label="Effective Date"><input type="date" value={mcd.effectiveDate || ''} onChange={set('medicaid', 'effectiveDate')} className={inputClass} /></Field>
+          <Field label="Effective Date" error={errors.medicaidEffectiveDate}>
+            <input
+              type="date"
+              value={mcd.effectiveDate || ''}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={set('medicaid', 'effectiveDate')}
+              className={`${inputClass}${errorClass('medicaidEffectiveDate')}`}
+            />
+          </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Case Worker Name"><input value={mcd.caseWorkerName} onChange={set('medicaid', 'caseWorkerName')} className={inputClass} /></Field>
             <Field label="Case Worker Phone" error={errors.caseWorkerPhone}>
               <input
                 type="tel"
                 inputMode="numeric"
-                placeholder="10-digit phone"
+                placeholder="(555) 123-4567"
                 value={mcd.caseWorkerPhone}
                 onChange={setPhone('medicaid', 'caseWorkerPhone')}
                 className={`${inputClass}${errorClass('caseWorkerPhone')}`}
@@ -413,13 +560,41 @@ export function InsuranceIntakeStepTwo({
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Section n="7" title="Additional Coverage">
-          <YesNoNull label="Veteran Benefits (VA)" value={add.vaBenefits} onChange={(v) => onFormDataChange('additionalCoverage', { ...add, vaBenefits: v })} />
-          {add.vaBenefits && <Field label="VA Claim #"><input value={add.vaClaimNumber} onChange={set('additionalCoverage', 'vaClaimNumber')} className={inputClass} /></Field>}
-          <YesNoNull label="Long Term Care Insurance" value={add.longTermCare} onChange={(v) => onFormDataChange('additionalCoverage', { ...add, longTermCare: v })} />
+          <YesNoNull
+            label="Veteran Benefits (VA)"
+            value={add.vaBenefits}
+            onChange={(v) => onFormDataChange('additionalCoverage', { vaBenefits: v })}
+          />
+          {add.vaBenefits && (
+            <Field label="VA Claim #" required error={errors.vaClaimNumber}>
+              <input
+                value={add.vaClaimNumber}
+                onChange={set('additionalCoverage', 'vaClaimNumber')}
+                className={`${inputClass}${errorClass('vaClaimNumber')}`}
+              />
+            </Field>
+          )}
+          <YesNoNull
+            label="Long Term Care Insurance"
+            value={add.longTermCare}
+            onChange={(v) => onFormDataChange('additionalCoverage', { longTermCare: v })}
+          />
           {add.longTermCare && (
             <>
-              <Field label="Policy / Claim Number"><input value={add.ltcPolicyClaimNumber} onChange={set('additionalCoverage', 'ltcPolicyClaimNumber')} className={inputClass} /></Field>
-              <Field label="Insurance Company"><input value={add.ltcCompany} onChange={set('additionalCoverage', 'ltcCompany')} className={inputClass} /></Field>
+              <Field label="Policy / Claim Number" required error={errors.ltcPolicyClaimNumber}>
+                <input
+                  value={add.ltcPolicyClaimNumber}
+                  onChange={set('additionalCoverage', 'ltcPolicyClaimNumber')}
+                  className={`${inputClass}${errorClass('ltcPolicyClaimNumber')}`}
+                />
+              </Field>
+              <Field label="Insurance Company" required error={errors.ltcCompany}>
+                <input
+                  value={add.ltcCompany}
+                  onChange={set('additionalCoverage', 'ltcCompany')}
+                  className={`${inputClass}${errorClass('ltcCompany')}`}
+                />
+              </Field>
             </>
           )}
         </Section>
@@ -428,20 +603,37 @@ export function InsuranceIntakeStepTwo({
           <p className="text-sm leading-relaxed text-gray-600">
             I authorize CareTraker to verify my insurance benefits, submit claims, communicate with my insurance company, and release information as necessary to process payment for services.
           </p>
-          <Field label="Print Name"><input value={auth.printName} onChange={set('authorization', 'printName')} className={inputClass} /></Field>
+          <Field label="Print Name" required error={errors.authPrintName}>
+            <input
+              value={auth.printName}
+              onChange={set('authorization', 'printName')}
+              className={`${inputClass}${errorClass('authPrintName')}`}
+            />
+          </Field>
           <Field label="Date" required error={errors.authDate}>
             <input
               type="date"
-              value={auth.date || ''}
-              onChange={set('authorization', 'date')}
-              className={`${inputClass}${errorClass('authDate')}`}
+              value={auth.date || todayDateInputValue()}
+              max={todayDateInputValue()}
+              readOnly
+              className={`${readOnlyClass}${errorClass('authDate')}`}
             />
           </Field>
-          <DigitalSignaturePad label="Signature of Client / Representative" value={auth.signature} onChange={(sig) => onFormDataChange('authorization', { ...auth, signature: sig })} />
+          <div className={errors.authSignature ? 'rounded-xl ring-2 ring-red-200 p-0.5' : ''}>
+            <DigitalSignaturePad
+              label="Signature of Client / Representative *"
+              value={auth.signature}
+              onChange={(sig) => onFormDataChange('authorization', {
+                signature: sig,
+                date: auth.date || todayDateInputValue(),
+              })}
+            />
+          </div>
+          {errors.authSignature ? <p className="text-xs text-red-600">{errors.authSignature}</p> : null}
         </Section>
       </div>
 
-      <Section n="9" title="Required Documents" subtitle="Upload copies of the documents you have on file (PDF or image)">
+      <Section n="9" title="Required Documents" subtitle={`Upload copies of the documents you have on file (PDF or image — images max ${MAX_IMAGE_UPLOAD_LABEL})`}>
         {!intakeId && (
           <p className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-800">
             Choosing Upload will save a draft intake automatically so the file can be stored.
@@ -453,11 +645,18 @@ export function InsuranceIntakeStepTwo({
             const entry = docs[key];
             const uploaded = hasUploadedDocument(entry);
             const busy = uploadingKey === key || localBusy === key;
+            const docErrorKey = key === 'insuranceCard' ? 'docInsuranceCard' : key === 'photoId' ? 'docPhotoId' : null;
+            const docError = docErrorKey ? errors[docErrorKey] : null;
+            const coreRequired = requireCoreDocs && (key === 'insuranceCard' || key === 'photoId');
             return (
               <div
                 key={key}
                 className={`flex flex-col rounded-xl border p-4 transition-colors ${
-                  uploaded ? 'border-primary/40 bg-primary/5' : 'border-gray-200 bg-white'
+                  docError
+                    ? 'border-red-400 bg-red-50/40'
+                    : uploaded
+                      ? 'border-primary/40 bg-primary/5'
+                      : 'border-gray-200 bg-white'
                 }`}
               >
                 <div className="mb-3 flex items-start gap-3">
@@ -465,9 +664,12 @@ export function InsuranceIntakeStepTwo({
                     <Icon size={20} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-900">{label}</p>
-                    <p className={`mt-0.5 text-xs ${uploaded ? 'text-primary' : 'text-gray-400'}`}>
-                      {uploaded ? (entry.originalName || 'Uploaded') : 'No file uploaded'}
+                    <p className="text-sm font-medium text-gray-900">
+                      {label}
+                      {coreRequired ? <span className="text-red-500"> *</span> : null}
+                    </p>
+                    <p className={`mt-0.5 text-xs ${uploaded ? 'text-primary' : docError ? 'text-red-600' : 'text-gray-400'}`}>
+                      {uploaded ? (entry.originalName || 'Uploaded') : docError || 'No file uploaded'}
                     </p>
                   </div>
                 </div>

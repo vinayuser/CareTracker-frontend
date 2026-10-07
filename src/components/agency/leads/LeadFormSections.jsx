@@ -1,7 +1,6 @@
 import {
   Phone, Mail, MapPin, Calendar, Plus,
 } from 'lucide-react';
-import SubmitButton from '../../ui/SubmitButton';
 import {
   PREFERRED_CONTACT_METHODS,
   LEAD_SOURCES,
@@ -16,7 +15,7 @@ import {
   PREFERRED_TIMES,
   buildEmptyLeadFormData,
 } from '../../../utils/leadForm';
-import { formatLeadPhone } from '../../../utils/leadFormValidation';
+import { formatLeadPhone, formatLeadZipInput, maxDobForMinAge } from '../../../utils/leadFormValidation';
 
 const inputClass =
   'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:cursor-default disabled:bg-slate-50';
@@ -64,19 +63,24 @@ function SectionCard({ title, children, action, className = '' }) {
 }
 
 function ChipSelect({ options, values = [], onToggle, readOnly }) {
+  const selected = Array.isArray(values) ? values : [];
   return (
     <div className="flex flex-wrap gap-2">
       {options.map((opt) => {
-        const active = values.includes(opt);
+        const active = selected.includes(opt);
         return (
           <button
             key={opt}
             type="button"
             disabled={readOnly}
-            onClick={() => onToggle(opt)}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+            aria-pressed={active}
+            onClick={(e) => {
+              e.preventDefault();
+              if (!readOnly) onToggle(opt);
+            }}
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
               active
-                ? 'bg-primary/10 text-primary ring-1 ring-primary/25'
+                ? 'bg-[#0055d4] text-white shadow-sm'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             } disabled:cursor-default`}
           >
@@ -102,8 +106,6 @@ export default function LeadFormSections({
   onFormDataChange,
   onHeaderChange,
   readOnly = false,
-  onSaveNote,
-  saving = false,
   errors = {},
 }) {
   const empty = buildEmptyLeadFormData();
@@ -116,7 +118,11 @@ export default function LeadFormSections({
   const err = (path) => errors[path] || '';
 
   const patch = (section, key, value) => {
-    onFormDataChange(section, { ...d[section], [key]: value }, `${section}.${key}`);
+    onFormDataChange(
+      section,
+      (prevSection) => ({ ...prevSection, [key]: value }),
+      `${section}.${key}`,
+    );
   };
 
   const patchPhone = (section, key, value) => {
@@ -124,9 +130,21 @@ export default function LeadFormSections({
   };
 
   const toggleChip = (section, key, opt) => {
-    const arr = d[section][key] || [];
-    const next = arr.includes(opt) ? arr.filter((x) => x !== opt) : [...arr, opt];
-    patch(section, key, next);
+    if (readOnly) return;
+    onFormDataChange(
+      section,
+      (prevSection = {}) => {
+        const raw = prevSection[key];
+        const arr = Array.isArray(raw)
+          ? raw
+          : (typeof raw === 'string' && raw.trim()
+            ? raw.split(',').map((s) => s.trim()).filter(Boolean)
+            : []);
+        const next = arr.includes(opt) ? arr.filter((x) => x !== opt) : [...arr, opt];
+        return { ...prevSection, [key]: next };
+      },
+      `${section}.${key}`,
+    );
   };
 
   const basicCard = (
@@ -226,14 +244,17 @@ export default function LeadFormSections({
             onChange={(e) => patch('basicInfo', 'preferredStartDate', e.target.value)}
           />
         </Field>
-        <Field label="Zip / Location" required className="sm:col-span-2" error={err('basicInfo.zipLocation')}>
+        <Field label="Zip Code" required className="sm:col-span-2" error={err('basicInfo.zipLocation')}>
           <IconInput
             icon={MapPin}
             disabled={readOnly}
             error={err('basicInfo.zipLocation')}
             value={basic.zipLocation}
-            onChange={(e) => patch('basicInfo', 'zipLocation', e.target.value)}
-            placeholder="San Jose, CA 95124"
+            inputMode="numeric"
+            autoComplete="postal-code"
+            maxLength={10}
+            onChange={(e) => patch('basicInfo', 'zipLocation', formatLeadZipInput(e.target.value))}
+            placeholder="95124"
           />
         </Field>
       </div>
@@ -261,8 +282,16 @@ export default function LeadFormSections({
             placeholder="Johnson"
           />
         </Field>
-        <Field label="Age / DOB">
-          <input disabled={readOnly} value={recipient.ageOrDob} onChange={(e) => patch('careRecipient', 'ageOrDob', e.target.value)} className={inputClass} placeholder="82 Years (12 May 1944)" />
+        <Field label="Date of Birth" error={err('careRecipient.ageOrDob')}>
+          <IconInput
+            icon={Calendar}
+            type="date"
+            disabled={readOnly}
+            error={err('careRecipient.ageOrDob')}
+            value={/^\d{4}-\d{2}-\d{2}$/.test(String(recipient.ageOrDob || '').trim()) ? recipient.ageOrDob : ''}
+            max={maxDobForMinAge(18)}
+            onChange={(e) => patch('careRecipient', 'ageOrDob', e.target.value)}
+          />
         </Field>
         <Field label="Gender">
           <select disabled={readOnly} value={recipient.gender} onChange={(e) => patch('careRecipient', 'gender', e.target.value)} className={inputClass}>
@@ -372,16 +401,9 @@ export default function LeadFormSections({
         placeholder="Add your notes here..."
       />
       {!readOnly ? (
-        <div className="mt-3 flex justify-end">
-          <SubmitButton
-            loading={saving}
-            onClick={() => onSaveNote?.()}
-            loadingLabel="Saving..."
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover"
-          >
-            Save Note
-          </SubmitButton>
-        </div>
+        <p className="mt-2 text-xs text-slate-500">
+          Notes are saved with the lead when you click Save & Continue.
+        </p>
       ) : null}
     </SectionCard>
   );
@@ -396,8 +418,13 @@ export default function LeadFormSections({
       )}
     >
       <div className="space-y-3.5">
-        <Field label="Care Type Requested">
-          <select disabled={readOnly} value={care.careTypeRequested} onChange={(e) => patch('careSummary', 'careTypeRequested', e.target.value)} className={inputClass}>
+        <Field label="Care Type Requested" required error={err('careSummary.careTypeRequested')}>
+          <select
+            disabled={readOnly}
+            value={care.careTypeRequested}
+            onChange={(e) => patch('careSummary', 'careTypeRequested', e.target.value)}
+            className={fieldClass(err('careSummary.careTypeRequested'))}
+          >
             {CARE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
         </Field>

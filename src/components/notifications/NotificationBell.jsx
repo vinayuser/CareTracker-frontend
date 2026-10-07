@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Bell, CheckCheck, Loader2 } from 'lucide-react';
 import {
+  NOTIFICATIONS_PAGE_SIZE,
   fetchNotifications,
   fetchUnreadCount,
   markAllNotificationsRead,
@@ -49,7 +50,11 @@ export default function NotificationBell({ className = '' }) {
   const navigate = useNavigate();
   const panelRef = useRef(null);
   const [open, setOpen] = useState(false);
-  const { items, unreadCount, loading } = useSelector((state) => state.notifications);
+  const { items, unreadCount, loading, loadingMore, pagination } = useSelector(
+    (state) => state.notifications,
+  );
+
+  const hasMore = (pagination?.page || 1) < (pagination?.totalPages || 1);
 
   useEffect(() => {
     dispatch(fetchUnreadCount());
@@ -59,7 +64,7 @@ export default function NotificationBell({ className = '' }) {
 
   useEffect(() => {
     if (!open) return undefined;
-    dispatch(fetchNotifications({ limit: 15 }));
+    dispatch(fetchNotifications({ page: 1, limit: NOTIFICATIONS_PAGE_SIZE, append: false }));
     const onPointer = (event) => {
       if (panelRef.current && !panelRef.current.contains(event.target)) {
         setOpen(false);
@@ -68,6 +73,22 @@ export default function NotificationBell({ className = '' }) {
     document.addEventListener('mousedown', onPointer);
     return () => document.removeEventListener('mousedown', onPointer);
   }, [open, dispatch]);
+
+  const loadNextPage = useCallback(() => {
+    if (!hasMore || loading || loadingMore) return;
+    const nextPage = (pagination?.page || 1) + 1;
+    dispatch(fetchNotifications({
+      page: nextPage,
+      limit: NOTIFICATIONS_PAGE_SIZE,
+      append: true,
+    }));
+  }, [dispatch, hasMore, loading, loadingMore, pagination?.page]);
+
+  const handleListScroll = (event) => {
+    const el = event.currentTarget;
+    const remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (remaining < 80) loadNextPage();
+  };
 
   const handleOpen = () => setOpen((value) => !value);
 
@@ -82,7 +103,7 @@ export default function NotificationBell({ className = '' }) {
 
   const handleMarkAll = async () => {
     await dispatch(markAllNotificationsRead());
-    dispatch(fetchNotifications({ limit: 15 }));
+    dispatch(fetchNotifications({ page: 1, limit: NOTIFICATIONS_PAGE_SIZE, append: false }));
   };
 
   const badge = unreadCount > 99 ? '99+' : String(unreadCount);
@@ -126,7 +147,10 @@ export default function NotificationBell({ className = '' }) {
             )}
           </div>
 
-          <div className="max-h-96 overflow-y-auto">
+          <div
+            className="max-h-96 overflow-y-auto"
+            onScroll={handleListScroll}
+          >
             {loading && items.length === 0 ? (
               <div className="flex items-center justify-center gap-2 px-4 py-8 text-sm text-gray-500">
                 <Loader2 size={16} className="animate-spin" />
@@ -135,23 +159,37 @@ export default function NotificationBell({ className = '' }) {
             ) : items.length === 0 ? (
               <p className="px-4 py-8 text-center text-sm text-gray-500">No notifications yet</p>
             ) : (
-              items.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => handleItemClick(item)}
-                  className={`flex w-full gap-3 border-b border-gray-50 px-4 py-3 text-left transition hover:bg-gray-50 ${item.read ? 'opacity-75' : 'bg-primary/[0.03]'}`}
-                >
-                  <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${TONE_DOT[item.tone] || TONE_DOT.info}`} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-gray-900">{item.title}</span>
-                    {item.body ? (
-                      <span className="mt-0.5 block line-clamp-2 text-xs text-gray-600">{item.body}</span>
-                    ) : null}
-                    <span className="mt-1 block text-[11px] text-gray-400">{formatWhen(item.createdAt)}</span>
-                  </span>
-                </button>
-              ))
+              <>
+                {items.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleItemClick(item)}
+                    className={`flex w-full gap-3 border-b border-gray-50 px-4 py-3 text-left transition hover:bg-gray-50 ${item.read ? 'opacity-75' : 'bg-primary/[0.03]'}`}
+                  >
+                    <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${TONE_DOT[item.tone] || TONE_DOT.info}`} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-gray-900">{item.title}</span>
+                      {item.body ? (
+                        <span className="mt-0.5 block line-clamp-2 text-xs text-gray-600">{item.body}</span>
+                      ) : null}
+                      <span className="mt-1 block text-[11px] text-gray-400">{formatWhen(item.createdAt)}</span>
+                    </span>
+                  </button>
+                ))}
+                {loadingMore ? (
+                  <div className="flex items-center justify-center gap-2 px-4 py-3 text-xs text-gray-500">
+                    <Loader2 size={14} className="animate-spin" />
+                    Loading more…
+                  </div>
+                ) : null}
+                {!loadingMore && hasMore ? (
+                  <p className="px-4 py-2 text-center text-[11px] text-gray-400">Scroll for more</p>
+                ) : null}
+                {!loadingMore && !hasMore && items.length > 0 ? (
+                  <p className="px-4 py-2 text-center text-[11px] text-gray-400">End of notifications</p>
+                ) : null}
+              </>
             )}
           </div>
         </div>

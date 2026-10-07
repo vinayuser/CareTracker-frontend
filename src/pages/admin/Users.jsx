@@ -560,7 +560,7 @@ export default function Users() {
               </div>
             ) : null}
           </div>
-          <button
+          {/* <button
             type="button"
             onClick={() => toast.info('User import will be available in a future release')}
             className="mt-5 inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -573,7 +573,7 @@ export default function Users() {
             className="mt-5 inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover"
           >
             <Plus size={15} /> Add User
-          </button>
+          </button> */}
         </div>
       </div>
 

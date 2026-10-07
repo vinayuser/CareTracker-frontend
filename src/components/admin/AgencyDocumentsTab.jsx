@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -20,8 +20,10 @@ import API_ROUTES from '../../api/apiRoutes';
 import ActionIconButton from '../ui/ActionIconButton';
 import Drawer from '../ui/Drawer';
 import { confirmAlert } from '../../utils/swal';
+import { validateImageUpload, MAX_IMAGE_UPLOAD_LABEL } from '../../utils/imageUploadValidation';
 
 const PAGE_SIZE = 7;
+const MENU_WIDTH = 176;
 const CATEGORIES = ['Legal', 'Insurance', 'Tax', 'Policy', 'Finance', 'HR', 'Other'];
 const STATUS_OPTIONS = ['All', 'Active', 'Expired', 'Archived'];
 
@@ -108,7 +110,8 @@ export default function AgencyDocumentsTab({ agencyId }) {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(EMPTY);
-  const [menuId, setMenuId] = useState('');
+  const [menu, setMenu] = useState(null);
+  const menuRef = useRef(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [form, setForm] = useState({ name: '', category: 'Legal', expiryDate: '', file: null });
   const [saving, setSaving] = useState(false);
@@ -121,6 +124,32 @@ export default function AgencyDocumentsTab({ agencyId }) {
   useEffect(() => {
     setPage(1);
   }, [agencyId, debouncedSearch, category, status, favorites]);
+
+  useEffect(() => {
+    if (!menu) return undefined;
+    const onPointerDown = (e) => {
+      if (e.target.closest?.('[data-document-menu-trigger]')) return;
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenu(null);
+    };
+    const close = () => setMenu(null);
+    document.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [menu]);
+
+  const openMenu = (doc, e) => {
+    if (menu?.doc.id === doc.id) {
+      setMenu(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMenu({ doc, top: rect.bottom + 4, left: Math.max(8, rect.right - MENU_WIDTH) });
+  };
 
   const load = async () => {
     if (!agencyId) return;
@@ -159,6 +188,11 @@ export default function AgencyDocumentsTab({ agencyId }) {
       toast.error('Choose a file to upload');
       return;
     }
+    const imageCheck = validateImageUpload(form.file, { imagesOnly: false });
+    if (!imageCheck.ok) {
+      toast.error(imageCheck.error || `Image must be ${MAX_IMAGE_UPLOAD_LABEL} or smaller`);
+      return;
+    }
     setSaving(true);
     try {
       const payload = new FormData();
@@ -188,8 +222,8 @@ export default function AgencyDocumentsTab({ agencyId }) {
     const confirmed = await confirmAlert({
       title: 'Delete document?',
       text: `${doc.name} will be removed from this agency.`,
-      confirmButtonText: 'Delete',
-      confirmButtonColor: '#dc2626',
+      confirmText: 'Delete',
+      danger: true,
     });
     if (!confirmed) return;
     await axiosInstance.delete(`${API_ROUTES.ADMIN.AGENCY.DOCUMENTS}/${agencyId}/documents/${doc.id}`);
@@ -308,20 +342,16 @@ export default function AgencyDocumentsTab({ agencyId }) {
                           }}>
                             <Download size={15} />
                           </ActionIconButton>
-                          <ActionIconButton label="More" className="text-slate-500 hover:bg-slate-100" onClick={() => setMenuId((id) => (id === doc.id ? '' : doc.id))}>
-                            <MoreVertical size={15} />
-                          </ActionIconButton>
+                          <span data-document-menu-trigger className="inline-flex">
+                            <ActionIconButton
+                              label="More actions"
+                              className={`text-slate-500 hover:bg-slate-100 ${menu?.doc.id === doc.id ? 'bg-slate-100' : ''}`}
+                              onClick={(e) => openMenu(doc, e)}
+                            >
+                              <MoreVertical size={15} />
+                            </ActionIconButton>
+                          </span>
                         </div>
-                        {menuId === doc.id ? (
-                          <div className="absolute right-5 z-10 mt-1 w-40 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
-                            <button type="button" onClick={() => { setMenuId(''); toggleFavorite(doc); }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">
-                              <Heart size={14} /> {doc.isFavorite ? 'Unfavorite' : 'Favorite'}
-                            </button>
-                            <button type="button" onClick={() => { setMenuId(''); handleDelete(doc); }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50">
-                              <Trash2 size={14} /> Delete
-                            </button>
-                          </div>
-                        ) : null}
                       </td>
                     </tr>
                   ))
@@ -329,6 +359,29 @@ export default function AgencyDocumentsTab({ agencyId }) {
               </tbody>
             </table>
           </div>
+          {menu ? (
+            <div
+              ref={menuRef}
+              style={{ position: 'fixed', top: menu.top, left: menu.left, width: MENU_WIDTH }}
+              className="z-50 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+            >
+              <button
+                type="button"
+                onClick={() => { const { doc } = menu; setMenu(null); toggleFavorite(doc); }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+              >
+                <Heart size={14} fill={menu.doc.isFavorite ? 'currentColor' : 'none'} />
+                {menu.doc.isFavorite ? 'Unfavorite' : 'Favorite'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { const { doc } = menu; setMenu(null); handleDelete(doc); }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
+              >
+                <Trash2 size={14} /> Delete
+              </button>
+            </div>
+          ) : null}
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-5 py-3 text-xs text-slate-500">
             <span>Showing {data.pagination.from} to {data.pagination.to} of {Number(data.pagination.total || 0).toLocaleString()} documents</span>
             <div className="flex items-center gap-1">
@@ -407,7 +460,23 @@ export default function AgencyDocumentsTab({ agencyId }) {
             <label className="flex cursor-pointer flex-col items-center rounded-lg border border-dashed border-slate-300 px-4 py-6 text-center hover:bg-slate-50">
               <Upload size={18} className="text-slate-400" />
               <span className="mt-2 text-sm text-slate-600">{form.file ? form.file.name : 'PDF, Word, Excel, or image'}</span>
-              <input type="file" className="hidden" onChange={(e) => setForm((prev) => ({ ...prev, file: e.target.files?.[0] || null, name: prev.name || e.target.files?.[0]?.name || '' }))} />
+              <span className="mt-1 text-xs text-slate-500">Images max {MAX_IMAGE_UPLOAD_LABEL}</span>
+              <input
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  e.target.value = '';
+                  if (file) {
+                    const imageCheck = validateImageUpload(file, { imagesOnly: false });
+                    if (!imageCheck.ok) {
+                      toast.error(imageCheck.error || `Image must be ${MAX_IMAGE_UPLOAD_LABEL} or smaller`);
+                      return;
+                    }
+                  }
+                  setForm((prev) => ({ ...prev, file, name: prev.name || file?.name || '' }));
+                }}
+              />
             </label>
           </div>
           <div>

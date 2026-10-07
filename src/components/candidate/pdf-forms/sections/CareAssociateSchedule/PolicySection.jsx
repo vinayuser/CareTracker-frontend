@@ -1,19 +1,12 @@
 import React from 'react';
+import { fieldInputErr, fieldInputOk } from '../../../../../utils/candidateFormPrefill';
 
-const PolicySection = ({ formData, onInputChange }) => {
-  // Format date for input
-  const formatDateForInput = (dateString) => {
-    if (!dateString) return '';
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
-    
-    const date = new Date(dateString);
-    if (!isNaN(date.getTime())) {
-      return date.toISOString().split('T')[0];
-    }
-    
-    return dateString;
-  };
+function FieldError({ message }) {
+  if (!message) return null;
+  return <p className="mt-1 text-xs text-red-600">{message}</p>;
+}
 
+const PolicySection = ({ formData, errors = {}, onInputChange }) => {
   return (
     <div className="mb-8">
       <h3 className="text-lg font-semibold mb-4">Schedule Policy Review</h3>
@@ -105,40 +98,41 @@ const PolicySection = ({ formData, onInputChange }) => {
         <h4 className="text-md font-semibold text-gray-800 mb-3">Care Associate Information:</h4>
         
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Care Associate Print Name
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Care Associate Print Name *
           </label>
           <input
             type="text"
-            value={formData["Care Associate Print Name"]}
-            onChange={(e) => onInputChange("Care Associate Print Name", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={formData['Care Associate Print Name'] || ''}
+            onChange={(e) => onInputChange('Care Associate Print Name', e.target.value)}
+            className={errors['Care Associate Print Name'] ? fieldInputErr : fieldInputOk}
             placeholder="Enter your full name"
-            required
           />
+          <FieldError message={errors['Care Associate Print Name']} />
         </div>
-        
+
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date (Care Associate)
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Date (Care Associate) *
             </label>
             <input
               type="date"
-              value={formatDateForInput(formData["Date"])}
-              onChange={(e) => onInputChange("Date", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={formData.Date || ''}
+              onChange={(e) => onInputChange('Date', e.target.value)}
+              className={errors.Date ? fieldInputErr : fieldInputOk}
             />
+            <FieldError message={errors.Date} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-gray-700">
               Date (Agency Representative)
             </label>
             <input
               type="date"
-              value={formatDateForInput(formData["Date_2"])}
-              onChange={(e) => onInputChange("Date_2", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={formData.Date_2 || ''}
+              onChange={(e) => onInputChange('Date_2', e.target.value)}
+              className={fieldInputOk}
             />
           </div>
         </div>

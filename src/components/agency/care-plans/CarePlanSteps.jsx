@@ -4,12 +4,19 @@ import { CarePlanIconBadge } from './carePlanIcons';
 import {
   CARE_NEED_AREAS, GENDERS, REVIEW_FREQUENCIES, RISK_LEVELS,
 } from '../../../utils/carePlanForm';
+import { carePlanFieldMaxLength } from '../../../utils/carePlanFormValidation';
+import { RELATIONSHIPS } from '../../../utils/leadForm';
 import { Fragment } from 'react';
 
 const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100';
+const inputErrorClass = 'w-full rounded-xl border border-red-400 bg-white px-3 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200';
 const readOnlyClass = 'w-full rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 text-sm text-gray-700';
 const labelClass = 'mb-1.5 block text-sm font-medium text-gray-700';
 const lockShellClass = 'pointer-events-none select-none [&_input]:bg-gray-50 [&_textarea]:bg-gray-50 [&_select]:bg-gray-50 [&_button]:cursor-default [&_canvas]:cursor-default';
+
+function fieldClass(hasError) {
+  return hasError ? inputErrorClass : inputClass;
+}
 
 function LockShell({ locked, children, className = '' }) {
   if (!locked) return children;
@@ -20,11 +27,12 @@ function LockShell({ locked, children, className = '' }) {
   );
 }
 
-function Field({ label, required, children, className = '' }) {
+function Field({ label, required, children, className = '', error }) {
   return (
     <div className={className}>
       <label className={labelClass}>{label}{required && <span className="text-red-500"> *</span>}</label>
       {children}
+      {error ? <p className="mt-1 text-xs text-red-600">{error}</p> : null}
     </div>
   );
 }
@@ -40,16 +48,33 @@ function ReadField({ label, value, className = '' }) {
 
 function InputOrRead({
   label, value, onChange, readOnly, type = 'text', rows, className = '',
+  fieldKey = '', error = '', inputMode, placeholder,
 }) {
   if (readOnly) {
     return <ReadField label={label} value={value} className={className} />;
   }
+  const maxLength = fieldKey ? carePlanFieldMaxLength(fieldKey) : undefined;
   return (
-    <Field label={label} className={className}>
+    <Field label={label} className={className} error={error}>
       {rows ? (
-        <textarea value={value || ''} onChange={(e) => onChange(e.target.value)} rows={rows} className={inputClass} />
+        <textarea
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          rows={rows}
+          maxLength={maxLength}
+          className={fieldClass(error)}
+          placeholder={placeholder}
+        />
       ) : (
-        <input type={type} value={value || ''} onChange={(e) => onChange(e.target.value)} className={inputClass} />
+        <input
+          type={type}
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          maxLength={maxLength}
+          inputMode={inputMode}
+          className={fieldClass(error)}
+          placeholder={placeholder}
+        />
       )}
     </Field>
   );
@@ -144,6 +169,7 @@ export function CarePlanStepOne({
   form, clients, clientId, onClientChange, onHeaderChange, onFormDataChange, agencyName = '',
   clientInfoLocked = false,
   readOnly = false,
+  errors = {},
 }) {
   const d = form.formData;
   const set = (section, field) => (e) => onFormDataChange(section, { [field]: e.target.value });
@@ -153,6 +179,7 @@ export function CarePlanStepOne({
   const sup = d.supplementary;
   const assessor = d.assessor;
   const locked = Boolean(clientInfoLocked) || readOnly;
+  const max = carePlanFieldMaxLength;
 
   return (
     <LockShell locked={readOnly}>
@@ -163,14 +190,19 @@ export function CarePlanStepOne({
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <ReadField label="Agency Name" value={agencyName} />
             <ReadField label="Plan ID" value={form.planCode || 'Auto-generated on save'} />
-            <Field label="Effective Date"><input value={form.effectiveDate} onChange={(e) => onHeaderChange('effectiveDate', e.target.value)} className={inputClass} readOnly={readOnly} /></Field>
-            <Field label="Review Date"><input value={form.reviewDate} onChange={(e) => onHeaderChange('reviewDate', e.target.value)} className={inputClass} readOnly={readOnly} /></Field>
+            <Field label="Effective Date">
+              <input type="date" value={form.effectiveDate} onChange={(e) => onHeaderChange('effectiveDate', e.target.value)} className={inputClass} readOnly={readOnly} />
+            </Field>
+            <Field label="Review Date">
+              <input type="date" value={form.reviewDate} onChange={(e) => onHeaderChange('reviewDate', e.target.value)} className={inputClass} readOnly={readOnly} />
+            </Field>
           </div>
           <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field label="Client ID">
               <input
                 value={ci.clientId || clients.find((c) => String(c.id) === String(clientId))?.clientCode || ''}
                 onChange={set('clientInfo', 'clientId')}
+                maxLength={max('clientId')}
                 className={inputClass}
                 readOnly={readOnly}
               />
@@ -179,8 +211,8 @@ export function CarePlanStepOne({
               <input value={form.version || 'v1'} readOnly className={`${inputClass} bg-gray-50 text-gray-600`} title="Version is updated automatically on save" />
             </Field>
             {!form.planCode && !readOnly && (
-              <Field label="Select Client *">
-                <select value={clientId} onChange={(e) => onClientChange(e.target.value)} className={inputClass}>
+              <Field label="Select Client *" error={errors.clientId}>
+                <select value={clientId} onChange={(e) => onClientChange(e.target.value)} className={fieldClass(errors.clientId)}>
                   <option value="">Choose a client</option>
                   {clients.map((c) => <option key={c.id} value={c.id}>{c.fullName} ({c.clientCode})</option>)}
                 </select>
@@ -191,21 +223,47 @@ export function CarePlanStepOne({
             <div className="bg-violet-700 px-3 py-2 text-center text-xs font-bold uppercase tracking-widest text-white">
               Care Plan Assessor
             </div>
-            <div className="flex flex-col gap-4 bg-violet-50/40 p-4 sm:flex-row sm:items-stretch">
-              <div className="flex shrink-0 items-center justify-center border-b border-violet-200 pb-4 sm:w-36 sm:border-b-0 sm:border-r sm:pb-0 sm:pr-4">
+            <div className="flex flex-col gap-4 bg-violet-50/40 p-4 lg:flex-row lg:items-start">
+              <div className="flex w-full shrink-0 flex-col items-center border-b border-violet-200 pb-4 lg:w-48 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-4">
                 <AssessorPhotoUpload
                   label=""
                   shape="square"
+                  layout="stack"
+                  className="w-full"
                   value={assessor.photo}
                   onChange={(photo) => onFormDataChange('assessor', { ...assessor, photo })}
                   readOnly={readOnly}
                 />
               </div>
-              <div className="grid flex-1 gap-3 sm:grid-cols-2">
-                <Field label="Name"><input value={assessor.name} onChange={set('assessor', 'name')} className={inputClass} readOnly={readOnly} /></Field>
-                <Field label="Title"><input value={assessor.title} onChange={set('assessor', 'title')} className={inputClass} placeholder="Care Assessment Specialist" readOnly={readOnly} /></Field>
-                <Field label="Phone"><input value={assessor.phone} onChange={set('assessor', 'phone')} className={inputClass} readOnly={readOnly} /></Field>
-                <Field label="Email"><input type="email" value={assessor.email} onChange={set('assessor', 'email')} className={inputClass} readOnly={readOnly} /></Field>
+              <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
+                <Field label="Name">
+                  <input value={assessor.name} onChange={set('assessor', 'name')} maxLength={max('name')} className={inputClass} readOnly={readOnly} />
+                </Field>
+                <Field label="Title">
+                  <input value={assessor.title} onChange={set('assessor', 'title')} maxLength={max('title')} className={inputClass} placeholder="Care Assessment Specialist" readOnly={readOnly} />
+                </Field>
+                <Field label="Phone" error={errors['assessor.phone']}>
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    placeholder="(555) 123-4567"
+                    value={assessor.phone}
+                    onChange={set('assessor', 'phone')}
+                    maxLength={max('phone')}
+                    className={fieldClass(errors['assessor.phone'])}
+                    readOnly={readOnly}
+                  />
+                </Field>
+                <Field label="Email" error={errors['assessor.email']}>
+                  <input
+                    type="email"
+                    value={assessor.email}
+                    onChange={set('assessor', 'email')}
+                    maxLength={max('email')}
+                    className={fieldClass(errors['assessor.email'])}
+                    readOnly={readOnly}
+                  />
+                </Field>
                 <Field label="Date Assessed" className="sm:col-span-2">
                   <input type="date" value={assessor.dateAssessed} onChange={set('assessor', 'dateAssessed')} className={inputClass} readOnly={readOnly} />
                 </Field>
@@ -220,15 +278,15 @@ export function CarePlanStepOne({
           subtitle={locked ? 'From the client record — display only. Update the client profile to change these.' : 'Basic demographics and emergency contact'}
         >
           <div className="grid gap-4 sm:grid-cols-2">
-            <InputOrRead label="Client Name" value={ci.clientName} onChange={patch('clientInfo', 'clientName')} readOnly={locked} className="sm:col-span-2" />
+            <InputOrRead label="Client Name" fieldKey="clientName" value={ci.clientName} onChange={patch('clientInfo', 'clientName')} readOnly={locked} className="sm:col-span-2" />
             <InputOrRead label="Date of Birth" type="date" value={ci.dob} onChange={patch('clientInfo', 'dob')} readOnly={locked} />
-            <InputOrRead label="Address" value={ci.address} onChange={patch('clientInfo', 'address')} readOnly={locked} className="sm:col-span-2" />
-            <InputOrRead label="City" value={ci.city} onChange={patch('clientInfo', 'city')} readOnly={locked} />
-            <InputOrRead label="State" value={ci.state} onChange={patch('clientInfo', 'state')} readOnly={locked} />
-            <InputOrRead label="ZIP" value={ci.zip} onChange={patch('clientInfo', 'zip')} readOnly={locked} />
-            <InputOrRead label="Phone" value={ci.phone} onChange={patch('clientInfo', 'phone')} readOnly={locked} />
-            <InputOrRead label="Email" type="email" value={ci.email} onChange={patch('clientInfo', 'email')} readOnly={locked} />
-            <InputOrRead label="Primary Language" value={ci.primaryLanguage} onChange={patch('clientInfo', 'primaryLanguage')} readOnly={locked} />
+            <InputOrRead label="Address" fieldKey="address" value={ci.address} onChange={patch('clientInfo', 'address')} readOnly={locked} className="sm:col-span-2" />
+            <InputOrRead label="City" fieldKey="city" value={ci.city} onChange={patch('clientInfo', 'city')} readOnly={locked} />
+            <InputOrRead label="State" fieldKey="state" value={ci.state} onChange={patch('clientInfo', 'state')} readOnly={locked} placeholder="TX" />
+            <InputOrRead label="ZIP" fieldKey="zip" value={ci.zip} onChange={patch('clientInfo', 'zip')} readOnly={locked} error={errors['clientInfo.zip']} inputMode="numeric" placeholder="78701" />
+            <InputOrRead label="Phone" fieldKey="phone" type="tel" value={ci.phone} onChange={patch('clientInfo', 'phone')} readOnly={locked} error={errors['clientInfo.phone']} inputMode="tel" placeholder="(555) 123-4567" />
+            <InputOrRead label="Email" fieldKey="email" type="email" value={ci.email} onChange={patch('clientInfo', 'email')} readOnly={locked} error={errors['clientInfo.email']} />
+            <InputOrRead label="Primary Language" fieldKey="primaryLanguage" value={ci.primaryLanguage} onChange={patch('clientInfo', 'primaryLanguage')} readOnly={locked} />
             <Chips
               label="Gender"
               options={GENDERS}
@@ -237,31 +295,76 @@ export function CarePlanStepOne({
               disabled={locked}
               onToggle={(g) => onFormDataChange('clientInfo', { gender: ci.gender === g ? '' : g })}
             />
-            <InputOrRead label="Marital Status" value={ci.maritalStatus} onChange={patch('clientInfo', 'maritalStatus')} readOnly={locked} />
-            <InputOrRead label="Emergency Contact" value={ci.emergencyContact} onChange={patch('clientInfo', 'emergencyContact')} readOnly={locked} />
-            <InputOrRead label="Relationship" value={ci.emergencyRelationship} onChange={patch('clientInfo', 'emergencyRelationship')} readOnly={locked} />
-            <InputOrRead label="Emergency Phone" value={ci.emergencyPhone} onChange={patch('clientInfo', 'emergencyPhone')} readOnly={locked} />
+            <InputOrRead label="Marital Status" fieldKey="maritalStatus" value={ci.maritalStatus} onChange={patch('clientInfo', 'maritalStatus')} readOnly={locked} />
+            <InputOrRead label="Emergency Contact" fieldKey="emergencyContact" value={ci.emergencyContact} onChange={patch('clientInfo', 'emergencyContact')} readOnly={locked} />
+            {locked ? (
+              <InputOrRead label="Relationship" fieldKey="emergencyRelationship" value={ci.emergencyRelationship} onChange={patch('clientInfo', 'emergencyRelationship')} readOnly={locked} />
+            ) : (
+              <Field label="Relationship">
+                <select
+                  className={inputClass}
+                  value={ci.emergencyRelationship || ''}
+                  onChange={(e) => onFormDataChange('clientInfo', { emergencyRelationship: e.target.value })}
+                >
+                  <option value="">Select relationship</option>
+                  {RELATIONSHIPS.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                  {ci.emergencyRelationship && !RELATIONSHIPS.includes(ci.emergencyRelationship) ? (
+                    <option value={ci.emergencyRelationship}>{ci.emergencyRelationship}</option>
+                  ) : null}
+                </select>
+              </Field>
+            )}
+            <InputOrRead label="Emergency Phone" fieldKey="emergencyPhone" type="tel" value={ci.emergencyPhone} onChange={patch('clientInfo', 'emergencyPhone')} readOnly={locked} error={errors['clientInfo.emergencyPhone']} inputMode="tel" placeholder="(555) 123-4567" />
           </div>
         </Section>
 
         <div className="grid gap-6 lg:grid-cols-3">
           <Section n="2" title="Medical Information">
-            <Field label="Primary Diagnosis / Condition"><textarea value={med.primaryDiagnosis} onChange={set('medicalInfo', 'primaryDiagnosis')} rows={2} className={inputClass} readOnly={readOnly} /></Field>
-            <Field label="Other Diagnoses / Conditions"><textarea value={med.otherDiagnoses} onChange={set('medicalInfo', 'otherDiagnoses')} rows={2} className={inputClass} readOnly={readOnly} /></Field>
-            <Field label="Allergies"><input value={med.allergies} onChange={set('medicalInfo', 'allergies')} className={inputClass} readOnly={readOnly} /></Field>
-            <Field label="Physician / Provider"><input value={med.physician} onChange={set('medicalInfo', 'physician')} className={inputClass} readOnly={readOnly} /></Field>
-            <Field label="Physician Phone"><input value={med.physicianPhone} onChange={set('medicalInfo', 'physicianPhone')} className={inputClass} readOnly={readOnly} /></Field>
-            <Field label="Special Instructions / Precautions"><textarea value={med.specialInstructions} onChange={set('medicalInfo', 'specialInstructions')} rows={2} className={inputClass} readOnly={readOnly} /></Field>
+            <Field label="Primary Diagnosis / Condition">
+              <textarea value={med.primaryDiagnosis} onChange={set('medicalInfo', 'primaryDiagnosis')} rows={2} maxLength={max('primaryDiagnosis')} className={inputClass} readOnly={readOnly} />
+            </Field>
+            <Field label="Other Diagnoses / Conditions">
+              <textarea value={med.otherDiagnoses} onChange={set('medicalInfo', 'otherDiagnoses')} rows={2} maxLength={max('otherDiagnoses')} className={inputClass} readOnly={readOnly} />
+            </Field>
+            <Field label="Allergies">
+              <input value={med.allergies} onChange={set('medicalInfo', 'allergies')} maxLength={max('allergies')} className={inputClass} readOnly={readOnly} />
+            </Field>
+            <Field label="Physician / Provider">
+              <input value={med.physician} onChange={set('medicalInfo', 'physician')} maxLength={max('physician')} className={inputClass} readOnly={readOnly} />
+            </Field>
+            <Field label="Physician Phone" error={errors['medicalInfo.physicianPhone']}>
+              <input
+                type="tel"
+                inputMode="tel"
+                placeholder="(555) 123-4567"
+                value={med.physicianPhone}
+                onChange={set('medicalInfo', 'physicianPhone')}
+                maxLength={max('physicianPhone')}
+                className={fieldClass(errors['medicalInfo.physicianPhone'])}
+                readOnly={readOnly}
+              />
+            </Field>
+            <Field label="Special Instructions / Precautions">
+              <textarea value={med.specialInstructions} onChange={set('medicalInfo', 'specialInstructions')} rows={2} maxLength={max('specialInstructions')} className={inputClass} readOnly={readOnly} />
+            </Field>
           </Section>
 
           <Section n="3" title="Client Goals" subtitle="What matters most">
             {d.clientGoals.map((goal, i) => (
               <Field key={i} label={`${i + 1}.`}>
-                <input value={goal} onChange={(e) => {
-                  const goals = [...d.clientGoals];
-                  goals[i] = e.target.value;
-                  onFormDataChange('clientGoals', goals, true);
-                }} className={inputClass} readOnly={readOnly} />
+                <input
+                  value={goal}
+                  onChange={(e) => {
+                    const goals = [...d.clientGoals];
+                    goals[i] = e.target.value;
+                    onFormDataChange('clientGoals', goals, true);
+                  }}
+                  maxLength={100}
+                  className={inputClass}
+                  readOnly={readOnly}
+                />
               </Field>
             ))}
           </Section>
@@ -269,15 +372,15 @@ export function CarePlanStepOne({
           <Section n="4" title="Supplementary Items">
             <YesNoNull label="Advance Directives on File" value={sup.advanceDirectives} onChange={(v) => onFormDataChange('supplementary', { advanceDirectives: v })} disabled={readOnly} />
             <YesNoNull label="DNR / POLST" value={sup.dnrPolst} onChange={(v) => onFormDataChange('supplementary', { dnrPolst: v })} disabled={readOnly} />
-            <Field label="Preferred Hospital"><input value={sup.preferredHospital} onChange={set('supplementary', 'preferredHospital')} className={inputClass} readOnly={readOnly} /></Field>
-            <Field label="Household Members / Caregivers"><input value={sup.householdMembers} onChange={set('supplementary', 'householdMembers')} className={inputClass} readOnly={readOnly} /></Field>
-            <Field label="Preferred Pharmacy"><input value={sup.preferredPharmacy} onChange={set('supplementary', 'preferredPharmacy')} className={inputClass} readOnly={readOnly} /></Field>
+            <Field label="Preferred Hospital"><input value={sup.preferredHospital} onChange={set('supplementary', 'preferredHospital')} maxLength={max('preferredHospital')} className={inputClass} readOnly={readOnly} /></Field>
+            <Field label="Household Members / Caregivers"><input value={sup.householdMembers} onChange={set('supplementary', 'householdMembers')} maxLength={max('householdMembers')} className={inputClass} readOnly={readOnly} /></Field>
+            <Field label="Preferred Pharmacy"><input value={sup.preferredPharmacy} onChange={set('supplementary', 'preferredPharmacy')} maxLength={max('preferredPharmacy')} className={inputClass} readOnly={readOnly} /></Field>
             <YesNoNull label="Transportation Needs" value={sup.transportationNeeds} onChange={(v) => onFormDataChange('supplementary', { transportationNeeds: v })} disabled={readOnly} />
             <YesNoNull label="Interpreter Needed" value={sup.interpreterNeeded} onChange={(v) => onFormDataChange('supplementary', { interpreterNeeded: v })} disabled={readOnly} />
-            <Field label="Health Insurance"><input value={sup.healthInsurance} onChange={set('supplementary', 'healthInsurance')} className={inputClass} readOnly={readOnly} /></Field>
-            <Field label="Policy / ID #"><input value={sup.policyId} onChange={set('supplementary', 'policyId')} className={inputClass} readOnly={readOnly} /></Field>
-            <Field label="Cultural / Spiritual Considerations"><textarea value={sup.culturalSpiritual} onChange={set('supplementary', 'culturalSpiritual')} rows={2} className={inputClass} readOnly={readOnly} /></Field>
-            <Field label="Other Notes"><textarea value={sup.otherNotes} onChange={set('supplementary', 'otherNotes')} rows={2} className={inputClass} readOnly={readOnly} /></Field>
+            <Field label="Health Insurance"><input value={sup.healthInsurance} onChange={set('supplementary', 'healthInsurance')} maxLength={max('healthInsurance')} className={inputClass} readOnly={readOnly} /></Field>
+            <Field label="Policy / ID #"><input value={sup.policyId} onChange={set('supplementary', 'policyId')} maxLength={max('policyId')} className={inputClass} readOnly={readOnly} /></Field>
+            <Field label="Cultural / Spiritual Considerations"><textarea value={sup.culturalSpiritual} onChange={set('supplementary', 'culturalSpiritual')} rows={2} maxLength={max('culturalSpiritual')} className={inputClass} readOnly={readOnly} /></Field>
+            <Field label="Other Notes"><textarea value={sup.otherNotes} onChange={set('supplementary', 'otherNotes')} rows={2} maxLength={max('otherNotes')} className={inputClass} readOnly={readOnly} /></Field>
           </Section>
         </div>
       </div>
@@ -286,17 +389,28 @@ export function CarePlanStepOne({
 }
 
 export function CarePlanStepTwo({
-  form, onFormDataChange, caregivers = [], readOnly = false, clientSignatureEditable = false,
+  form,
+  onFormDataChange,
+  caregivers = [],
+  agencyMembers = [],
+  readOnly = false,
+  clientSignatureEditable = false,
 }) {
   const d = form.formData;
   const risk = d.riskAssessment;
   const review = d.carePlanReview;
   const auth = d.authorization;
   const sig = d.signatures;
+  const clientName = d.clientInfo?.clientName || '';
 
   const caregiverOptions = caregivers
     .filter((c) => c.status !== 'Inactive')
     .sort((a, b) => (a.fullName || '').localeCompare(b.fullName || ''));
+
+  const memberOptions = agencyMembers
+    .filter((m) => m?.name)
+    .slice()
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
   const resolveStaffId = (row) => {
     if (row.responsibleStaffId) return row.responsibleStaffId;
@@ -518,12 +632,44 @@ export function CarePlanStepTwo({
                 <LockShell locked={locked}>
                   <div className="space-y-3">
                     <Field label="Name">
-                      <input
-                        value={sig[key]?.name || ''}
-                        onChange={(e) => onFormDataChange('signatures', { ...sig, [key]: { ...sig[key], name: e.target.value } })}
-                        className={inputClass}
-                        readOnly={locked}
-                      />
+                      {key === 'clientRep' ? (
+                        <input
+                          value={sig[key]?.name || clientName || ''}
+                          onChange={(e) => onFormDataChange('signatures', { ...sig, [key]: { ...sig[key], name: e.target.value } })}
+                          className={inputClass}
+                          readOnly={locked || (!clientSignatureEditable && Boolean(clientName))}
+                          placeholder="Client name"
+                        />
+                      ) : locked ? (
+                        <div className={readOnlyClass}>{sig[key]?.name || '—'}</div>
+                      ) : (
+                        <select
+                          value={
+                            memberOptions.some((m) => m.name === (sig[key]?.name || ''))
+                              ? (sig[key]?.name || '')
+                              : (sig[key]?.name ? `__custom__:${sig[key].name}` : '')
+                          }
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            const name = raw.startsWith('__custom__:') ? raw.slice('__custom__:'.length) : raw;
+                            onFormDataChange('signatures', {
+                              ...sig,
+                              [key]: { ...sig[key], name },
+                            });
+                          }}
+                          className={inputClass}
+                        >
+                          <option value="">Select agency member</option>
+                          {memberOptions.map((m) => (
+                            <option key={m.id} value={m.name}>
+                              {m.name}{m.role ? ` (${m.role})` : ''}
+                            </option>
+                          ))}
+                          {sig[key]?.name && !memberOptions.some((m) => m.name === sig[key].name) ? (
+                            <option value={`__custom__:${sig[key].name}`}>{sig[key].name}</option>
+                          ) : null}
+                        </select>
+                      )}
                     </Field>
                     <DigitalSignaturePad
                       label="Signature"

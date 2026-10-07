@@ -7,16 +7,14 @@ import { ClientIntakeStepOne, ClientIntakeStepTwo } from '../../../components/ag
 import SubmitButton from '../../../components/ui/SubmitButton';
 import { addClient, fetchClient, updateClient } from '../../../redux/slices/clientsSlice';
 import { EMPTY_CLIENT_FORM, clientToForm } from '../../../utils/clientForm';
+import {
+  sanitizeClientField,
+  validateClientForm,
+  validateClientStepOne,
+} from '../../../utils/clientFormValidation';
 import { ROUTES } from '../../../routes/routes';
 import useSubmitLock from '../../../hooks/useSubmitLock';
 import useScrollToTopOnChange from '../../../hooks/useScrollToTopOnChange';
-
-function validateStepOne(form) {
-  const errors = {};
-  if (!form.firstName?.trim()) errors.firstName = 'First name is required';
-  if (!form.lastName?.trim()) errors.lastName = 'Last name is required';
-  return errors;
-}
 
 export default function ClientIntake() {
   const { id } = useParams();
@@ -52,7 +50,8 @@ export default function ClientIntake() {
   }, [dispatch, id, isEdit, navigate]);
 
   const onChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    const nextValue = sanitizeClientField(field, value);
+    setForm((prev) => ({ ...prev, [field]: nextValue }));
     if (errors[field]) {
       setErrors((prev) => {
         const next = { ...prev };
@@ -63,15 +62,26 @@ export default function ClientIntake() {
   };
 
   const handleNext = () => {
-    const stepErrors = validateStepOne(form);
+    const stepErrors = validateClientStepOne(form);
     if (Object.keys(stepErrors).length > 0) {
       setErrors(stepErrors);
       return;
     }
+    setErrors({});
     setStep(2);
   };
 
   const handleSubmit = () => runLocked(async () => {
+    const formErrors = validateClientForm(form);
+    if (Object.keys(formErrors).length > 0) {
+      setErrors(formErrors);
+      if (formErrors.firstName || formErrors.lastName || formErrors.email || formErrors.zipCode
+        || formErrors.phone || formErrors.phoneHome || formErrors.ssnLast4
+        || formErrors.emergencyContactPhone || formErrors.physicianPhone || formErrors.pharmacyPhone) {
+        setStep(1);
+      }
+      return;
+    }
     try {
       if (isEdit) {
         await dispatch(updateClient({ id, payload: form })).unwrap();
@@ -125,7 +135,7 @@ export default function ClientIntake() {
         {step === 1 ? (
           <ClientIntakeStepOne form={form} onChange={onChange} errors={errors} />
         ) : (
-          <ClientIntakeStepTwo form={form} onChange={onChange} />
+          <ClientIntakeStepTwo form={form} onChange={onChange} errors={errors} />
         )}
 
         <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-6">

@@ -12,12 +12,22 @@ import {
   RESIDENCE_TYPES,
   SERVICE_TYPES,
 } from '../../../constants/clientIntakeOptions';
+import { RELATIONSHIPS } from '../../../utils/leadForm';
+import { clientFieldMaxLength } from '../../../utils/clientFormValidation';
 import AssessorPhotoUpload from '../../ui/AssessorPhotoUpload';
+import DigitalSignaturePad from '../../ui/DigitalSignaturePad';
 
 export const inputClass =
   'w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10';
 
+const inputErrorClass =
+  'w-full rounded-xl border border-red-400 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-200';
+
 export const labelClass = 'mb-1.5 block text-sm font-medium text-gray-700';
+
+function fieldClass(hasError) {
+  return hasError ? inputErrorClass : inputClass;
+}
 
 function Field({ label, required, children, className = '', error }) {
   return (
@@ -29,6 +39,71 @@ function Field({ label, required, children, className = '', error }) {
       {children}
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
+  );
+}
+
+function TextInput({
+  field,
+  form,
+  onChange,
+  errors = {},
+  type = 'text',
+  placeholder,
+  className,
+  inputMode,
+}) {
+  const maxLength = clientFieldMaxLength(field);
+  const error = errors[field];
+  return (
+    <input
+      type={type}
+      value={form[field] || ''}
+      onChange={(e) => onChange(field, e.target.value)}
+      placeholder={placeholder}
+      maxLength={maxLength}
+      inputMode={inputMode || (type === 'tel' ? 'tel' : undefined)}
+      className={className || fieldClass(error)}
+    />
+  );
+}
+
+function Textarea({ field, form, onChange, errors = {}, rows = 3, placeholder }) {
+  const maxLength = clientFieldMaxLength(field);
+  const error = errors[field];
+  const len = String(form[field] || '').length;
+  return (
+    <>
+      <textarea
+        value={form[field] || ''}
+        onChange={(e) => onChange(field, e.target.value)}
+        rows={rows}
+        maxLength={maxLength}
+        placeholder={placeholder}
+        className={fieldClass(error)}
+      />
+      {maxLength ? (
+        <p className="mt-1 text-right text-[11px] text-gray-400">{len}/{maxLength}</p>
+      ) : null}
+    </>
+  );
+}
+
+function RelationshipSelect({ field, form, onChange, errors = {} }) {
+  const value = form[field] || '';
+  return (
+    <select
+      className={fieldClass(errors[field])}
+      value={value}
+      onChange={(e) => onChange(field, e.target.value)}
+    >
+      <option value="">Select relationship</option>
+      {RELATIONSHIPS.map((r) => (
+        <option key={r} value={r}>{r}</option>
+      ))}
+      {value && !RELATIONSHIPS.includes(value) ? (
+        <option value={value}>{value}</option>
+      ) : null}
+    </select>
   );
 }
 
@@ -76,7 +151,16 @@ function ChipGroup({ label, options, values, onToggle, single = false }) {
   );
 }
 
-function YesNoField({ label, value, onChange, descriptionValue, onDescriptionChange, descriptionPlaceholder }) {
+function YesNoField({
+  label,
+  value,
+  onChange,
+  descriptionField,
+  form,
+  onFieldChange,
+  descriptionPlaceholder,
+  errors = {},
+}) {
   return (
     <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/50 p-4">
       <p className="text-sm font-medium text-gray-800">{label}</p>
@@ -99,23 +183,22 @@ function YesNoField({ label, value, onChange, descriptionValue, onDescriptionCha
           </button>
         ))}
       </div>
-      {value && (
-        <Field label="If yes, please describe">
-          <input
-            value={descriptionValue}
-            onChange={onDescriptionChange}
+      {value && descriptionField ? (
+        <Field label="If yes, please describe" error={errors[descriptionField]}>
+          <TextInput
+            field={descriptionField}
+            form={form}
+            onChange={onFieldChange}
+            errors={errors}
             placeholder={descriptionPlaceholder}
-            className={inputClass}
           />
         </Field>
-      )}
+      ) : null}
     </div>
   );
 }
 
 export function ClientIntakeStepOne({ form, onChange, errors = {} }) {
-  const set = (field) => (e) => onChange(field, e.target.value);
-
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/5 to-white p-5 sm:p-6">
@@ -123,10 +206,10 @@ export function ClientIntakeStepOne({ form, onChange, errors = {} }) {
         <p className="mt-1 text-sm text-gray-500">Step 1 of 2 — personal, emergency, and health information</p>
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Intake Date">
-            <input type="date" value={form.intakeDate} onChange={set('intakeDate')} className={inputClass} />
+            <input type="date" value={form.intakeDate} onChange={(e) => onChange('intakeDate', e.target.value)} className={inputClass} />
           </Field>
-          <Field label="Intake ID">
-            <input value={form.intakeId} onChange={set('intakeId')} placeholder="Optional reference" className={inputClass} />
+          <Field label="Intake ID" error={errors.intakeId}>
+            <TextInput field="intakeId" form={form} onChange={onChange} errors={errors} placeholder="Optional reference" />
           </Field>
         </div>
       </div>
@@ -140,16 +223,16 @@ export function ClientIntakeStepOne({ form, onChange, errors = {} }) {
         />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="First Name" required error={errors.firstName}>
-            <input value={form.firstName} onChange={set('firstName')} className={inputClass} placeholder="First name" />
+            <TextInput field="firstName" form={form} onChange={onChange} errors={errors} placeholder="First name" />
           </Field>
           <Field label="Last Name" required error={errors.lastName}>
-            <input value={form.lastName} onChange={set('lastName')} className={inputClass} placeholder="Last name" />
+            <TextInput field="lastName" form={form} onChange={onChange} errors={errors} placeholder="Last name" />
           </Field>
-          <Field label="Preferred Name">
-            <input value={form.preferredName} onChange={set('preferredName')} className={inputClass} />
+          <Field label="Preferred Name" error={errors.preferredName}>
+            <TextInput field="preferredName" form={form} onChange={onChange} errors={errors} />
           </Field>
           <Field label="Date of Birth">
-            <input type="date" value={form.dateOfBirth} onChange={set('dateOfBirth')} className={inputClass} />
+            <input type="date" value={form.dateOfBirth} onChange={(e) => onChange('dateOfBirth', e.target.value)} className={inputClass} />
           </Field>
           <div className="sm:col-span-2">
             <ChipGroup label="Gender" options={GENDERS} values={form.gender} single onToggle={(opt) => onChange('gender', form.gender === opt ? '' : opt)} />
@@ -157,74 +240,124 @@ export function ClientIntakeStepOne({ form, onChange, errors = {} }) {
           <div className="sm:col-span-2">
             <ChipGroup label="Marital Status" options={MARITAL_STATUSES} values={form.maritalStatus} single onToggle={(opt) => onChange('maritalStatus', form.maritalStatus === opt ? '' : opt)} />
           </div>
-          <Field label="SSN (Last 4)">
-            <input value={form.ssnLast4} onChange={set('ssnLast4')} maxLength={4} placeholder="XXXX" className={inputClass} />
+          <Field label="SSN (Last 4)" error={errors.ssnLast4}>
+            <TextInput field="ssnLast4" form={form} onChange={onChange} errors={errors} inputMode="numeric" placeholder="XXXX" />
           </Field>
-          <Field label="Email">
-            <input type="email" value={form.email} onChange={set('email')} className={inputClass} />
+          <Field label="Email" error={errors.email}>
+            <TextInput field="email" form={form} onChange={onChange} errors={errors} type="email" />
           </Field>
-          <Field label="Street Address" className="sm:col-span-2">
-            <input value={form.streetAddress} onChange={set('streetAddress')} className={inputClass} />
+          <Field label="Street Address" className="sm:col-span-2" error={errors.streetAddress}>
+            <TextInput field="streetAddress" form={form} onChange={onChange} errors={errors} />
           </Field>
-          <Field label="Apt / Suite"><input value={form.aptSuite} onChange={set('aptSuite')} className={inputClass} /></Field>
-          <Field label="City"><input value={form.city} onChange={set('city')} className={inputClass} /></Field>
-          <Field label="State"><input value={form.state} onChange={set('state')} className={inputClass} /></Field>
-          <Field label="Zip Code"><input value={form.zipCode} onChange={set('zipCode')} className={inputClass} /></Field>
-          <Field label="Phone (Home)"><input value={form.phoneHome} onChange={set('phoneHome')} className={inputClass} /></Field>
-          <Field label="Phone (Mobile)"><input value={form.phone} onChange={set('phone')} className={inputClass} /></Field>
-          <Field label="Preferred Language"><input value={form.preferredLanguage} onChange={set('preferredLanguage')} className={inputClass} /></Field>
-          <Field label="Ethnicity"><input value={form.ethnicity} onChange={set('ethnicity')} className={inputClass} /></Field>
-          <Field label="Race"><input value={form.race} onChange={set('race')} className={inputClass} /></Field>
+          <Field label="Apt / Suite" error={errors.aptSuite}>
+            <TextInput field="aptSuite" form={form} onChange={onChange} errors={errors} />
+          </Field>
+          <Field label="City" error={errors.city}>
+            <TextInput field="city" form={form} onChange={onChange} errors={errors} />
+          </Field>
+          <Field label="State" error={errors.state}>
+            <TextInput field="state" form={form} onChange={onChange} errors={errors} placeholder="TX" />
+          </Field>
+          <Field label="Zip Code" error={errors.zipCode}>
+            <TextInput field="zipCode" form={form} onChange={onChange} errors={errors} inputMode="numeric" placeholder="78701" />
+          </Field>
+          <Field label="Phone (Home)" error={errors.phoneHome}>
+            <TextInput field="phoneHome" form={form} onChange={onChange} errors={errors} type="tel" placeholder="(555) 123-4567" />
+          </Field>
+          <Field label="Phone (Mobile)" error={errors.phone}>
+            <TextInput field="phone" form={form} onChange={onChange} errors={errors} type="tel" placeholder="(555) 123-4567" />
+          </Field>
+          <Field label="Preferred Language" error={errors.preferredLanguage}>
+            <TextInput field="preferredLanguage" form={form} onChange={onChange} errors={errors} />
+          </Field>
+          <Field label="Ethnicity" error={errors.ethnicity}>
+            <TextInput field="ethnicity" form={form} onChange={onChange} errors={errors} />
+          </Field>
+          <Field label="Race" error={errors.race}>
+            <TextInput field="race" form={form} onChange={onChange} errors={errors} />
+          </Field>
         </div>
       </SectionCard>
 
       <SectionCard number="2" title="Emergency Contact" subtitle="Primary and alternate contacts">
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Primary</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Field label="Name"><input value={form.emergencyContactName} onChange={set('emergencyContactName')} className={inputClass} /></Field>
-          <Field label="Relationship"><input value={form.emergencyContactRelationship} onChange={set('emergencyContactRelationship')} className={inputClass} /></Field>
-          <Field label="Phone"><input value={form.emergencyContactPhone} onChange={set('emergencyContactPhone')} className={inputClass} /></Field>
+          <Field label="Name" error={errors.emergencyContactName}>
+            <TextInput field="emergencyContactName" form={form} onChange={onChange} errors={errors} />
+          </Field>
+          <Field label="Relationship" error={errors.emergencyContactRelationship}>
+            <RelationshipSelect field="emergencyContactRelationship" form={form} onChange={onChange} errors={errors} />
+          </Field>
+          <Field label="Phone" error={errors.emergencyContactPhone}>
+            <TextInput field="emergencyContactPhone" form={form} onChange={onChange} errors={errors} type="tel" placeholder="(555) 123-4567" />
+          </Field>
         </div>
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Alternate</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Field label="Name"><input value={form.alternateContactName} onChange={set('alternateContactName')} className={inputClass} /></Field>
-          <Field label="Relationship"><input value={form.alternateContactRelationship} onChange={set('alternateContactRelationship')} className={inputClass} /></Field>
-          <Field label="Phone"><input value={form.alternateContactPhone} onChange={set('alternateContactPhone')} className={inputClass} /></Field>
+          <Field label="Name" error={errors.alternateContactName}>
+            <TextInput field="alternateContactName" form={form} onChange={onChange} errors={errors} />
+          </Field>
+          <Field label="Relationship" error={errors.alternateContactRelationship}>
+            <RelationshipSelect field="alternateContactRelationship" form={form} onChange={onChange} errors={errors} />
+          </Field>
+          <Field label="Phone" error={errors.alternateContactPhone}>
+            <TextInput field="alternateContactPhone" form={form} onChange={onChange} errors={errors} type="tel" placeholder="(555) 123-4567" />
+          </Field>
         </div>
       </SectionCard>
 
       <SectionCard number="3" title="Health Information" subtitle="Physicians, insurance, and medical history">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Field label="Physician Name"><input value={form.physicianName} onChange={set('physicianName')} className={inputClass} /></Field>
-          <Field label="Physician Phone"><input value={form.physicianPhone} onChange={set('physicianPhone')} className={inputClass} /></Field>
-          <Field label="Last Visit"><input type="date" value={form.lastVisitDate} onChange={set('lastVisitDate')} className={inputClass} /></Field>
-          <Field label="Pharmacy"><input value={form.pharmacyName} onChange={set('pharmacyName')} className={inputClass} /></Field>
-          <Field label="Pharmacy Phone"><input value={form.pharmacyPhone} onChange={set('pharmacyPhone')} className={inputClass} /></Field>
-          <Field label="Preferred Hospital"><input value={form.preferredHospital} onChange={set('preferredHospital')} className={inputClass} /></Field>
+          <Field label="Physician Name" error={errors.physicianName}>
+            <TextInput field="physicianName" form={form} onChange={onChange} errors={errors} />
+          </Field>
+          <Field label="Physician Phone" error={errors.physicianPhone}>
+            <TextInput field="physicianPhone" form={form} onChange={onChange} errors={errors} type="tel" placeholder="(555) 123-4567" />
+          </Field>
+          <Field label="Last Visit">
+            <input type="date" value={form.lastVisitDate} onChange={(e) => onChange('lastVisitDate', e.target.value)} className={inputClass} />
+          </Field>
+          <Field label="Pharmacy" error={errors.pharmacyName}>
+            <TextInput field="pharmacyName" form={form} onChange={onChange} errors={errors} />
+          </Field>
+          <Field label="Pharmacy Phone" error={errors.pharmacyPhone}>
+            <TextInput field="pharmacyPhone" form={form} onChange={onChange} errors={errors} type="tel" placeholder="(555) 123-4567" />
+          </Field>
+          <Field label="Preferred Hospital" error={errors.preferredHospital}>
+            <TextInput field="preferredHospital" form={form} onChange={onChange} errors={errors} />
+          </Field>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Field label="Insurance Provider"><input value={form.insuranceProvider} onChange={set('insuranceProvider')} className={inputClass} /></Field>
-          <Field label="Member ID"><input value={form.insuranceMemberId} onChange={set('insuranceMemberId')} className={inputClass} /></Field>
-          <Field label="Group #"><input value={form.insuranceGroupNumber} onChange={set('insuranceGroupNumber')} className={inputClass} /></Field>
+          <Field label="Insurance Provider" error={errors.insuranceProvider}>
+            <TextInput field="insuranceProvider" form={form} onChange={onChange} errors={errors} />
+          </Field>
+          <Field label="Member ID" error={errors.insuranceMemberId}>
+            <TextInput field="insuranceMemberId" form={form} onChange={onChange} errors={errors} />
+          </Field>
+          <Field label="Group #" error={errors.insuranceGroupNumber}>
+            <TextInput field="insuranceGroupNumber" form={form} onChange={onChange} errors={errors} />
+          </Field>
         </div>
-        <Field label="Medical Conditions / Diagnoses">
-          <textarea value={form.medicalConditions} onChange={set('medicalConditions')} rows={3} className={inputClass} />
+        <Field label="Medical Conditions / Diagnoses" error={errors.medicalConditions}>
+          <Textarea field="medicalConditions" form={form} onChange={onChange} errors={errors} />
         </Field>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Allergies"><textarea value={form.allergies} onChange={set('allergies')} rows={3} className={inputClass} /></Field>
-          <Field label="Current Medications"><textarea value={form.currentMedications} onChange={set('currentMedications')} rows={3} className={inputClass} /></Field>
+          <Field label="Allergies" error={errors.allergies}>
+            <Textarea field="allergies" form={form} onChange={onChange} errors={errors} />
+          </Field>
+          <Field label="Current Medications" error={errors.currentMedications}>
+            <Textarea field="currentMedications" form={form} onChange={onChange} errors={errors} />
+          </Field>
         </div>
-        <Field label="Special Diet / Restrictions">
-          <textarea value={form.specialDiet} onChange={set('specialDiet')} rows={2} className={inputClass} />
+        <Field label="Special Diet / Restrictions" error={errors.specialDiet}>
+          <Textarea field="specialDiet" form={form} onChange={onChange} errors={errors} rows={2} />
         </Field>
       </SectionCard>
     </div>
   );
 }
 
-export function ClientIntakeStepTwo({ form, onChange }) {
-  const set = (field) => (e) => onChange(field, e.target.value);
-
+export function ClientIntakeStepTwo({ form, onChange, errors = {} }) {
   const toggleArray = (field, option) => {
     const current = form[field] || [];
     onChange(field, current.includes(option) ? current.filter((i) => i !== option) : [...current, option]);
@@ -242,33 +375,76 @@ export function ClientIntakeStepTwo({ form, onChange }) {
         <ChipGroup label="Home Accessibility" options={HOME_ACCESSIBILITY} values={form.homeAccessibility} onToggle={(opt) => toggleArray('homeAccessibility', opt)} />
         <ChipGroup label="Type of Residence" options={RESIDENCE_TYPES} values={form.residenceType} single onToggle={(opt) => onChange('residenceType', form.residenceType === opt ? '' : opt)} />
         <ChipGroup label="Assistive Devices" options={ASSISTIVE_DEVICES} values={form.assistiveDevices} onToggle={(opt) => toggleArray('assistiveDevices', opt)} />
-        <YesNoField label="Pets" value={form.hasPets} onChange={(val) => onChange('hasPets', val)} descriptionValue={form.petsDescription} onDescriptionChange={set('petsDescription')} descriptionPlaceholder="Describe pets" />
-        <YesNoField label="Fall history (past 6 months)" value={form.fallHistory} onChange={(val) => onChange('fallHistory', val)} descriptionValue={form.fallHistoryDescription} onDescriptionChange={set('fallHistoryDescription')} />
+        <YesNoField
+          label="Pets"
+          value={form.hasPets}
+          onChange={(val) => onChange('hasPets', val)}
+          descriptionField="petsDescription"
+          form={form}
+          onFieldChange={onChange}
+          descriptionPlaceholder="Describe pets"
+          errors={errors}
+        />
+        <YesNoField
+          label="Fall history (past 6 months)"
+          value={form.fallHistory}
+          onChange={(val) => onChange('fallHistory', val)}
+          descriptionField="fallHistoryDescription"
+          form={form}
+          onFieldChange={onChange}
+          errors={errors}
+        />
       </SectionCard>
 
       <SectionCard number="5" title="Care & Support Needs" subtitle="Services and scheduling preferences">
         <ChipGroup label="Type of care / services" options={SERVICE_TYPES} values={form.serviceTypes} onToggle={(opt) => toggleArray('serviceTypes', opt)} />
-        <YesNoField label="Mobility assistance needed?" value={form.mobilityAssistanceNeeded} onChange={(val) => onChange('mobilityAssistanceNeeded', val)} descriptionValue={form.mobilityAssistanceDescription} onDescriptionChange={set('mobilityAssistanceDescription')} />
-        <YesNoField label="Personal care assistance needed?" value={form.personalCareAssistanceNeeded} onChange={(val) => onChange('personalCareAssistanceNeeded', val)} descriptionValue={form.personalCareAssistanceDescription} onDescriptionChange={set('personalCareAssistanceDescription')} />
+        <YesNoField
+          label="Mobility assistance needed?"
+          value={form.mobilityAssistanceNeeded}
+          onChange={(val) => onChange('mobilityAssistanceNeeded', val)}
+          descriptionField="mobilityAssistanceDescription"
+          form={form}
+          onFieldChange={onChange}
+          errors={errors}
+        />
+        <YesNoField
+          label="Personal care assistance needed?"
+          value={form.personalCareAssistanceNeeded}
+          onChange={(val) => onChange('personalCareAssistanceNeeded', val)}
+          descriptionField="personalCareAssistanceDescription"
+          form={form}
+          onFieldChange={onChange}
+          errors={errors}
+        />
         <ChipGroup label="Frequency" options={CARE_FREQUENCIES} values={form.careFrequency} single onToggle={(opt) => onChange('careFrequency', form.careFrequency === opt ? '' : opt)} />
         <ChipGroup label="Preferred Days" options={PREFERRED_DAYS} values={form.preferredDays} onToggle={(opt) => toggleArray('preferredDays', opt)} />
         <ChipGroup label="Preferred Times" options={PREFERRED_TIMES} values={form.preferredTimes} onToggle={(opt) => toggleArray('preferredTimes', opt)} />
-        <Field label="Special requests or notes">
-          <textarea value={form.careNotes} onChange={set('careNotes')} rows={3} className={inputClass} />
+        <Field label="Special requests or notes" error={errors.careNotes}>
+          <Textarea field="careNotes" form={form} onChange={onChange} errors={errors} />
         </Field>
       </SectionCard>
 
       <SectionCard number="6" title="Financial & Payment" subtitle="Billing and payment method">
         <ChipGroup label="Payment responsibility" options={PAYMENT_RESPONSIBILITIES} values={form.paymentResponsibility} single onToggle={(opt) => onChange('paymentResponsibility', form.paymentResponsibility === opt ? '' : opt)} />
         {form.paymentResponsibility === 'Other' && (
-          <Field label="Other (specify)"><input value={form.paymentResponsibilityOther} onChange={set('paymentResponsibilityOther')} className={inputClass} /></Field>
+          <Field label="Other (specify)" error={errors.paymentResponsibilityOther}>
+            <TextInput field="paymentResponsibilityOther" form={form} onChange={onChange} errors={errors} />
+          </Field>
         )}
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Billing address (if different)</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Address" className="sm:col-span-2"><input value={form.billingStreetAddress} onChange={set('billingStreetAddress')} className={inputClass} /></Field>
-          <Field label="City"><input value={form.billingCity} onChange={set('billingCity')} className={inputClass} /></Field>
-          <Field label="State"><input value={form.billingState} onChange={set('billingState')} className={inputClass} /></Field>
-          <Field label="Zip"><input value={form.billingZip} onChange={set('billingZip')} className={inputClass} /></Field>
+          <Field label="Address" className="sm:col-span-2" error={errors.billingStreetAddress}>
+            <TextInput field="billingStreetAddress" form={form} onChange={onChange} errors={errors} />
+          </Field>
+          <Field label="City" error={errors.billingCity}>
+            <TextInput field="billingCity" form={form} onChange={onChange} errors={errors} />
+          </Field>
+          <Field label="State" error={errors.billingState}>
+            <TextInput field="billingState" form={form} onChange={onChange} errors={errors} placeholder="TX" />
+          </Field>
+          <Field label="Zip" error={errors.billingZip}>
+            <TextInput field="billingZip" form={form} onChange={onChange} errors={errors} inputMode="numeric" placeholder="78701" />
+          </Field>
         </div>
         <ChipGroup label="Payment method" options={PAYMENT_METHODS} values={form.paymentMethods} onToggle={(opt) => toggleArray('paymentMethods', opt)} />
       </SectionCard>
@@ -278,11 +454,26 @@ export function ClientIntakeStepTwo({ form, onChange }) {
           I certify that the information provided is accurate to the best of my knowledge and authorize
           the agency to contact me regarding care services.
         </p>
+        <div className="sm:col-span-2">
+          <DigitalSignaturePad
+            label="Signature"
+            value={form.authorizationSignature || ''}
+            onChange={(sig) => onChange('authorizationSignature', sig)}
+          />
+          {errors.authorizationSignature ? (
+            <p className="mt-1 text-xs text-red-600">{errors.authorizationSignature}</p>
+          ) : null}
+        </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Signature"><input value={form.authorizationSignature} onChange={set('authorizationSignature')} className={inputClass} /></Field>
-          <Field label="Date"><input type="date" value={form.authorizationDate} onChange={set('authorizationDate')} className={inputClass} /></Field>
-          <Field label="Printed name"><input value={form.authorizationPrintedName} onChange={set('authorizationPrintedName')} className={inputClass} /></Field>
-          <Field label="Relationship (if not client)"><input value={form.authorizationRelationship} onChange={set('authorizationRelationship')} className={inputClass} /></Field>
+          <Field label="Date">
+            <input type="date" value={form.authorizationDate} onChange={(e) => onChange('authorizationDate', e.target.value)} className={inputClass} />
+          </Field>
+          <Field label="Printed name" error={errors.authorizationPrintedName}>
+            <TextInput field="authorizationPrintedName" form={form} onChange={onChange} errors={errors} />
+          </Field>
+          <Field label="Relationship (if not client)" className="sm:col-span-2" error={errors.authorizationRelationship}>
+            <RelationshipSelect field="authorizationRelationship" form={form} onChange={onChange} errors={errors} />
+          </Field>
         </div>
       </SectionCard>
 
@@ -295,18 +486,28 @@ export function ClientIntakeStepTwo({ form, onChange }) {
           </div>
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Intake completed by"><input value={form.intakeCompletedBy} onChange={set('intakeCompletedBy')} className={inputClass} /></Field>
-          <Field label="Date"><input type="date" value={form.intakeCompletedDate} onChange={set('intakeCompletedDate')} className={inputClass} /></Field>
-          <Field label="Assigned to"><input value={form.assignedTo} onChange={set('assignedTo')} className={inputClass} /></Field>
-          <Field label="Admission date"><input type="date" value={form.admissionDate} onChange={set('admissionDate')} className={inputClass} /></Field>
-          <Field label="Care plan start"><input type="date" value={form.carePlanStartDate} onChange={set('carePlanStartDate')} className={inputClass} /></Field>
+          <Field label="Intake completed by" error={errors.intakeCompletedBy}>
+            <TextInput field="intakeCompletedBy" form={form} onChange={onChange} errors={errors} />
+          </Field>
+          <Field label="Date">
+            <input type="date" value={form.intakeCompletedDate} onChange={(e) => onChange('intakeCompletedDate', e.target.value)} className={inputClass} />
+          </Field>
+          <Field label="Assigned to" error={errors.assignedTo}>
+            <TextInput field="assignedTo" form={form} onChange={onChange} errors={errors} />
+          </Field>
+          <Field label="Admission date">
+            <input type="date" value={form.admissionDate} onChange={(e) => onChange('admissionDate', e.target.value)} className={inputClass} />
+          </Field>
+          <Field label="Care plan start">
+            <input type="date" value={form.carePlanStartDate} onChange={(e) => onChange('carePlanStartDate', e.target.value)} className={inputClass} />
+          </Field>
           <Field label="Status">
-            <select value={form.status} onChange={set('status')} className={inputClass}>
+            <select value={form.status} onChange={(e) => onChange('status', e.target.value)} className={inputClass}>
               {['Active', 'Inactive', 'Pending'].map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
           </Field>
-          <Field label="Internal notes" className="sm:col-span-2">
-            <textarea value={form.notes} onChange={set('notes')} rows={2} className={inputClass} />
+          <Field label="Internal notes" className="sm:col-span-2" error={errors.notes}>
+            <Textarea field="notes" form={form} onChange={onChange} errors={errors} rows={2} />
           </Field>
         </div>
       </section>

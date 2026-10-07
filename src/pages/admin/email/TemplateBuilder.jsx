@@ -35,12 +35,15 @@ function TemplateBuilderForm({ templateId }) {
   });
   const [selectedId, setSelectedId] = useState(form.blocks?.[0]?.id || '');
 
+  const isPublished = form.status === 'Published';
+
   const persist = (status) => {
     if (!form.name.trim() || !form.subject.trim()) {
       toast.error('Add a template name and subject');
       return;
     }
     const saved = saveTemplate(form, status);
+    setForm(saved);
     toast.success(status === 'Draft' ? 'Draft saved' : 'Template published');
     navigate(ROUTES.ADMIN_EMAIL_TEMPLATE_EDIT.replace(':id', saved.id), { replace: true });
   };
@@ -86,9 +89,31 @@ function TemplateBuilderForm({ templateId }) {
           setSelectedId(nextSelected);
         }}
       />
-      <div className="flex gap-2">
-        <button type="button" onClick={() => persist('Draft')} className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700">Save draft</button>
-        <button type="button" onClick={() => persist('Published')} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white">Publish template</button>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => persist('Draft')}
+          className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700"
+        >
+          Save draft
+        </button>
+        {isPublished ? (
+          <button
+            type="button"
+            disabled
+            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-default"
+          >
+            Published
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => persist('Published')}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
+          >
+            Publish
+          </button>
+        )}
       </div>
     </div>
   );

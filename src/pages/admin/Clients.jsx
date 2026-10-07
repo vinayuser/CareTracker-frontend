@@ -10,7 +10,7 @@ import {
   Eye,
   FileText,
   MoreVertical,
-  Plus,
+  Power,
   RefreshCw,
   Search,
   Users,
@@ -19,8 +19,11 @@ import { toast } from 'react-toastify';
 import axiosInstance from '../../api/axiosInstance';
 import API_ROUTES from '../../api/apiRoutes';
 import ActionIconButton from '../../components/ui/ActionIconButton';
+import ViewClientDrawer from '../../components/admin/ViewClientDrawer';
+import { confirmAlert } from '../../utils/swal';
 
 const PAGE_SIZE = 5;
+const MENU_WIDTH = 192;
 
 function formatMoney(value) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value || 0));
@@ -148,6 +151,11 @@ export default function AdminClients() {
   const [selectedId, setSelectedId] = useState('');
   const [overview, setOverview] = useState(EMPTY_OVERVIEW);
   const [overviewLoading, setOverviewLoading] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
+  const [viewClient, setViewClient] = useState(null);
+  const [menu, setMenu] = useState(null);
+  const [statusUpdatingId, setStatusUpdatingId] = useState('');
+  const menuRef = useRef(null);
 
   const selectedAgency = useMemo(
     () => options.find((o) => o.id === agencyId) || null,
@@ -167,13 +175,24 @@ export default function AdminClients() {
   }, []);
 
   useEffect(() => {
-    if (!selectorOpen) return undefined;
+    if (!selectorOpen && !menu) return undefined;
     const onDown = (e) => {
       if (selectorRef.current && !selectorRef.current.contains(e.target)) setSelectorOpen(false);
+      if (e.target.closest?.('[data-client-menu-trigger]')) return;
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenu(null);
     };
+    const closeMenu = () => setMenu(null);
     document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [selectorOpen]);
+    if (menu) {
+      window.addEventListener('scroll', closeMenu, true);
+      window.addEventListener('resize', closeMenu);
+    }
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      window.removeEventListener('scroll', closeMenu, true);
+      window.removeEventListener('resize', closeMenu);
+    };
+  }, [selectorOpen, menu]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -183,6 +202,9 @@ export default function AdminClients() {
   useEffect(() => {
     setPage(1);
     setSelectedId('');
+    setMenu(null);
+    setViewOpen(false);
+    setViewClient(null);
   }, [agencyId, debouncedSearch]);
 
   const loadStatsAndList = async () => {
@@ -241,7 +263,96 @@ export default function AdminClients() {
     [pagination.page, pagination.totalPages, page],
   );
 
-  const portalHint = () => toast.info('This action is managed in the agency portal.');
+  const toViewModel = (client, overviewClient = null) => {
+    const src = overviewClient || client || {};
+    return {
+      id: src.id || client?.id,
+      name: src.name || client?.name || '',
+      preferredName: src.preferredName || '',
+      clientCode: src.clientCode || client?.clientCode || '',
+      agencyName: src.agencyName || client?.agencyName || '',
+      email: src.email || client?.email || '',
+      phone: src.phone || client?.phone || '',
+      phoneHome: src.phoneHome || '',
+      dateOfBirth: src.dateOfBirth || client?.dateOfBirth || '',
+      gender: src.gender || '',
+      address: src.address || '',
+      status: src.status || client?.status || '',
+      profilePic: src.profilePic || client?.profilePic || '',
+      createdAt: src.createdAt || client?.createdAt || null,
+      emergencyContactName: src.emergencyContactName || '',
+      emergencyContactPhone: src.emergencyContactPhone || '',
+      emergencyContactRelationship: src.emergencyContactRelationship || '',
+    };
+  };
+
+  const openMenu = (client, e) => {
+    if (menu?.client.id === client.id) {
+      setMenu(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMenu({
+      client,
+      top: rect.bottom + 4,
+      left: Math.max(8, rect.right - MENU_WIDTH),
+    });
+  };
+
+  const openView = async (client) => {
+    setSelectedId(client.id);
+    setMenu(null);
+    setViewClient(toViewModel(client));
+    setViewOpen(true);
+    try {
+      const res = await axiosInstance.get(`${API_ROUTES.ADMIN.CLIENTS.OVERVIEW}/${client.id}/overview`);
+      const data = res.data?.data;
+      if (data) {
+        setOverview(data);
+        if (data.client) setViewClient(toViewModel(client, data.client));
+      }
+    } catch {
+      /* keep list row details */
+    }
+  };
+
+  const handleStatusToggle = async (client) => {
+    setMenu(null);
+    const nextStatus = client.status === 'Active' ? 'Inactive' : 'Active';
+    const confirmed = await confirmAlert({
+      title: nextStatus === 'Inactive' ? 'Deactivate client?' : 'Activate client?',
+      text: nextStatus === 'Inactive'
+        ? `${client.name} will be marked inactive and lose portal access if they have an account.`
+        : `${client.name} will be marked active again.`,
+      confirmText: nextStatus === 'Inactive' ? 'Deactivate' : 'Activate',
+      danger: nextStatus === 'Inactive',
+    });
+    if (!confirmed) return;
+
+    setStatusUpdatingId(client.id);
+    try {
+      const res = await axiosInstance.patch(
+        API_ROUTES.ADMIN.CLIENTS.STATUS(client.id),
+        { status: nextStatus },
+        { skipErrorToast: true },
+      );
+      const updated = res.data?.data;
+      toast.success(`Client marked as ${nextStatus}`);
+      setList((rows) => rows.map((row) => (
+        row.id === client.id
+          ? { ...row, status: updated?.status || nextStatus }
+          : row
+      )));
+      if (viewClient?.id === client.id) {
+        setViewClient((prev) => (prev ? { ...prev, status: updated?.status || nextStatus } : prev));
+      }
+      loadStatsAndList();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update client status');
+    } finally {
+      setStatusUpdatingId('');
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -260,13 +371,6 @@ export default function AdminClients() {
             title="Refresh"
           >
             <RefreshCw size={16} />
-          </button>
-          <button
-            type="button"
-            onClick={portalHint}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover"
-          >
-            <Plus size={15} /> Add New Client
           </button>
         </div>
       </div>
@@ -372,12 +476,29 @@ export default function AdminClients() {
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center justify-end gap-0.5">
-                      <ActionIconButton label="View" className="text-primary hover:bg-primary/10" onClick={(e) => { e.stopPropagation(); setSelectedId(client.id); }}>
+                      <ActionIconButton
+                        label="View"
+                        className="text-primary hover:bg-primary/10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openView(client);
+                        }}
+                      >
                         <Eye size={15} />
                       </ActionIconButton>
-                      <ActionIconButton label="More" className="text-slate-500 hover:bg-slate-100" onClick={(e) => { e.stopPropagation(); portalHint(); }}>
-                        <MoreVertical size={15} />
-                      </ActionIconButton>
+                      <span data-client-menu-trigger className="inline-flex">
+                        <ActionIconButton
+                          label="More actions"
+                          className={`text-slate-500 hover:bg-slate-100 ${menu?.client.id === client.id ? 'bg-slate-100' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openMenu(client, e);
+                          }}
+                          disabled={statusUpdatingId === client.id}
+                        >
+                          <MoreVertical size={15} />
+                        </ActionIconButton>
+                      </span>
                     </div>
                   </td>
                 </tr>
@@ -385,6 +506,38 @@ export default function AdminClients() {
             </tbody>
           </table>
         </div>
+        {menu ? (
+          <div
+            ref={menuRef}
+            style={{ position: 'fixed', top: menu.top, left: menu.left, width: MENU_WIDTH }}
+            className="z-50 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+          >
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+              onClick={(e) => {
+                e.stopPropagation();
+                openView(menu.client);
+              }}
+            >
+              <Eye size={14} /> View details
+            </button>
+            <button
+              type="button"
+              disabled={statusUpdatingId === menu.client.id}
+              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50 disabled:opacity-50 ${
+                menu.client.status === 'Active' ? 'text-rose-600' : 'text-emerald-700'
+              }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStatusToggle(menu.client);
+              }}
+            >
+              <Power size={14} />
+              {menu.client.status === 'Active' ? 'Deactivate client' : 'Activate client'}
+            </button>
+          </div>
+        ) : null}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-5 py-3 text-xs text-slate-500">
           <span>Showing {pagination.from} to {pagination.to} of {Number(pagination.total || 0).toLocaleString()} clients</span>
           <div className="flex items-center gap-1">
@@ -516,6 +669,15 @@ export default function AdminClients() {
           ) : <p className="py-8 text-center text-sm text-slate-400">No invoices yet.</p>}
         </WidgetCard>
       </div>
+
+      <ViewClientDrawer
+        open={viewOpen}
+        onClose={() => {
+          setViewOpen(false);
+          setViewClient(null);
+        }}
+        client={viewClient}
+      />
     </div>
   );
 }

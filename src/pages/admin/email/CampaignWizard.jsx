@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { ROUTES } from '../../../routes/routes';
@@ -8,7 +8,7 @@ import {
   getCampaign,
   getSettings,
   getTemplate,
-  listAgencies,
+  fetchPlatformAudience,
   listLists,
   listSegments,
   listTags,
@@ -74,13 +74,40 @@ function CampaignWizardForm({ campaignId }) {
   const [scheduledAt, setScheduledAt] = useState(initial.scheduledAt);
   const [sending, setSending] = useState(false);
   const sendingRef = useRef(false);
+  const [agencies, setAgencies] = useState([]);
+  const [platformUsers, setPlatformUsers] = useState([]);
+  const [audienceLoading, setAudienceLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setAudienceLoading(true);
+      try {
+        const data = await fetchPlatformAudience();
+        if (cancelled) return;
+        setAgencies(data.agencies || []);
+        setPlatformUsers(data.users || []);
+      } catch {
+        if (!cancelled) {
+          setAgencies([]);
+          setPlatformUsers([]);
+          toast.error('Failed to load agencies and platform users');
+        }
+      } finally {
+        if (!cancelled) setAudienceLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, []);
 
   const templates = listTemplates().filter((t) => t.status === 'Published' || t.id === content.templateId);
   const lists = listLists();
   const segments = listSegments();
   const tags = listTags();
-  const agencies = listAgencies();
-  const preview = audience.kind === 'leads' ? previewLeadAudience(audience) : previewPlatformAudience(audience);
+  const preview = audience.kind === 'leads'
+    ? previewLeadAudience(audience)
+    : previewPlatformAudience(audience, platformUsers);
   const recipientCount = audience.kind === 'leads' ? preview.valid : preview.estimated;
 
   const setKind = (kind) => {
@@ -117,8 +144,8 @@ function CampaignWizardForm({ campaignId }) {
     try {
       const payload = { id: existing?.id, audience, content, scheduledAt };
       const row = mode === 'send'
-        ? await deliverAndSaveCampaign(payload)
-        : saveCampaign(payload, mode);
+        ? await deliverAndSaveCampaign(payload, platformUsers)
+        : saveCampaign(payload, mode, null, platformUsers);
       toast.success(mode === 'send' ? 'Campaign emails sent' : mode === 'schedule' ? 'Campaign scheduled' : 'Draft saved');
       navigate(mode === 'draft' ? ROUTES.ADMIN_EMAIL_CAMPAIGNS : ROUTES.ADMIN_EMAIL_CAMPAIGN_DETAIL.replace(':id', row.id));
     } catch (error) {
@@ -175,10 +202,26 @@ function CampaignWizardForm({ campaignId }) {
                 <CheckGroup label="Roles" options={ROLES} selected={audience.roles} onToggle={(value) => setAudience({ ...audience, roles: toggle(audience.roles, value) })} />
                 <label className="block">
                   <span className={labelClass}>Agency</span>
-                  <select className={fieldClass} value={audience.agency} onChange={(e) => setAudience({ ...audience, agency: e.target.value })}>
+                  <select
+                    className={fieldClass}
+                    value={audience.agency}
+                    disabled={audienceLoading}
+                    onChange={(e) => setAudience({ ...audience, agency: e.target.value })}
+                  >
                     <option value="All">All Agencies</option>
-                    {agencies.map((name) => <option key={name}>{name}</option>)}
+                    {agencies.map((agency) => (
+                      <option key={agency.id} value={agency.name}>
+                        {agency.name}{agency.userCount != null ? ` (${agency.userCount})` : ''}
+                      </option>
+                    ))}
                   </select>
+                  {audienceLoading ? (
+                    <p className="mt-1 text-xs text-gray-400">Loading agencies…</p>
+                  ) : (
+                    <p className="mt-1 text-xs text-gray-400">
+                      {agencies.length} agencies available
+                    </p>
+                  )}
                 </label>
                 <CheckGroup label="Status" options={STATUSES} selected={audience.statuses} onToggle={(value) => setAudience({ ...audience, statuses: toggle(audience.statuses, value) })} />
                 <label className="flex items-center gap-2 text-sm text-gray-700">

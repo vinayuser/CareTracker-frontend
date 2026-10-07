@@ -1,6 +1,7 @@
 import { GripVertical, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { BlockView, fieldClass, labelClass } from './EmailMarketingUi';
+import { getImageUploadError, MAX_IMAGE_UPLOAD_LABEL } from '../../../utils/imageUploadValidation';
 
 const PALETTE = [
   { type: 'heading', label: 'Title', text: 'Your headline' },
@@ -18,8 +19,8 @@ function uid() {
 }
 
 function readImageFile(file) {
-  if (!file.type.startsWith('image/')) return Promise.reject(new Error('Choose an image file'));
-  if (file.size > 5 * 1024 * 1024) return Promise.reject(new Error('Image must be under 5 MB'));
+  const message = getImageUploadError(file);
+  if (message) return Promise.reject(new Error(message));
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -166,6 +167,7 @@ export default function EmailDesigner({ blocks = [], backgroundColor = '#ffffff'
                     readImageFile(file).then((url) => patch(id, { url })).catch((err) => toast.error(err.message));
                   }}
                 />
+                <span className="mt-1 block text-xs text-gray-500">Max {MAX_IMAGE_UPLOAD_LABEL}</span>
               </label>
             ) : null}
             {(selected.type === 'button') ? (

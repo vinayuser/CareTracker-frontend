@@ -20,6 +20,9 @@ import { normalizeUsername, usernameTakenMessage, validateUsername } from '../..
 const inputClass =
   'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15';
 
+const readOnlyInputClass =
+  'w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700';
+
 const EMPTY_FORM = {
   name: '',
   email: '',
@@ -172,7 +175,6 @@ export default function AgencySettings() {
 
         const response = await axiosInstance.put(API_ROUTES.AGENCY.SETTINGS, {
           logo: form.logo || '',
-          email: form.email.trim(),
           phone: form.phone.trim(),
           fax: form.fax.trim(),
           website: form.website.trim(),
@@ -255,12 +257,11 @@ export default function AgencySettings() {
         <AssessorPhotoUpload
           label="Agency logo"
           shape="square"
+          uploadLabel={form.logo ? 'Change logo' : 'Upload logo'}
+          hint="PNG or JPG with a transparent or white background works best."
           value={form.logo}
           onChange={(logo) => setForm((prev) => ({ ...prev, logo }))}
         />
-        <p className="-mt-2 text-xs text-gray-500">
-          Recommended: PNG or JPG with a transparent or white background. Max 2 MB.
-        </p>
 
         <div>
           <h2 className="text-sm font-semibold text-gray-900">Form footer contact details</h2>
@@ -292,7 +293,15 @@ export default function AgencySettings() {
           </label>
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-gray-700">Email</span>
-            <input type="email" className={inputClass} value={form.email} onChange={setField('email')} required />
+            <input
+              type="email"
+              className={readOnlyInputClass}
+              value={form.email}
+              readOnly
+              disabled
+              tabIndex={-1}
+            />
+            <p className="mt-1 text-xs text-gray-400">Agency email cannot be changed here.</p>
           </label>
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-gray-700">Username</span>

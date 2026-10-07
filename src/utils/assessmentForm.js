@@ -96,6 +96,8 @@ export const EMPTY_ASSESSMENT = {
   assessorPhoto: '',
   assessmentDate: todayIso(),
   assessmentTypes: [],
+  clientId: null,
+  client: null,
   clientPhoto: '',
   formData: buildEmptyFormData(),
 };
@@ -118,6 +120,68 @@ export function normalizeClientInfo(clientInfo = {}) {
   return { ...ci, firstName, lastName, clientName };
 }
 
+/** Map linked Client record (or formData snapshot) into Form 110 identity fields. */
+export function clientRecordToForm110Fields(client, formData = {}) {
+  const ci = formData.clientInfo || {};
+  const contact = formData.contactInfo || {};
+  const c = client || {};
+  const firstName = String(c.firstName || ci.firstName || '').trim();
+  const lastName = String(c.lastName || ci.lastName || '').trim();
+  const clientName = joinClientName(firstName, lastName)
+    || String(c.fullName || ci.clientName || '').trim();
+  const street = [c.streetAddress, c.aptSuite].filter(Boolean).join(', ');
+  return {
+    firstName,
+    lastName,
+    clientName,
+    dob: c.dateOfBirth || ci.dob || '',
+    sex: c.gender || ci.gender || '',
+    address: street || contact.homeAddress || '',
+    phone: c.phoneHome || c.phone || contact.homePhone || '',
+    cellPhone: c.phone || contact.mobile || '',
+    email: c.email || contact.email || '',
+    city: c.city || contact.city || '',
+    state: c.state || contact.state || '',
+    zip: c.zipCode || contact.zip || '',
+  };
+}
+
+/** Apply client identity onto Form 110 (always overwrite identity keys from client source). */
+export function applyClientIdentityToForm110(formData = {}, client = null, assessmentDate = '', assessorName = '') {
+  const forms = { ...(formData.forms || {}) };
+  const f110 = { ...(forms['110'] || {}) };
+  const identity = clientRecordToForm110Fields(client, formData);
+  forms['110'] = {
+    ...f110,
+    ...identity,
+    date: f110.date || assessmentDate || todayIso(),
+    assessorPrintName: f110.assessorPrintName || assessorName || '',
+    assessorDate: f110.assessorDate || assessmentDate || todayIso(),
+  };
+  return {
+    ...formData,
+    forms,
+    clientInfo: normalizeClientInfo({
+      ...(formData.clientInfo || {}),
+      firstName: identity.firstName,
+      lastName: identity.lastName,
+      clientName: identity.clientName,
+      dob: identity.dob,
+      gender: identity.sex || formData.clientInfo?.gender || '',
+    }),
+    contactInfo: {
+      ...(formData.contactInfo || {}),
+      homeAddress: identity.address || formData.contactInfo?.homeAddress || '',
+      city: identity.city || formData.contactInfo?.city || '',
+      state: identity.state || formData.contactInfo?.state || '',
+      zip: identity.zip || formData.contactInfo?.zip || '',
+      homePhone: identity.phone || formData.contactInfo?.homePhone || '',
+      mobile: identity.cellPhone || formData.contactInfo?.mobile || '',
+      email: identity.email || formData.contactInfo?.email || '',
+    },
+  };
+}
+
 export function assessmentToForm(assessment) {
   if (!assessment) return { ...EMPTY_ASSESSMENT, assessmentDate: todayIso(), formData: buildEmptyFormData() };
   const empty = buildEmptyFormData();
@@ -126,25 +190,17 @@ export function assessmentToForm(assessment) {
   formData = syncClinicalFromPacket(formData);
   formData.clientInfo = normalizeClientInfo(formData.clientInfo);
 
-  const f110 = formData.forms['110'] || {};
-  if (!f110.clientName && formData.clientInfo?.clientName) {
-    formData.forms['110'] = {
-      ...f110,
-      firstName: f110.firstName || formData.clientInfo.firstName || '',
-      lastName: f110.lastName || formData.clientInfo.lastName || '',
-      clientName: f110.clientName || formData.clientInfo.clientName || '',
-      dob: f110.dob || formData.clientInfo.dob || '',
-      sex: f110.sex || formData.clientInfo.gender || '',
-      address: f110.address || formData.contactInfo?.homeAddress || '',
-      phone: f110.phone || formData.contactInfo?.homePhone || '',
-      cellPhone: f110.cellPhone || formData.contactInfo?.mobile || '',
-      email: f110.email || formData.contactInfo?.email || '',
-      city: f110.city || formData.contactInfo?.city || '',
-      state: f110.state || formData.contactInfo?.state || '',
-      zip: f110.zip || formData.contactInfo?.zip || '',
-      date: f110.date || assessment.assessmentDate || todayIso(),
-    };
-  }
+  const assessorName = assessment.assessorName || '';
+  const assessmentDate = assessment.assessmentDate || todayIso();
+
+  // Prefer linked client record; otherwise keep formData / Form 110 snapshot.
+  // Also seed assessor print name / date on Form 110 when blank.
+  formData = applyClientIdentityToForm110(
+    formData,
+    assessment.client || null,
+    assessmentDate,
+    assessorName,
+  );
 
   const savedMeds = Array.isArray(formData.medications) ? formData.medications : [];
   formData.medications = Array.from({ length: Math.max(6, savedMeds.length) }, (_, i) => ({
@@ -152,11 +208,13 @@ export function assessmentToForm(assessment) {
     ...(savedMeds[i] || {}),
   }));
   return {
-    assessorName: assessment.assessorName || '',
+    assessorName,
     assessorTitle: assessment.assessorTitle || 'Care Assessment Specialist',
     assessorPhoto: assessment.assessorPhoto || '',
-    assessmentDate: assessment.assessmentDate || todayIso(),
+    assessmentDate,
     assessmentTypes: assessment.assessmentTypes || [],
+    clientId: assessment.clientId || assessment.client?.id || null,
+    client: assessment.client || null,
     clientPhoto: assessment.clientPhoto || assessment.client?.profilePic || assessment.client?.photo || '',
     formData,
   };

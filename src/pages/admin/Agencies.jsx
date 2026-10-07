@@ -37,6 +37,7 @@ import AgencyCaregiversTab from '../../components/admin/AgencyCaregiversTab';
 import AgencyBillingTab from '../../components/admin/AgencyBillingTab';
 import AgencyDocumentsTab from '../../components/admin/AgencyDocumentsTab';
 import AgencyNotesTab from '../../components/admin/AgencyNotesTab';
+import AgencyActivityTab from '../../components/admin/AgencyActivityTab';
 import {
   enrichAgencyWithPlan,
   formStateToAgencyPayload,
@@ -164,15 +165,6 @@ function CardShell({ title, icon: Icon, action, children, className = '', bodyCl
   );
 }
 
-function PlaceholderPanel({ title, description }) {
-  return (
-    <div className="rounded-xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center shadow-sm">
-      <h3 className="text-base font-semibold text-slate-900">{title}</h3>
-      <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">{description}</p>
-    </div>
-  );
-}
-
 export default function Agencies() {
   const dispatch = useDispatch();
   const {
@@ -185,10 +177,12 @@ export default function Agencies() {
   const [selectedId, setSelectedId] = useState('');
   const [detailTab, setDetailTab] = useState('overview');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [billingRefreshKey, setBillingRefreshKey] = useState(0);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const selectorRef = useRef(null);
+  const detailTabsRef = useRef(null);
 
   useEffect(() => {
     dispatch(fetchAgencyOptions());
@@ -255,7 +249,7 @@ export default function Agencies() {
   const pageCount = caregiverTotal > 0 ? Math.ceil(caregiverTotal / 5) : 1;
 
   const optionsLoading = optionsStatus === 'loading' && options.length === 0;
-  const detailLoading = Boolean(selectedId) && (detailStatus === 'loading' || (detailStatus === 'idle' && !agency));
+  const detailLoading = Boolean(selectedId) && !agency && (detailStatus === 'loading' || detailStatus === 'idle');
   const detailFailed = detailStatus === 'failed' && selectedId;
 
   const openEditDrawer = () => {
@@ -271,6 +265,7 @@ export default function Agencies() {
     try {
       const payload = formStateToAgencyPayload(formData);
       await dispatch(updateAgency({ id: agency.id, payload })).unwrap();
+      setBillingRefreshKey((k) => k + 1);
       closeDrawer();
     } finally {
       setLoading(false);
@@ -375,7 +370,7 @@ export default function Agencies() {
           >
             <Download size={15} /> {exporting ? 'Exporting…' : 'Export'}
           </button>
-          <button
+          {/* <button
             type="button"
             onClick={() => toast.info('Import will be available in a future release')}
             className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -388,16 +383,13 @@ export default function Agencies() {
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-white hover:bg-primary-hover"
           >
             <Plus size={15} /> Add New Agency
-          </Link>
+          </Link> */}
         </div>
       </div>
 
       {/* Select Agency control */}
       <div ref={selectorRef} className="relative flex max-w-xl flex-wrap items-center gap-2.5">
-        <div className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-600 shadow-sm">
-          Select Agency
-          <ChevronDown size={14} className="text-slate-400" />
-        </div>
+        
         <div className="relative min-w-[240px] flex-1">
           <div className="flex items-center rounded-lg border border-slate-200 bg-white shadow-sm focus-within:border-primary focus-within:ring-1 focus-within:ring-primary">
             <button
@@ -544,19 +536,25 @@ export default function Agencies() {
                 <div className="min-w-[150px] border-l border-slate-100 pl-8">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Platform Plan</p>
                   <p className="mt-2 text-sm font-bold text-slate-900">{agency.plan?.name || 'No plan assigned'}</p>
-                  <Link
-                    to={ROUTES.ADMIN_SUBSCRIPTION_PLANS}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDetailTab('billing');
+                      requestAnimationFrame(() => {
+                        detailTabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      });
+                    }}
                     className="mt-1.5 inline-flex items-center gap-1 text-[13px] font-medium text-primary hover:underline"
                   >
                     View Plan Details <span aria-hidden>→</span>
-                  </Link>
+                  </button>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="border-b border-slate-200">
+          <div ref={detailTabsRef} className="scroll-mt-4 border-b border-slate-200">
             <div className="flex gap-0 overflow-x-auto">
               {DETAIL_TABS.map(({ key, label }) => (
                 <button
@@ -881,14 +879,20 @@ export default function Agencies() {
           )}
 
           {detailTab === 'billing' && (
-            <AgencyBillingTab agencyId={agency.id} onManageSubscription={openEditDrawer} />
+            <AgencyBillingTab
+              agencyId={agency.id}
+              onManageSubscription={openEditDrawer}
+              plans={plans.filter((p) => p.status === 'Active' || p.id === agency.subscriptionPlanId)}
+              refreshKey={billingRefreshKey}
+              onSubscriptionChanged={() => dispatch(getAgencyById(agency.id))}
+            />
           )}
 
           {detailTab === 'documents' && (
             <AgencyDocumentsTab agencyId={agency.id} />
           )}
           {detailTab === 'activity' && (
-            <PlaceholderPanel title="Activity & Logs" description="Platform activity for this agency will appear here." />
+            <AgencyActivityTab agencyId={agency.id} />
           )}
           {detailTab === 'notes' && (
             <AgencyNotesTab agencyId={agency.id} />

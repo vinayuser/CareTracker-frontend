@@ -1,33 +1,52 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { fetchPdfTemplateBytes } from './pdfTemplateFetch';
 import { submitFilledPdfForm } from './pdfFormSubmit';
 import { PDFDocument } from 'pdf-lib';
-import SignatureCanvas from 'react-signature-canvas';
-import axios from 'axios';
 
 // Import section components
 import SkillsChecklistSection from './sections/SkillsChecklist/SkillsChecklistSection';
 import SignatureSection from './sections/SkillsChecklist/SignatureSection';
 import StatusModal from '../../ui/StatusModal';
+import { validateHiringPdfForm, formatHiringValidationMessage } from '../../../utils/hiringPdfFormValidation';
+import {
+  getCandidatePrefill,
+  mergeFormWithCandidate,
+} from '../../../utils/candidateFormPrefill';
 
-const SkillsChecklistForm = ({ document, token, onClose, onSuccess }) => {
-  const [formData, setFormData] = useState({
-    // Language fields
-    "Languages other than English that I can speak and understand 1": "",
-    "Languages other than English that I can speak and understand 2": "",
-    "Languages other than English that I can speak and understand 3": "",
-    "Print Name": "",
-    "Signature131_es_:signer:signature": "",
-    "Date": "",
+const EMPTY_1050_BASE = {
+  'Languages other than English that I can speak and understand 1': '',
+  'Languages other than English that I can speak and understand 2': '',
+  'Languages other than English that I can speak and understand 3': '',
+  'Print Name': '',
+  'Signature131_es_:signer:signature': '',
+  Date: '',
+};
+
+function buildInitial1050(candidate, savedFormData, skillsData) {
+  const empty = { ...EMPTY_1050_BASE };
+  skillsData.forEach((sectionData) => {
+    for (let column = 0; column < sectionData.columnCount; column++) {
+      for (let skillIndex = 0; skillIndex < sectionData.skillCount; skillIndex++) {
+        empty[`${sectionData.section}.${column + 1}.${skillIndex}`] = false;
+      }
+    }
   });
+  const p = getCandidatePrefill(candidate);
+  return mergeFormWithCandidate(empty, savedFormData, {
+    'Print Name': p.fullName,
+    Date: p.today,
+  });
+}
 
-  const [generatingPreview, setGeneratingPreview] = useState(false);
+const SkillsChecklistForm = ({ document, candidate = null, token, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState(() => EMPTY_1050_BASE);
+
   const [submitting, setSubmitting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
   const [filledPdfBytes, setFilledPdfBytes] = useState(null);
   const [signatureDataUrl, setSignatureDataUrl] = useState('');
   const [activeSection, setActiveSection] = useState('skills');
-  const sigCanvasRef = useRef();
+  const [errors, setErrors] = useState({});
 
   // Status modal state
   const [statusModal, setStatusModal] = useState({
@@ -236,31 +255,10 @@ const SkillsChecklistForm = ({ document, token, onClose, onSuccess }) => {
     }
   ];
 
-  // Initialize all checkbox fields to false
+  // Initialize checkbox fields + candidate prefill (once)
   useEffect(() => {
-    const initialData = {
-      "Languages other than English that I can speak and understand 1": "",
-      "Languages other than English that I can speak and understand 2": "",
-      "Languages other than English that I can speak and understand 3": "",
-      "Print Name": "",
-      "Signature131_es_:signer:signature": "",
-      "Date": "",
-    };
-
-    // Initialize all checkbox fields to false
-    // CORRECTED PATTERN: section.column.skillIndex
-    skillsData.forEach(sectionData => {
-      // For each column (4 columns per skill: 0,1,2,3)
-      for (let column = 0; column < sectionData.columnCount; column++) {
-        // For each skill in the section
-        for (let skillIndex = 0; skillIndex < sectionData.skillCount; skillIndex++) {
-          const fieldName = `${sectionData.section}.${column + 1}.${skillIndex}`;
-          initialData[fieldName] = false;
-        }
-      }
-    });
-
-    setFormData(initialData);
+    setFormData(buildInitial1050(candidate || document?.candidate, document?.form_data, skillsData));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Navigation sections
@@ -284,12 +282,22 @@ const SkillsChecklistForm = ({ document, token, onClose, onSuccess }) => {
     setStatusModal(prev => ({ ...prev, isOpen: false }));
   };
 
+  const clearFieldError = (...fields) => {
+    setErrors((prev) => {
+      if (!fields.some((f) => prev[f])) return prev;
+      const next = { ...prev };
+      fields.forEach((f) => { delete next[f]; });
+      return next;
+    });
+  };
+
   // Handler functions
   const handleInputChange = (fieldName, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [fieldName]: value
+      [fieldName]: value,
     }));
+    clearFieldError(fieldName);
   };
 
   // Handle rating selection for a skill - only one column can be selected
@@ -317,20 +325,10 @@ const SkillsChecklistForm = ({ document, token, onClose, onSuccess }) => {
     return null;
   };
 
-  // Signature handling functions - Only drawn signature
-  const handleSignatureEnd = () => {
-    if (sigCanvasRef.current && !sigCanvasRef.current.isEmpty()) {
-      const signatureDataURL = sigCanvasRef.current.toDataURL();
-      setSignatureDataUrl(signatureDataURL);
-      // Don't set text in formData - we'll embed the image directly
-    }
-  };
-
-  const clearSignature = () => {
-    if (sigCanvasRef.current) {
-      sigCanvasRef.current.clear();
-      setSignatureDataUrl('');
-    }
+  const handleSignatureChange = (dataUrl) => {
+    setSignatureDataUrl(dataUrl || '');
+    handleInputChange('Signature131_es_:signer:signature', '');
+    if (dataUrl) clearFieldError('Signature131_es_:signer:signature');
   };
 
   // Convert data URL to image bytes for PDF embedding
@@ -582,6 +580,15 @@ const SkillsChecklistForm = ({ document, token, onClose, onSuccess }) => {
 
   const handleSubmit = async () => {
     try {
+      const validation = validateHiringPdfForm('1050', formData, { hasSignature: Boolean(signatureDataUrl) });
+      if (!validation.ok) {
+        setErrors(validation.fieldErrors || {});
+        if (validation.firstSection) setActiveSection(validation.firstSection);
+        showStatusModal('error', 'Please fix the form', formatHiringValidationMessage(validation.messages));
+        return;
+      }
+      setErrors({});
+
       setSubmitting(true);
 
       // use stored bytes if available, otherwise regenerate
@@ -635,9 +642,6 @@ const SkillsChecklistForm = ({ document, token, onClose, onSuccess }) => {
       if (previewUrl) {
         try { URL.revokeObjectURL(previewUrl); } catch (e) { /* ignore */ }
       }
-      if (sigCanvasRef.current) {
-        try { sigCanvasRef.current.clear(); } catch (e) { /* ignore */ }
-      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -659,21 +663,22 @@ const SkillsChecklistForm = ({ document, token, onClose, onSuccess }) => {
         return (
           <SignatureSection
             formData={formData}
+            errors={errors}
             onInputChange={handleInputChange}
             signatureDataUrl={signatureDataUrl}
-            onSignatureEnd={handleSignatureEnd}
-            onClearSignature={clearSignature}
-            sigCanvasRef={sigCanvasRef}
+            onSignatureChange={handleSignatureChange}
           />
         );
       default:
-        return <SkillsChecklistSection
-          formData={formData}
-          skillsData={skillsData}
-          onInputChange={handleInputChange}
-          onSkillRatingChange={handleSkillRatingChange}
-          getSelectedColumn={getSelectedColumn}
-        />;
+        return (
+          <SkillsChecklistSection
+            formData={formData}
+            skillsData={skillsData}
+            onInputChange={handleInputChange}
+            onSkillRatingChange={handleSkillRatingChange}
+            getSelectedColumn={getSelectedColumn}
+          />
+        );
     }
   };
 

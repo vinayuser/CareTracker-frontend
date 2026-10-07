@@ -7,15 +7,22 @@ import {
   updateProfile,
 } from '../redux/slices/authSlice';
 import { ROLE_LABELS, ROLES, normalizeRole } from '../constants/roles';
+import AssessorPhotoUpload from '../components/ui/AssessorPhotoUpload';
 import { normalizeUsername, usernameTakenMessage, validateUsername } from '../utils/usernameValidation';
 
 const inputClass =
   'w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/15';
+const readOnlyInputClass = `${inputClass} cursor-default bg-gray-50 text-gray-600`;
 
 function initialsFromName(name = '') {
   const parts = String(name).trim().split(/\s+/).filter(Boolean);
   if (!parts.length) return '?';
   return parts.slice(0, 2).map((p) => p[0]?.toUpperCase() || '').join('');
+}
+
+/** Hired caregivers often have userId === email; that is a login id, not a username. */
+function isEmailLoginId(value = '') {
+  return String(value).includes('@');
 }
 
 export default function Profile() {
@@ -26,6 +33,9 @@ export default function Profile() {
   const isHr = role === ROLES.HR;
   const isAgency = role === ROLES.AGENCY_OWNER || isHr;
   const isCaregiver = role === ROLES.CAREGIVER;
+  const isClient = role === ROLES.CLIENT;
+  /** Agency-managed accounts: email is set by the agency and cannot be changed here. */
+  const emailReadOnly = isCaregiver || isClient;
 
   const [profile, setProfile] = useState({
     name: '',
@@ -36,6 +46,7 @@ export default function Profile() {
     employeeId: '',
     jobTitle: '',
     department: '',
+    profilePic: '',
   });
   const [profileErrors, setProfileErrors] = useState({});
   const [usernameAvailable, setUsernameAvailable] = useState(null);
@@ -49,15 +60,27 @@ export default function Profile() {
 
   useEffect(() => {
     if (!user) return;
+    const storedUserId = user.userId || '';
+    // Don't put an email into the username field — it triggers false validation errors.
+    const usernameDisplay = isEmailLoginId(storedUserId) ? '' : storedUserId;
     setProfile({
       name: user.name || '',
       email: user.email || '',
       phone: user.phone || '',
       dateOfBirth: user.dateOfBirth || '',
-      userId: user.userId || '',
+      userId: usernameDisplay,
       employeeId: user.employeeId || '',
       jobTitle: user.jobTitle || '',
       department: user.department || '',
+      profilePic: user.profilePic || '',
+    });
+    setUsernameAvailable(null);
+    setProfileErrors((prev) => {
+      if (!prev.userId && !prev.email) return prev;
+      const next = { ...prev };
+      delete next.userId;
+      delete next.email;
+      return next;
     });
   }, [
     user?.id,
@@ -69,6 +92,7 @@ export default function Profile() {
     user?.employeeId,
     user?.jobTitle,
     user?.department,
+    user?.profilePic,
   ]);
 
   const readOnlyMeta = useMemo(() => ({
@@ -90,12 +114,28 @@ export default function Profile() {
     }
   };
 
+  const storedLoginId = normalizeUsername(user?.userId || '');
+  const usesEmailAsLogin = isEmailLoginId(storedLoginId)
+    || (storedLoginId && storedLoginId === normalizeUsername(user?.email || ''));
+
   useEffect(() => {
     if (isAdmin) return undefined;
 
     const normalized = normalizeUsername(profile.userId);
-    const current = normalizeUsername(user?.userId || '');
-    if (!normalized || normalized === current) {
+    if (!normalized) {
+      setUsernameAvailable(null);
+      setCheckingUsername(false);
+      setProfileErrors((prev) => {
+        if (!prev.userId) return prev;
+        const next = { ...prev };
+        delete next.userId;
+        return next;
+      });
+      return undefined;
+    }
+
+    // Unchanged non-email username — no availability check needed
+    if (!isEmailLoginId(normalized) && normalized === storedLoginId) {
       setUsernameAvailable(null);
       setCheckingUsername(false);
       setProfileErrors((prev) => {
@@ -135,32 +175,26 @@ export default function Profile() {
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [profile.userId, user?.userId, isAdmin, dispatch]);
+  }, [profile.userId, storedLoginId, isAdmin, dispatch]);
 
   const validateProfile = () => {
     const next = {};
     if (!profile.name.trim()) next.name = 'Name is required';
-    if (!profile.email.trim()) next.email = 'Email is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email.trim())) {
-      next.email = 'Enter a valid email';
+    if (!emailReadOnly) {
+      if (!profile.email.trim()) next.email = 'Email is required';
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email.trim())) {
+        next.email = 'Enter a valid email';
+      }
     }
-    if (!isAdmin && profile.userId.trim()) {
-      const validation = validateUsername(profile.userId);
+    const draftUsername = normalizeUsername(profile.userId);
+    if (!isAdmin && draftUsername) {
+      const validation = validateUsername(draftUsername);
       if (!validation.valid) next.userId = validation.error;
-      else if (
-        validation.username !== normalizeUsername(user?.userId || '')
-        && checkingUsername
-      ) {
+      else if (validation.username !== storedLoginId && checkingUsername) {
         next.userId = 'Checking username availability…';
-      } else if (
-        validation.username !== normalizeUsername(user?.userId || '')
-        && usernameAvailable === false
-      ) {
+      } else if (validation.username !== storedLoginId && usernameAvailable === false) {
         next.userId = usernameTakenMessage();
-      } else if (
-        validation.username !== normalizeUsername(user?.userId || '')
-        && usernameAvailable !== true
-      ) {
+      } else if (validation.username !== storedLoginId && usernameAvailable !== true) {
         next.userId = 'Confirm username availability before saving';
       }
     }
@@ -174,18 +208,30 @@ export default function Profile() {
 
     const payload = {
       name: profile.name.trim(),
-      email: profile.email.trim(),
     };
+
+    // Caregivers / clients cannot change email from profile
+    if (!emailReadOnly) {
+      payload.email = profile.email.trim();
+    }
 
     if (!isAdmin) {
       payload.phone = profile.phone.trim();
       payload.dateOfBirth = profile.dateOfBirth.trim();
-      payload.employeeId = profile.employeeId.trim();
-      if (profile.userId.trim()) payload.userId = normalizeUsername(profile.userId);
+      if (!isClient) {
+        payload.employeeId = profile.employeeId.trim();
+      }
+      const draftUsername = normalizeUsername(profile.userId);
+      if (draftUsername && !isEmailLoginId(draftUsername) && draftUsername !== storedLoginId) {
+        payload.userId = draftUsername;
+      }
     }
     if (isHr) {
       payload.jobTitle = profile.jobTitle.trim();
       payload.department = profile.department.trim();
+    }
+    if (isCaregiver && profile.profilePic !== (user.profilePic || '')) {
+      payload.profilePic = profile.profilePic || '';
     }
 
     try {
@@ -239,9 +285,17 @@ export default function Profile() {
 
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-center gap-4 border-b border-gray-100 pb-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-lg font-semibold text-white">
-            {initialsFromName(profile.name)}
-          </div>
+          {profile.profilePic ? (
+            <img
+              src={profile.profilePic}
+              alt={profile.name || 'Profile'}
+              className="h-14 w-14 rounded-full border border-gray-200 object-cover"
+            />
+          ) : (
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-lg font-semibold text-white">
+              {initialsFromName(profile.name)}
+            </div>
+          )}
           <div className="min-w-0">
             <p className="truncate text-base font-semibold text-gray-900">{profile.name || 'User'}</p>
             <p className="truncate text-sm text-gray-500">{profile.email}</p>
@@ -258,6 +312,15 @@ export default function Profile() {
             <UserRound size={16} className="text-primary" />
             Personal details
           </div>
+
+          {isCaregiver && (
+            <AssessorPhotoUpload
+              label="Profile picture"
+              value={profile.profilePic || ''}
+              onChange={(photo) => setProfile((prev) => ({ ...prev, profilePic: photo || '' }))}
+              shape="circle"
+            />
+          )}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block sm:col-span-2">
@@ -276,10 +339,15 @@ export default function Profile() {
               <input
                 type="email"
                 value={profile.email}
-                onChange={setProfileField('email')}
-                className={inputClass}
+                onChange={emailReadOnly ? undefined : setProfileField('email')}
+                readOnly={emailReadOnly}
+                disabled={emailReadOnly}
+                className={emailReadOnly ? readOnlyInputClass : inputClass}
                 autoComplete="email"
               />
+              {emailReadOnly ? (
+                <p className="mt-1 text-xs text-gray-400">Email is managed by your agency and cannot be changed here.</p>
+              ) : null}
               {profileErrors.email ? <p className="mt-1 text-xs text-red-600">{profileErrors.email}</p> : null}
             </label>
 
@@ -291,7 +359,7 @@ export default function Profile() {
                   onChange={setProfileField('userId')}
                   className={profileErrors.userId ? `${inputClass} border-red-400` : inputClass}
                   autoComplete="username"
-                  placeholder="Choose a unique username"
+                  placeholder={usesEmailAsLogin ? 'Choose a username (optional)' : 'Choose a unique username'}
                 />
                 {checkingUsername && (
                   <p className="mt-1 text-xs text-gray-400">Checking availability…</p>
@@ -313,7 +381,9 @@ export default function Profile() {
                 ) : null}
                 {!checkingUsername && !profileErrors.userId && usernameAvailable !== false && usernameAvailable !== true ? (
                   <p className="mt-1 text-xs text-gray-400">
-                    Sign in with your email or this username.
+                    {usesEmailAsLogin
+                      ? 'You currently sign in with your email. Optionally set a username here.'
+                      : 'Sign in with your email or this username.'}
                   </p>
                 ) : null}
               </label>
@@ -339,14 +409,16 @@ export default function Profile() {
                     className={inputClass}
                   />
                 </label>
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-medium text-gray-700">Employee ID</span>
-                  <input
-                    value={profile.employeeId}
-                    onChange={setProfileField('employeeId')}
-                    className={inputClass}
-                  />
-                </label>
+                {!isClient && (
+                  <label className="block">
+                    <span className="mb-1.5 block text-sm font-medium text-gray-700">Employee ID</span>
+                    <input
+                      value={profile.employeeId}
+                      onChange={setProfileField('employeeId')}
+                      className={inputClass}
+                    />
+                  </label>
+                )}
               </>
             )}
 
@@ -371,10 +443,16 @@ export default function Profile() {
               </>
             )}
 
-            {(isAgency || isCaregiver) && user?.agencyName ? (
+            {(isAgency || isCaregiver || isClient) && user?.agencyName ? (
               <label className="block sm:col-span-2">
                 <span className="mb-1.5 block text-sm font-medium text-gray-700">Agency</span>
                 <input value={user.agencyName} disabled className={`${inputClass} bg-gray-50 text-gray-500`} />
+              </label>
+            ) : null}
+            {isClient && user?.clientCode ? (
+              <label className="block sm:col-span-2">
+                <span className="mb-1.5 block text-sm font-medium text-gray-700">Client code</span>
+                <input value={user.clientCode} disabled className={`${inputClass} bg-gray-50 text-gray-500`} />
               </label>
             ) : null}
           </div>

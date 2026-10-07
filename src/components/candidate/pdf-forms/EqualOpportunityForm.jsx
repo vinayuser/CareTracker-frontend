@@ -7,66 +7,98 @@ import StatusModal from '../../ui/StatusModal';
 import PersonalInfoSection from './sections/EqualOpportunity/PersonalInfoSection';
 import DemographicsSection from './sections/EqualOpportunity/DemographicsSection';
 import ReferralSourceSection from './sections/EqualOpportunity/ReferralSourceSection';
+import {
+  validateHiringPdfForm,
+  formatHiringValidationMessage,
+  sanitizeZip,
+  clampText,
+} from '../../../utils/hiringPdfFormValidation';
 
-const EqualOpportunityForm = ({ document, token, onClose, onSuccess }) => {
-    const [formData, setFormData] = useState({
-        // Personal Information
-        "Position Applied For": "",
-        "Date of Application": "",
-        "Last Name": "",
-        "First Name": "",
-        "Middle Name": "",
-        "City": "",
-        "State": "",
-        "Zip": "",
-        "Date of Birth": "",
+const todayIso = () => new Date().toISOString().slice(0, 10);
 
-        // Gender
-        "Male": false,
-        "Female": false,
+const EMPTY_1021 = {
+  'Position Applied For': '',
+  'Date of Application': '',
+  'Last Name': '',
+  'First Name': '',
+  'Middle Name': '',
+  City: '',
+  State: '',
+  Zip: '',
+  'Date of Birth': '',
+  Male: false,
+  Female: false,
+  Yes: false,
+  No: false,
+  White: false,
+  Asian: false,
+  '2 or more Races': false,
+  'Hispanic  Latino': false,
+  'Pacific Islander': false,
+  'Black  African American': false,
+  'American Indian': false,
+  Specify: '',
+  Specify_2: '',
+  Specify_3: '',
+  Specify_4: '',
+  'Name of Employee': '',
+  Specify_5: '',
+  Address: '',
+  Newspaper: false,
+  'Employment Agency': false,
+  School: false,
+  Internet: false,
+  'Employee Referral': false,
+  Other: false,
+  'Walk-In': false,
+  'Relative-Friend': false,
+  'TV-Radio': false,
+  Flier: false,
+  'Mastercare Website': false,
+  'Unsolicited Resume': false,
+};
 
-        // Veteran Status
-        "Yes": false,
-        "No": false,
+function buildInitial1021(candidate, savedFormData) {
+  const saved = savedFormData && typeof savedFormData === 'object' ? savedFormData : {};
+  const firstName = saved['First Name'] || candidate?.first_name || '';
+  const lastName = saved['Last Name'] || candidate?.last_name || '';
+  return {
+    ...EMPTY_1021,
+    ...saved,
+    'First Name': firstName,
+    'Last Name': lastName,
+    'Date of Application': saved['Date of Application'] || todayIso(),
+    'Date of Birth': saved['Date of Birth'] || candidate?.date_of_birth || '',
+    'Position Applied For': saved['Position Applied For'] || candidate?.designation || '',
+    Address: saved.Address || candidate?.location || '',
+    'Name of Employee': saved['Name of Employee'] || `${firstName} ${lastName}`.trim(),
+  };
+}
 
-        // Race/Ethnicity
-        "White": false,
-        "Asian": false,
-        "2 or more Races": false,
-        "Hispanic  Latino": false,
-        "Pacific Islander": false,
-        "Black  African American": false,
-        "American Indian": false,
+function sanitize1021Field(field, value) {
+  if (typeof value !== 'string') return value;
+  if (field === 'Zip') return sanitizeZip(value);
+  if (field === 'State') return clampText(String(value).toUpperCase().replace(/[^A-Z]/g, ''), 2);
+  if (['First Name', 'Last Name', 'Middle Name', 'City', 'Position Applied For', 'Name of Employee'].includes(field)) {
+    return clampText(value, 40);
+  }
+  if (['Address', 'Specify', 'Specify_2', 'Specify_3', 'Specify_4', 'Specify_5'].includes(field)) {
+    return clampText(value, 100);
+  }
+  return value;
+}
 
-        // Additional Information
-        "Specify": "",
-        "Specify_2": "",
-        "Specify_3": "",
-        "Specify_4": "",
-        "Name of Employee": "",
-        "Specify_5": "",
-        "Address": "",
-
-        // Referral Source
-        "Newspaper": false,
-        "Employment Agency": false,
-        "School": false,
-        "Internet": false,
-        "Employee Referral": false,
-        "Other": false,
-        "Walk-In": false,
-        "Relative-Friend": false,
-        "TV-Radio": false,
-        "Flier": false,
-        "Mastercare Website": false,
-        "Unsolicited Resume": false
-    });
+const EqualOpportunityForm = ({ document, candidate = null, token, onClose, onSuccess }) => {
+    const [formData, setFormData] = useState(() =>
+      buildInitial1021(candidate || document?.candidate, document?.form_data),
+    );
 
     const [generatingPreview, setGeneratingPreview] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [previewUrl, setPreviewUrl] = useState('');
     const [filledPdfBytes, setFilledPdfBytes] = useState(null);
     const [activeSection, setActiveSection] = useState('personal');
+    const [errors, setErrors] = useState({});
 
     // Status modal state
     const [statusModal, setStatusModal] = useState({
@@ -98,12 +130,19 @@ const EqualOpportunityForm = ({ document, token, onClose, onSuccess }) => {
         setStatusModal(prev => ({ ...prev, isOpen: false }));
     };
 
-    // Handler functions
     const handleInputChange = (fieldName, value) => {
-        setFormData(prev => ({
+        const next = sanitize1021Field(fieldName, value);
+        setFormData((prev) => ({
             ...prev,
-            [fieldName]: value
+            [fieldName]: next,
         }));
+        if (errors[fieldName]) {
+          setErrors((prev) => {
+            const nextErrors = { ...prev };
+            delete nextErrors[fieldName];
+            return nextErrors;
+          });
+        }
     };
 
     const handleCheckboxChange = (fieldName, checked) => {
@@ -249,6 +288,14 @@ const EqualOpportunityForm = ({ document, token, onClose, onSuccess }) => {
     };
 
     const handleSubmit = async () => {
+        const validation = validateHiringPdfForm('1021', formData, {});
+        setErrors(validation.fieldErrors || {});
+        if (!validation.ok) {
+            if (validation.firstSection) setActiveSection(validation.firstSection);
+            showStatusModal('error', 'Please fix the form', formatHiringValidationMessage(validation.messages));
+            return;
+        }
+
         try {
             setSubmitting(true);
 
@@ -300,6 +347,7 @@ const EqualOpportunityForm = ({ document, token, onClose, onSuccess }) => {
                 return (
                     <PersonalInfoSection
                         formData={formData}
+                        errors={errors}
                         onInputChange={handleInputChange}
                     />
                 );

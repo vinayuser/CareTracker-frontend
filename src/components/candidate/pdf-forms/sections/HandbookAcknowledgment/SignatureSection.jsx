@@ -1,132 +1,82 @@
-// components/forms/sections/HandbookAcknowledgment/SignatureSection.jsx
-import React, { useRef } from 'react';
-import SignatureCanvas from 'react-signature-canvas';
+import CandidateSignatureField from '../../CandidateSignatureField';
+import { fieldInputErr, fieldInputOk } from '../../../../../utils/candidateFormPrefill';
 
-const SignatureSection = ({ formData, onInputChange, signatureDataUrl, onSignatureEnd, onClearSignature, sigCanvasRef }) => {
-  // Format date for input
-  const formatDateForInput = (dateString) => {
-    if (!dateString) return '';
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
-    
-    const date = new Date(dateString);
-    if (!isNaN(date.getTime())) {
-      return date.toISOString().split('T')[0];
-    }
-    
-    return dateString;
-  };
+function FieldError({ message }) {
+  if (!message) return null;
+  return <p className="mt-1 text-xs text-red-600">{message}</p>;
+}
+
+const SignatureSection = ({
+  formData,
+  errors = {},
+  onInputChange,
+  signatureDataUrl,
+  onSignatureChange,
+}) => {
+  const sigKey = 'Signature30_es_:signer:signature';
 
   return (
     <div className="mb-8">
-      <h3 className="text-lg font-semibold mb-4">Signature & Verification</h3>
-      
-      {/* Signature Section */}
+      <h3 className="mb-4 text-lg font-semibold">Signature & Verification</h3>
+
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-3">Employee Signature</label>
-        
-        {/* Digital Signature Canvas */}
-        <div className="mb-4">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm text-gray-600">Draw your signature below:</span>
-            <button
-              type="button"
-              onClick={onClearSignature}
-              className="text-sm text-red-600 hover:text-red-800"
-            >
-              Clear Signature
-            </button>
-          </div>
-          <div className="border border-gray-300 rounded-md overflow-hidden bg-white">
-            <SignatureCanvas
-              ref={sigCanvasRef}
-              canvasProps={{
-                className: "w-full h-32 bg-white",
-                style: { cursor: 'crosshair' }
-              }}
-              onEnd={onSignatureEnd}
-            />
-          </div>
-          {signatureDataUrl && (
-            <div className="mt-2">
-              <p className="text-xs text-green-600">
-                ✓ Signature captured. You can re-draw if needed.
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Signature Preview */}
-        {signatureDataUrl && (
-          <div className="mb-4 p-3 border border-gray-200 rounded bg-white">
-            <p className="text-sm font-medium text-gray-700 mb-2">Signature Preview:</p>
-            <div className="border border-gray-300 rounded p-2 bg-white">
-              <img 
-                src={signatureDataUrl} 
-                alt="Signature preview" 
-                className="h-14 max-w-full object-contain"
-              />
-            </div>
-          </div>
-        )}
+        <CandidateSignatureField
+          label="Employee Signature *"
+          dateLabel="Date *"
+          dateValue={formData.Date || ''}
+          onDateChange={(v) => onInputChange('Date', v)}
+          signatureDataUrl={signatureDataUrl}
+          onSignatureChange={onSignatureChange}
+          dateError={errors.Date}
+          signatureError={errors[sigKey]}
+        />
       </div>
 
-      {/* Employee Information */}
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Print Name</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Print Name *</label>
           <input
             type="text"
-            value={formData["Print Name"]}
-            onChange={(e) => onInputChange("Print Name", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={formData['Print Name'] || ''}
+            onChange={(e) => onInputChange('Print Name', e.target.value)}
+            className={errors['Print Name'] ? fieldInputErr : fieldInputOk}
             placeholder="Type your full name"
-            required
           />
+          <FieldError message={errors['Print Name']} />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Position with Company</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Position with Company *</label>
           <input
             type="text"
-            value={formData["Position with Company"]}
-            onChange={(e) => onInputChange("Position with Company", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={formData['Position with Company'] || ''}
+            onChange={(e) => onInputChange('Position with Company', e.target.value)}
+            className={errors['Position with Company'] ? fieldInputErr : fieldInputOk}
             placeholder="Your position/title"
-            required
           />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-          <input
-            type="date"
-            value={formatDateForInput(formData["Date"])}
-            onChange={(e) => onInputChange("Date", e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
+          <FieldError message={errors['Position with Company']} />
         </div>
       </div>
 
-      {/* Verification Section */}
-      <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-        <h4 className="font-medium text-gray-700 mb-3">Verification (Optional)</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+        <h4 className="mb-3 font-medium text-gray-700">Verification (Optional)</h4>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Verified by</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Verified by</label>
             <input
               type="text"
-              value={formData["Verified by"]}
-              onChange={(e) => onInputChange("Verified by", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={formData['Verified by'] || ''}
+              onChange={(e) => onInputChange('Verified by', e.target.value)}
+              className={fieldInputOk}
               placeholder="Manager or HR representative name"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Date</label>
             <input
               type="date"
-              value={formatDateForInput(formData["Date_2"])}
-              onChange={(e) => onInputChange("Date_2", e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={formData.Date_2 || ''}
+              onChange={(e) => onInputChange('Date_2', e.target.value)}
+              className={fieldInputOk}
             />
           </div>
         </div>
@@ -135,11 +85,8 @@ const SignatureSection = ({ formData, onInputChange, signatureDataUrl, onSignatu
         </p>
       </div>
 
-      {/* Footer Note */}
-      <div className="mt-6 p-3 border-t border-gray-200">
-        <p className="text-xs text-gray-500">
-          1201/MC-Rev.0623 ©CareTraker All Rights Reserved
-        </p>
+      <div className="mt-6 border-t border-gray-200 p-3">
+        <p className="text-xs text-gray-500">1201/MC-Rev.0623 ©CareTraker All Rights Reserved</p>
       </div>
     </div>
   );

@@ -25,6 +25,7 @@ import ViewCaregiverDrawer from '../../components/agency/caregivers/ViewCaregive
 import { confirmAlert } from '../../utils/swal';
 
 const PAGE_SIZE = 5;
+const MENU_WIDTH = 192;
 
 function formatMoney(value) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value || 0));
@@ -156,7 +157,7 @@ export default function AdminCaregivers() {
   const [overviewLoading, setOverviewLoading] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [viewCaregiver, setViewCaregiver] = useState(null);
-  const [menuOpenId, setMenuOpenId] = useState('');
+  const [menu, setMenu] = useState(null);
   const [statusUpdatingId, setStatusUpdatingId] = useState('');
   const menuRef = useRef(null);
 
@@ -178,14 +179,24 @@ export default function AdminCaregivers() {
   }, []);
 
   useEffect(() => {
-    if (!selectorOpen && !menuOpenId) return undefined;
+    if (!selectorOpen && !menu) return undefined;
     const onDown = (e) => {
       if (selectorRef.current && !selectorRef.current.contains(e.target)) setSelectorOpen(false);
-      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpenId('');
+      if (e.target.closest?.('[data-caregiver-menu-trigger]')) return;
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenu(null);
     };
+    const closeMenu = () => setMenu(null);
     document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [selectorOpen, menuOpenId]);
+    if (menu) {
+      window.addEventListener('scroll', closeMenu, true);
+      window.addEventListener('resize', closeMenu);
+    }
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      window.removeEventListener('scroll', closeMenu, true);
+      window.removeEventListener('resize', closeMenu);
+    };
+  }, [selectorOpen, menu]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
@@ -195,7 +206,7 @@ export default function AdminCaregivers() {
   useEffect(() => {
     setPage(1);
     setSelectedId('');
-    setMenuOpenId('');
+    setMenu(null);
     setViewOpen(false);
     setViewCaregiver(null);
   }, [agencyId, debouncedSearch]);
@@ -273,9 +284,22 @@ export default function AdminCaregivers() {
     };
   };
 
+  const openMenu = (caregiver, e) => {
+    if (menu?.caregiver.id === caregiver.id) {
+      setMenu(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMenu({
+      caregiver,
+      top: rect.bottom + 4,
+      left: Math.max(8, rect.right - MENU_WIDTH),
+    });
+  };
+
   const openView = async (caregiver) => {
     setSelectedId(caregiver.id);
-    setMenuOpenId('');
+    setMenu(null);
     setViewCaregiver(toViewModel(caregiver));
     setViewOpen(true);
     try {
@@ -291,7 +315,7 @@ export default function AdminCaregivers() {
   };
 
   const handleStatusToggle = async (caregiver) => {
-    setMenuOpenId('');
+    setMenu(null);
     const nextStatus = caregiver.status === 'Active' ? 'Inactive' : 'Active';
     const confirmed = await confirmAlert({
       title: nextStatus === 'Inactive' ? 'Deactivate account?' : 'Activate account?',
@@ -346,13 +370,13 @@ export default function AdminCaregivers() {
           >
             <RefreshCw size={16} />
           </button>
-          <button
+          {/* <button
             type="button"
             onClick={portalHint}
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover"
           >
             <Plus size={15} /> Add New Caregiver
-          </button>
+          </button> */}
         </div>
       </div>
 
@@ -463,7 +487,7 @@ export default function AdminCaregivers() {
                     ) : <span className="text-slate-400">—</span>}
                   </td>
                   <td className="px-5 py-3.5">
-                    <div className="relative flex items-center justify-end gap-0.5" ref={menuOpenId === caregiver.id ? menuRef : null}>
+                    <div className="flex items-center justify-end gap-0.5">
                       <ActionIconButton
                         label="View"
                         className="text-primary hover:bg-primary/10"
@@ -474,44 +498,19 @@ export default function AdminCaregivers() {
                       >
                         <Eye size={15} />
                       </ActionIconButton>
-                      <ActionIconButton
-                        label="More actions"
-                        className="text-slate-500 hover:bg-slate-100"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMenuOpenId((id) => (id === caregiver.id ? '' : caregiver.id));
-                        }}
-                      >
-                        <MoreVertical size={15} />
-                      </ActionIconButton>
-                      {menuOpenId === caregiver.id ? (
-                        <div className="absolute right-0 top-full z-20 mt-1 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
-                          <button
-                            type="button"
-                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openView(caregiver);
-                            }}
-                          >
-                            <Eye size={14} /> View details
-                          </button>
-                          <button
-                            type="button"
-                            disabled={statusUpdatingId === caregiver.id}
-                            className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50 disabled:opacity-50 ${
-                              caregiver.status === 'Active' ? 'text-rose-600' : 'text-emerald-700'
-                            }`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStatusToggle(caregiver);
-                            }}
-                          >
-                            <Power size={14} />
-                            {caregiver.status === 'Active' ? 'Deactivate account' : 'Activate account'}
-                          </button>
-                        </div>
-                      ) : null}
+                      <span data-caregiver-menu-trigger className="inline-flex">
+                        <ActionIconButton
+                          label="More actions"
+                          className={`text-slate-500 hover:bg-slate-100 ${menu?.caregiver.id === caregiver.id ? 'bg-slate-100' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openMenu(caregiver, e);
+                          }}
+                          disabled={statusUpdatingId === caregiver.id}
+                        >
+                          <MoreVertical size={15} />
+                        </ActionIconButton>
+                      </span>
                     </div>
                   </td>
                 </tr>
@@ -519,6 +518,38 @@ export default function AdminCaregivers() {
             </tbody>
           </table>
         </div>
+        {menu ? (
+          <div
+            ref={menuRef}
+            style={{ position: 'fixed', top: menu.top, left: menu.left, width: MENU_WIDTH }}
+            className="z-50 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+          >
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+              onClick={(e) => {
+                e.stopPropagation();
+                openView(menu.caregiver);
+              }}
+            >
+              <Eye size={14} /> View details
+            </button>
+            <button
+              type="button"
+              disabled={statusUpdatingId === menu.caregiver.id}
+              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50 disabled:opacity-50 ${
+                menu.caregiver.status === 'Active' ? 'text-rose-600' : 'text-emerald-700'
+              }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStatusToggle(menu.caregiver);
+              }}
+            >
+              <Power size={14} />
+              {menu.caregiver.status === 'Active' ? 'Deactivate account' : 'Activate account'}
+            </button>
+          </div>
+        ) : null}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-5 py-3 text-xs text-slate-500">
           <span>Showing {pagination.from} to {pagination.to} of {Number(pagination.total || 0).toLocaleString()} caregivers</span>
           <div className="flex items-center gap-1">
