@@ -36,12 +36,16 @@ jobs:
             cd /var/www/CareTracker-frontend/
             git fetch origin "${BRANCH}"
             git checkout -B "${BRANCH}" "origin/${BRANCH}"
-            docker stop caretracker-frontend || true
-            docker rm caretracker-frontend || true
-            docker rmi caretracker-frontend || true
+            # Stop either legacy compose name or Actions image name
+            docker stop caretracker-frontend caretracker-admin || true
+            docker rm caretracker-frontend caretracker-admin || true
+            docker rmi caretracker-frontend caretracker-admin:latest || true
             docker system prune -af
-            docker build --no-cache -t caretracker-frontend .
+            docker build --no-cache \
+              --build-arg VITE_API_BASE_URL="${VITE_API_BASE_URL:-https://caretraker.com/api/api}" \
+              -t caretracker-frontend .
             docker run -d \
               --name caretracker-frontend \
+              --restart unless-stopped \
               -p 5173:5173 \
               caretracker-frontend
