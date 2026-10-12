@@ -91,6 +91,7 @@ const API_ROUTES = {
     REPORTS: {
       EVV_SUMMARY: '/admin/reports/evv-summary',
       EVV_SUMMARY_EXPORT: '/admin/reports/evv-summary/export',
+      EVV_SUMMARY_REMINDER: '/admin/reports/evv-summary/reminder',
     },
     TIME_CARD: {
       OPTIONS: '/admin/time-cards/options',
@@ -246,6 +247,7 @@ const API_ROUTES = {
       EVV_SUMMARY: '/agency/reports/evv-summary',
       EVV_SUMMARY_EXPORT: '/agency/reports/evv-summary/export',
       EVV_SUMMARY_OPTIONS: '/agency/reports/evv-summary/options',
+      EVV_SUMMARY_REMINDER: '/agency/reports/evv-summary/reminder',
     },
     TIME_CARD: {
       OPTIONS: '/agency/time-cards/options',

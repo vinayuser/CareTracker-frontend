@@ -19,7 +19,6 @@ export const ADMIN_NAV_GROUPS = [
       { key: 'ADMIN_CAREGIVERS', label: 'Caregivers', icon: 'UserCheck' },
       { key: 'ADMIN_SCHEDULES', label: 'Schedules', icon: 'CalendarClock' },
       { key: 'ADMIN_EVV_COMPLIANCE', label: 'EVV', icon: 'ShieldCheck' },
-      { key: 'ADMIN_MEDICAID', label: 'Medicaid', icon: 'Landmark' },
     ],
   },
   {
@@ -34,7 +33,6 @@ export const ADMIN_NAV_GROUPS = [
   {
     title: 'Growth',
     items: [
-      { key: 'ADMIN_SOCIAL', label: 'Social & Community', icon: 'MessagesSquare' },
       {
         key: 'ADMIN_MARKETING',
         label: 'Marketing',
@@ -46,8 +44,6 @@ export const ADMIN_NAV_GROUPS = [
           { key: 'ADMIN_EMAIL_IMPORT', label: 'Import Contacts' },
         ],
       },
-      { key: 'ADMIN_REFERRALS', label: 'Referrals', icon: 'Share2' },
-      { key: 'ADMIN_CRM', label: 'CRM', icon: 'Contact' },
     ],
   },
   {
@@ -55,10 +51,6 @@ export const ADMIN_NAV_GROUPS = [
     items: [
       { key: 'ADMIN_TIME_CARD', label: 'Time Card', icon: 'Clock' },
       { key: 'ADMIN_REPORTS', label: 'Reports', icon: 'BarChart3' },
-      { key: 'ADMIN_AUDIT_LOGS', label: 'Audit Logs', icon: 'FileText' },
-      { key: 'ADMIN_INTEGRATIONS', label: 'Integrations', icon: 'Puzzle' },
-      { key: 'ADMIN_SUPPORT', label: 'Support Tickets', icon: 'Ticket' },
-      { key: 'ADMIN_CONTENT', label: 'Content', icon: 'Newspaper' },
       { key: 'ADMIN_SETTINGS', label: 'Settings', icon: 'Settings' },
     ],
   },

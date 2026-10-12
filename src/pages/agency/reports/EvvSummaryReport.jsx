@@ -19,6 +19,7 @@ import { toast } from 'react-toastify';
 import axiosInstance from '../../../api/axiosInstance';
 import API_ROUTES from '../../../api/apiRoutes';
 import Drawer from '../../../components/ui/Drawer';
+import ReportRowActionsMenu, { openReportRowMenu } from '../../../components/reports/ReportRowActionsMenu';
 
 const PAGE_SIZE = 5;
 
@@ -129,9 +130,38 @@ export default function EvvSummaryReport() {
   const [loading, setLoading] = useState(true);
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [menuId, setMenuId] = useState('');
+  const [menu, setMenu] = useState(null);
   const [detail, setDetail] = useState(null);
+  const [remindingKey, setRemindingKey] = useState('');
   const exportRef = useRef(null);
+
+  const sendReminder = async (row, type) => {
+    const key = `${row.id}:${type}`;
+    setRemindingKey(key);
+    try {
+      const res = await axiosInstance.post(
+        API_ROUTES.AGENCY.REPORTS.EVV_SUMMARY_REMINDER,
+        {
+          clientId: row.clientId || undefined,
+          caregiverId: row.caregiverId,
+          type,
+          clientEvvStatus: row.clientEvvStatus,
+        },
+        { skipErrorToast: true },
+      );
+      const payload = res?.data?.data ?? res?.data ?? {};
+      if (payload?.devMode) {
+        toast.info('Reminder logged in server mail (dev mode)');
+      } else {
+        toast.success('Reminder email sent');
+      }
+      setMenu(null);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || error?.message || 'Failed to send reminder');
+    } finally {
+      setRemindingKey('');
+    }
+  };
 
   const queryString = useCallback((extra = {}) => {
     const params = new URLSearchParams();
@@ -171,10 +201,15 @@ export default function EvvSummaryReport() {
   useEffect(() => {
     const onPointer = (event) => {
       if (exportRef.current && !exportRef.current.contains(event.target)) setExportOpen(false);
-      if (!event.target.closest('[data-row-menu]')) setMenuId('');
+      if (!event.target.closest('[data-row-menu]')) setMenu(null);
     };
+    const onScroll = () => setMenu(null);
     document.addEventListener('mousedown', onPointer);
-    return () => document.removeEventListener('mousedown', onPointer);
+    window.addEventListener('scroll', onScroll, true);
+    return () => {
+      document.removeEventListener('mousedown', onPointer);
+      window.removeEventListener('scroll', onScroll, true);
+    };
   }, []);
 
   const today = todayKey();
@@ -466,27 +501,19 @@ export default function EvvSummaryReport() {
                       >
                         <Eye size={15} />
                       </button>
-                      <div className="relative" data-row-menu>
-                        <button
-                          type="button"
-                          onClick={() => setMenuId((current) => (current === row.id ? '' : row.id))}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-50"
-                        >
-                          <MoreHorizontal size={16} />
-                        </button>
-                        {menuId === row.id ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setDetail(row);
-                              setMenuId('');
-                            }}
-                            className="absolute right-0 z-10 mt-1 w-36 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm font-medium text-slate-700 shadow-lg hover:bg-slate-50"
-                          >
-                            View details
-                          </button>
-                        ) : null}
-                      </div>
+                      <button
+                        type="button"
+                        data-row-menu
+                        onClick={(event) => {
+                          const next = openReportRowMenu(row, event, menu);
+                          setMenu(next);
+                        }}
+                        className={`flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-50 ${
+                          menu?.row?.id === row.id ? 'bg-slate-100' : ''
+                        }`}
+                      >
+                        <MoreHorizontal size={16} />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -537,6 +564,14 @@ export default function EvvSummaryReport() {
           </div>
         </div>
       </div>
+
+      <ReportRowActionsMenu
+        menu={menu}
+        remindingKey={remindingKey}
+        onView={setDetail}
+        onRemind={sendReminder}
+        onClose={() => setMenu(null)}
+      />
 
       <Drawer open={Boolean(detail)} onClose={() => setDetail(null)} title="Report details" width="lg">
         {detail ? (
