@@ -224,6 +224,7 @@ const API_ROUTES = {
     },
     VISITS: {
       LIST: '/agency/visits',
+      REASSIGN: '/agency/visits/reassign',
       APPROVE: '/agency/visits',
       REJECT: '/agency/visits',
       RESOLVE_EXCEPTION: '/agency/visits',

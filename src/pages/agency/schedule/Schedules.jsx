@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import AgencyKpiCard from '../../../components/agency/dashboard/AgencyKpiCard';
 import VisitScheduleModal from '../../../components/agency/schedule/VisitScheduleModal';
+import CoverCaregiverModal from '../../../components/agency/schedule/CoverCaregiverModal';
 import VisitMonthCalendar from '../../../components/agency/schedule/VisitMonthCalendar';
 import {
   deleteVisit,
@@ -64,6 +65,7 @@ export default function Schedules() {
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [coverOpen, setCoverOpen] = useState(false);
 
   const loadMonth = (year = cursor.year, month = cursor.month) => {
     const { from, to } = monthRange(year, month);
@@ -233,11 +235,22 @@ export default function Schedules() {
 
         <div className="xl:col-span-4">
           <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-            <div className="border-b border-gray-100 px-4 py-3">
-              <h3 className="text-sm font-semibold text-gray-900">{selectedLabel || 'Select a day'}</h3>
-              <p className="mt-0.5 text-xs text-gray-500">
-                {dayVisits.length} visit{dayVisits.length === 1 ? '' : 's'} scheduled
-              </p>
+            <div className="flex items-start justify-between gap-2 border-b border-gray-100 px-4 py-3">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">{selectedLabel || 'Select a day'}</h3>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  {dayVisits.length} visit{dayVisits.length === 1 ? '' : 's'} scheduled
+                </p>
+              </div>
+              {dayVisits.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setCoverOpen(true)}
+                  className="rounded-lg border border-primary/30 px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/5"
+                >
+                  Assign another caregiver
+                </button>
+              ) : null}
             </div>
 
             <div className="max-h-[560px] space-y-3 overflow-y-auto p-4">
@@ -329,6 +342,12 @@ export default function Schedules() {
         onClose={() => setDrawerOpen(false)}
         schedule={editing}
         onSaved={loadMonth}
+      />
+      <CoverCaregiverModal
+        open={coverOpen}
+        visits={dayVisits}
+        onClose={() => setCoverOpen(false)}
+        onSaved={() => loadMonth()}
       />
     </div>
   );
