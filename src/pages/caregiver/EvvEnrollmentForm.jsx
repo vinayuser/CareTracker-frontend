@@ -204,7 +204,7 @@ export default function CaregiverEvvEnrollmentForm() {
               loadingLabel="Submitting..."
               className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white hover:bg-primary-hover"
             >
-              Submit to Agency
+              Submit to Client
             </SubmitButton>
           ) : (
             <p className="text-sm text-gray-500">This enrollment has been submitted and is awaiting agency review.</p>

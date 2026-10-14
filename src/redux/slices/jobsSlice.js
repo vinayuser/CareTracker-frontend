@@ -114,6 +114,8 @@ const jobsSlice = createSlice({
     stats: [],
     stagesMetadata: [],
     loading: false,
+    jobsRequestId: null,
+    statsRequestId: null,
     aiLoading: false,
   },
   reducers: {
@@ -123,14 +125,25 @@ const jobsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchJobs.pending, (state) => { state.loading = true; })
+      .addCase(fetchJobs.pending, (state, action) => {
+        state.loading = true;
+        state.jobsRequestId = action.meta.requestId;
+      })
       .addCase(fetchJobs.fulfilled, (state, action) => {
+        if (state.jobsRequestId !== action.meta.requestId) return;
         state.loading = false;
         state.list = Array.isArray(action.payload) ? action.payload : [];
       })
-      .addCase(fetchJobs.rejected, (state) => { state.loading = false; })
+      .addCase(fetchJobs.rejected, (state, action) => {
+        if (state.jobsRequestId !== action.meta.requestId) return;
+        state.loading = false;
+      })
       .addCase(fetchJob.fulfilled, (state, action) => { state.selected = action.payload; })
+      .addCase(fetchJobStats.pending, (state, action) => {
+        state.statsRequestId = action.meta.requestId;
+      })
       .addCase(fetchJobStats.fulfilled, (state, action) => {
+        if (state.statsRequestId !== action.meta.requestId) return;
         state.stats = action.payload?.data || [];
         state.stagesMetadata = action.payload?.stages_metadata || [];
       })

@@ -27,6 +27,13 @@ import useSubmitLock from '../../../hooks/useSubmitLock';
 const inputClass =
   'w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
 
+const inputErrorClass =
+  'w-full rounded-lg border border-red-400 px-3 py-2.5 text-sm outline-none focus:border-red-500 focus:ring-2 focus:ring-red-100';
+
+function fieldClass(hasError) {
+  return hasError ? inputErrorClass : inputClass;
+}
+
 const EMPTY_FORM = {
   job_title: '',
   job_code: '',
@@ -106,29 +113,39 @@ export default function CreateJob({ editId = null }) {
   }, [editId, selected]);
 
   const setField = (field, value) => {
+    if (field === 'annual_salary_from' && value !== '' && form.annual_salary_to !== '' && Number(value) > Number(form.annual_salary_to)) {
+      setErrors((prev) => ({ ...prev, annual_salary_from: 'Cannot be greater than salary to' }));
+      return;
+    }
+    if (field === 'annual_salary_to' && value !== '' && form.annual_salary_from !== '' && Number(form.annual_salary_from) > Number(value)) {
+      setErrors((prev) => ({ ...prev, annual_salary_to: 'Must be greater than or equal to salary from' }));
+      return;
+    }
     setForm((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
+    if (errors[field] || errors.annual_salary_from || errors.annual_salary_to) {
+      setErrors((prev) => ({ ...prev, [field]: undefined, annual_salary_from: undefined, annual_salary_to: undefined }));
+    }
   };
 
   const validate = () => {
     const next = {};
-    if (!form.job_title) next.job_title = 'Required';
-    if (!form.job_code) next.job_code = 'Required';
-    if (!form.job_location) next.job_location = 'Required';
-    if (!form.job_department) next.job_department = 'Required';
-    if (!form.job_function) next.job_function = 'Required';
-    if (!form.employment_type) next.employment_type = 'Required';
-    if (!form.experience) next.experience = 'Required';
-    if (!form.education) next.education = 'Required';
+    if (!form.job_title) next.job_title = 'Job title is required';
+    if (!String(form.job_code || '').trim()) next.job_code = 'Job code is required';
+    if (!String(form.job_location || '').trim()) next.job_location = 'Office location is required';
+    if (!form.job_department) next.job_department = 'Department is required';
+    if (!String(form.job_function || '').trim()) next.job_function = 'Job function is required';
+    if (!form.employment_type) next.employment_type = 'Employment type is required';
+    if (!form.experience) next.experience = 'Experience is required';
+    if (!form.education) next.education = 'Education is required';
     if (!form.keywords.length) next.keywords = 'Add at least one keyword';
-    if (!form.annual_salary_from) next.annual_salary_from = 'Required';
-    if (!form.annual_salary_to) next.annual_salary_to = 'Required';
-    if (Number(form.annual_salary_from) >= Number(form.annual_salary_to)) {
-      next.annual_salary_to = 'Must be greater than salary from';
+    if (!form.annual_salary_from) next.annual_salary_from = 'Salary from is required';
+    if (!form.annual_salary_to) next.annual_salary_to = 'Salary to is required';
+    if (form.annual_salary_from && form.annual_salary_to && Number(form.annual_salary_from) > Number(form.annual_salary_to)) {
+      next.annual_salary_from = 'Cannot be greater than salary to';
     }
-    if (!form.job_description) next.job_description = 'Required';
-    if (!form.job_requirements) next.job_requirements = 'Required';
-    if (!form.job_benefits) next.job_benefits = 'Required';
+    if (!String(form.job_description || '').trim()) next.job_description = 'About the role is required';
+    if (!String(form.job_requirements || '').trim()) next.job_requirements = 'Requirements are required';
+    if (!String(form.job_benefits || '').trim()) next.job_benefits = 'Benefits are required';
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -153,7 +170,12 @@ export default function CreateJob({ editId = null }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validate()) {
+      requestAnimationFrame(() => {
+        document.querySelector('[data-field-error="true"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+      return;
+    }
     const payload = {
       ...form,
       annual_salary_from: Number(form.annual_salary_from),
@@ -205,7 +227,7 @@ export default function CreateJob({ editId = null }) {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Job Title *</label>
-              <select value={form.job_title} onChange={(e) => setField('job_title', e.target.value)} className={inputClass}>
+              <select value={form.job_title} onChange={(e) => setField('job_title', e.target.value)} className={fieldClass(errors.job_title)} data-field-error={errors.job_title ? 'true' : undefined}>
                 <option value="">Select title</option>
                 {JOB_TITLES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
@@ -213,19 +235,21 @@ export default function CreateJob({ editId = null }) {
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Job Code *</label>
-              <input value={form.job_code} onChange={(e) => setField('job_code', e.target.value)} className={inputClass} />
+              <input value={form.job_code} onChange={(e) => setField('job_code', e.target.value)} className={fieldClass(errors.job_code)} data-field-error={errors.job_code ? 'true' : undefined} />
               {errors.job_code && <p className="mt-1 text-xs text-red-600">{errors.job_code}</p>}
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Department *</label>
-              <select value={form.job_department} onChange={(e) => setField('job_department', e.target.value)} className={inputClass}>
+              <select value={form.job_department} onChange={(e) => setField('job_department', e.target.value)} className={fieldClass(errors.job_department)} data-field-error={errors.job_department ? 'true' : undefined}>
                 <option value="">Select department</option>
                 {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
               </select>
+              {errors.job_department && <p className="mt-1 text-xs text-red-600">{errors.job_department}</p>}
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Job Function *</label>
-              <input value={form.job_function} onChange={(e) => setField('job_function', e.target.value)} className={inputClass} />
+              <input value={form.job_function} onChange={(e) => setField('job_function', e.target.value)} className={fieldClass(errors.job_function)} data-field-error={errors.job_function ? 'true' : undefined} />
+              {errors.job_function && <p className="mt-1 text-xs text-red-600">{errors.job_function}</p>}
             </div>
           </div>
         </section>
@@ -248,7 +272,8 @@ export default function CreateJob({ editId = null }) {
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Office Location *</label>
-            <input value={form.job_location} onChange={(e) => setField('job_location', e.target.value)} className={inputClass} />
+            <input value={form.job_location} onChange={(e) => setField('job_location', e.target.value)} className={fieldClass(errors.job_location)} data-field-error={errors.job_location ? 'true' : undefined} />
+            {errors.job_location && <p className="mt-1 text-xs text-red-600">{errors.job_location}</p>}
           </div>
         </section>
 
@@ -257,41 +282,64 @@ export default function CreateJob({ editId = null }) {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Employment Type *</label>
-              <select value={form.employment_type} onChange={(e) => setField('employment_type', e.target.value)} className={inputClass}>
+              <select value={form.employment_type} onChange={(e) => setField('employment_type', e.target.value)} className={fieldClass(errors.employment_type)} data-field-error={errors.employment_type ? 'true' : undefined}>
                 <option value="">Select type</option>
                 {EMPLOYMENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
+              {errors.employment_type && <p className="mt-1 text-xs text-red-600">{errors.employment_type}</p>}
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Experience *</label>
-              <select value={form.experience} onChange={(e) => setField('experience', e.target.value)} className={inputClass}>
+              <select value={form.experience} onChange={(e) => setField('experience', e.target.value)} className={fieldClass(errors.experience)} data-field-error={errors.experience ? 'true' : undefined}>
                 <option value="">Select experience</option>
-                {EXPERIENCE_LEVELS.map((e) => <option key={e} value={e}>{e}</option>)}
+                {EXPERIENCE_LEVELS.map((level) => <option key={level} value={level}>{level}</option>)}
               </select>
+              {errors.experience && <p className="mt-1 text-xs text-red-600">{errors.experience}</p>}
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Education *</label>
-              <select value={form.education} onChange={(e) => setField('education', e.target.value)} className={inputClass}>
+              <select value={form.education} onChange={(e) => setField('education', e.target.value)} className={fieldClass(errors.education)} data-field-error={errors.education ? 'true' : undefined}>
                 <option value="">Select education</option>
-                {EDUCATION_LEVELS.map((e) => <option key={e} value={e}>{e}</option>)}
+                {EDUCATION_LEVELS.map((level) => <option key={level} value={level}>{level}</option>)}
               </select>
+              {errors.education && <p className="mt-1 text-xs text-red-600">{errors.education}</p>}
             </div>
             <div className="md:col-span-2">
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Keywords *</label>
-              <TagInput
-                value={form.keywords}
-                onChange={(keywords) => setField('keywords', keywords)}
-                suggestions={keywordSuggestions}
-              />
+              <div data-field-error={errors.keywords ? 'true' : undefined}>
+                <TagInput
+                  value={form.keywords}
+                  onChange={(keywords) => setField('keywords', keywords)}
+                  suggestions={keywordSuggestions}
+                  invalid={Boolean(errors.keywords)}
+                />
+              </div>
               {errors.keywords && <p className="mt-1 text-xs text-red-600">{errors.keywords}</p>}
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Salary From *</label>
-              <input type="number" value={form.annual_salary_from} onChange={(e) => setField('annual_salary_from', e.target.value)} className={inputClass} />
+              <input
+                type="number"
+                min="0"
+                max={form.annual_salary_to || undefined}
+                value={form.annual_salary_from}
+                onChange={(e) => setField('annual_salary_from', e.target.value)}
+                className={fieldClass(errors.annual_salary_from)}
+                data-field-error={errors.annual_salary_from ? 'true' : undefined}
+              />
+              {errors.annual_salary_from && <p className="mt-1 text-xs text-red-600">{errors.annual_salary_from}</p>}
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Salary To *</label>
-              <input type="number" value={form.annual_salary_to} onChange={(e) => setField('annual_salary_to', e.target.value)} className={inputClass} />
+              <input
+                type="number"
+                min={form.annual_salary_from || '0'}
+                value={form.annual_salary_to}
+                onChange={(e) => setField('annual_salary_to', e.target.value)}
+                className={fieldClass(errors.annual_salary_to)}
+                data-field-error={errors.annual_salary_to ? 'true' : undefined}
+              />
+              {errors.annual_salary_to && <p className="mt-1 text-xs text-red-600">{errors.annual_salary_to}</p>}
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Currency *</label>
@@ -318,15 +366,18 @@ export default function CreateJob({ editId = null }) {
           <div className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">About the role *</label>
-              <textarea rows={4} maxLength={600} value={form.job_description} onChange={(e) => setField('job_description', e.target.value)} className={inputClass} />
+              <textarea rows={4} maxLength={600} value={form.job_description} onChange={(e) => setField('job_description', e.target.value)} className={fieldClass(errors.job_description)} data-field-error={errors.job_description ? 'true' : undefined} />
+              {errors.job_description && <p className="mt-1 text-xs text-red-600">{errors.job_description}</p>}
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Requirements *</label>
-              <textarea rows={4} maxLength={600} value={form.job_requirements} onChange={(e) => setField('job_requirements', e.target.value)} className={inputClass} />
+              <textarea rows={4} maxLength={600} value={form.job_requirements} onChange={(e) => setField('job_requirements', e.target.value)} className={fieldClass(errors.job_requirements)} data-field-error={errors.job_requirements ? 'true' : undefined} />
+              {errors.job_requirements && <p className="mt-1 text-xs text-red-600">{errors.job_requirements}</p>}
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Benefits *</label>
-              <textarea rows={4} maxLength={600} value={form.job_benefits} onChange={(e) => setField('job_benefits', e.target.value)} className={inputClass} />
+              <textarea rows={4} maxLength={600} value={form.job_benefits} onChange={(e) => setField('job_benefits', e.target.value)} className={fieldClass(errors.job_benefits)} data-field-error={errors.job_benefits ? 'true' : undefined} />
+              {errors.job_benefits && <p className="mt-1 text-xs text-red-600">{errors.job_benefits}</p>}
             </div>
           </div>
         </section>

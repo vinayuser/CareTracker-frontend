@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { X, ArrowRight, ArrowLeft, UserCheck, Ban, Loader2, RotateCcw, FileText, ClipboardCheck, Trash2 } from 'lucide-react';
 import {
   fetchStageCandidates,
@@ -187,6 +187,7 @@ export default function StageCandidatesModal({
   onRefresh,
 }) {
   const dispatch = useDispatch();
+  const listVersion = useSelector((state) => state.candidates.listVersion);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [actionId, setActionId] = useState(null);
@@ -210,7 +211,7 @@ export default function StageCandidatesModal({
     loadApplications()
       .catch(() => setApplications([]))
       .finally(() => setLoading(false));
-  }, [open, job?.id, stage?.id, viewType, dispatch]);
+  }, [open, job?.id, stage?.id, viewType, dispatch, listVersion]);
 
   if (!open) return null;
 
@@ -231,11 +232,13 @@ export default function StageCandidatesModal({
         await dispatch(moveToPreviousStage({ id: application.id, documentCodes })).unwrap();
       }
       onRefresh?.();
-      await loadApplications();
+      onClose?.();
+      return true;
     } catch {
-      // toast in slice
+      return false;
+    } finally {
+      setActionId(null);
     }
-    setActionId(null);
   };
 
   const handleAction = async (action, application) => {
@@ -315,8 +318,8 @@ export default function StageCandidatesModal({
     if (!formPick) return;
     setFormPickSubmitting(true);
     try {
-      await runStageMove(formPick.direction, formPick.application, documentCodes);
-      setFormPick(null);
+      const moved = await runStageMove(formPick.direction, formPick.application, documentCodes);
+      if (moved) setFormPick(null);
     } finally {
       setFormPickSubmitting(false);
     }

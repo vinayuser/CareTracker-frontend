@@ -17,6 +17,13 @@ import {
 } from '../../../utils/leadForm';
 import { formatLeadPhone, formatLeadZipInput, maxDobForMinAge } from '../../../utils/leadFormValidation';
 
+function todayDateKey() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
 const inputClass =
   'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:cursor-default disabled:bg-slate-50';
 const inputErrorClass =
@@ -238,6 +245,7 @@ export default function LeadFormSections({
           <IconInput
             icon={Calendar}
             type="date"
+            min={todayDateKey()}
             disabled={readOnly}
             error={err('basicInfo.preferredStartDate')}
             value={basic.preferredStartDate}

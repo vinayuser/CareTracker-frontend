@@ -104,7 +104,7 @@ export const fetchCaregiverEvvEnrollment = createAsyncThunk('evvEnrollments/care
 export const submitCaregiverEvvEnrollment = createAsyncThunk('evvEnrollments/caregiverSubmit', async ({ id, formData }, { rejectWithValue }) => {
   try {
     const response = await axiosInstance.post(`${API_ROUTES.CAREGIVER.EVV_ENROLLMENTS.SUBMIT}/${id}/submit`, { formData });
-    toast.success('EVV enrollment submitted to agency');
+    toast.success('EVV enrollment submitted to Clinet');
     return response.data.data;
   } catch (error) {
     return rejectWithValue(error.response?.data || error.message);

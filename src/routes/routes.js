@@ -54,6 +54,7 @@ export const ROUTES = {
   ADMIN_TIME_CARD: '/admin/time-card',
   ADMIN_REPORTS: '/admin/reports',
   ADMIN_AUDIT_LOGS: '/admin/audit-logs',
+  ADMIN_LOG_TRACKING: '/admin/reports/log-tracking',
   ADMIN_INTEGRATIONS: '/admin/integrations',
   ADMIN_SUPPORT: '/admin/support',
   ADMIN_CONTENT: '/admin/content',

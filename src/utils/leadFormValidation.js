@@ -110,7 +110,11 @@ export function validateLeadForm(form = {}, { requireDob = true } = {}) {
 
   const preferredStart = String(basic.preferredStartDate || '').trim();
   const inquiry = String(basic.inquiryDate || '').trim();
-  if (preferredStart && inquiry && preferredStart < inquiry) {
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  if (preferredStart && preferredStart < todayKey) {
+    errors['basicInfo.preferredStartDate'] = 'Preferred start date cannot be in the past';
+  } else if (preferredStart && inquiry && preferredStart < inquiry) {
     errors['basicInfo.preferredStartDate'] = 'Preferred start date cannot be before inquiry date';
   }
 

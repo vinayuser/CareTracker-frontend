@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Archive,
@@ -40,6 +40,7 @@ export default function AgencyLifecycle() {
   const { lifecycleItems, lifecycleStats, lifecycleStatus } = useSelector((state) => state.agencies);
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState('latest');
   const [busyId, setBusyId] = useState(null);
   const [busyAction, setBusyAction] = useState(null);
   const [passwordAgency, setPasswordAgency] = useState(null);
@@ -61,6 +62,16 @@ export default function AgencyLifecycle() {
     setFilter(key);
     load(key, search);
   };
+
+  const sortedItems = useMemo(() => {
+    const items = [...lifecycleItems];
+    if (sort === 'az') {
+      items.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' }));
+      return items;
+    }
+    items.sort((a, b) => new Date(b.createdAt || b.updatedAt || 0) - new Date(a.createdAt || a.updatedAt || 0));
+    return items;
+  }, [lifecycleItems, sort]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -176,6 +187,17 @@ export default function AgencyLifecycle() {
             className="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
         </form>
+        <label className="flex items-center gap-2 text-sm text-gray-600">
+          Sort by
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          >
+            <option value="az">A to Z</option>
+            <option value="latest">Latest</option>
+          </select>
+        </label>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -198,7 +220,7 @@ export default function AgencyLifecycle() {
                     Loading agencies...
                   </td>
                 </tr>
-              ) : lifecycleItems.length === 0 ? (
+              ) : sortedItems.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                     <Building2 className="mx-auto mb-2 text-gray-300" size={28} />
@@ -206,7 +228,7 @@ export default function AgencyLifecycle() {
                   </td>
                 </tr>
               ) : (
-                lifecycleItems.map((agency) => {
+                sortedItems.map((agency) => {
                   const isArchived = agency.status === 'Archived';
                   const busy = busyId === agency.id;
                   const resetting = busy && busyAction === 'reset-password';

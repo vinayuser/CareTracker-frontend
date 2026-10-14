@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Plus, FileText, ClipboardCheck, Mail, Trash2 } from 'lucide-react';
+import { FileText, ClipboardCheck, Mail, Trash2, Pencil } from 'lucide-react';
 import AddCandidateDrawer from '../../../components/agency/hiring/AddCandidateDrawer';
 import CandidateFormsPanel from '../../../components/agency/hiring/CandidateFormsPanel';
 import CandidateFeedbackViewPanel from '../../../components/agency/hiring/CandidateFeedbackViewPanel';
 import SendCandidateEmailDrawer from '../../../components/agency/hiring/SendCandidateEmailDrawer';
 import ActionIconButton from '../../../components/ui/ActionIconButton';
 import { fetchJobs } from '../../../redux/slices/jobsSlice';
-import { deleteCandidate, fetchApplications } from '../../../redux/slices/candidatesSlice';
+import { deleteCandidate, fetchApplications, setCandidateAvailability } from '../../../redux/slices/candidatesSlice';
 import { confirmAlert } from '../../../utils/swal';
 
 export default function Candidates() {
@@ -15,6 +15,7 @@ export default function Candidates() {
   const { list: jobs } = useSelector((state) => state.jobs);
   const { applications, loading } = useSelector((state) => state.candidates);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingApp, setEditingApp] = useState(null);
   const [selectedJob, setSelectedJob] = useState(null);
   const [selectedApp, setSelectedApp] = useState(null);
   const [formsOpen, setFormsOpen] = useState(false);
@@ -86,6 +87,7 @@ export default function Candidates() {
                 <th className="px-5 py-3">Experience</th>
                 <th className="px-5 py-3">Job</th>
                 <th className="px-5 py-3">Stage</th>
+                <th className="px-5 py-3">Availability</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3">Applied</th>
                 <th className="px-5 py-3">Actions</th>
@@ -94,11 +96,11 @@ export default function Candidates() {
             <tbody className="divide-y divide-gray-50">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="px-5 py-10 text-center text-gray-500">Loading...</td>
+                  <td colSpan={10} className="px-5 py-10 text-center text-gray-500">Loading...</td>
                 </tr>
               ) : applications.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-5 py-10 text-center text-gray-500">
+                  <td colSpan={10} className="px-5 py-10 text-center text-gray-500">
                     No candidates yet. Add a candidate to a job to get started.
                   </td>
                 </tr>
@@ -122,6 +124,20 @@ export default function Candidates() {
                     <td className="px-5 py-3.5 text-gray-600">{app.job?.job_title || '—'}</td>
                     <td className="px-5 py-3.5 text-gray-600">{app.stage?.name || '—'}</td>
                     <td className="px-5 py-3.5">
+                      <select
+                        value={app.candidate?.availability || 'Available'}
+                        onChange={(e) => dispatch(setCandidateAvailability({
+                          id: app.candidate?.id,
+                          availability: e.target.value,
+                        }))}
+                        className="rounded-lg border border-gray-300 px-2 py-1 text-xs"
+                      >
+                        <option value="Available">Available</option>
+                        <option value="Assigned">Assigned</option>
+                        <option value="Unavailable">Unavailable</option>
+                      </select>
+                    </td>
+                    <td className="px-5 py-3.5">
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                         app.status === 'Hired'
                           ? 'bg-emerald-100 text-emerald-700'
@@ -138,6 +154,17 @@ export default function Candidates() {
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-0.5">
+                        <ActionIconButton
+                          label="Edit candidate"
+                          onClick={() => {
+                            setEditingApp(app);
+                            setSelectedJob(null);
+                            setDrawerOpen(true);
+                          }}
+                          className="text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                        >
+                          <Pencil size={16} />
+                        </ActionIconButton>
                         <ActionIconButton
                           label="View forms"
                           onClick={() => openAction(app, 'forms')}
@@ -184,9 +211,11 @@ export default function Candidates() {
         onClose={() => {
           setDrawerOpen(false);
           setSelectedJob(null);
+          setEditingApp(null);
         }}
         jobs={openJobs}
         selectedJob={selectedJob}
+        application={editingApp}
         onSuccess={load}
       />
 

@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Upload, UserPlus } from 'lucide-react';
 import Drawer from '../../ui/Drawer';
 import SubmitButton from '../../ui/SubmitButton';
-import { addCandidateToJob } from '../../../redux/slices/candidatesSlice';
+import { addCandidateToJob, fetchCandidateDirectory, updateCandidate } from '../../../redux/slices/candidatesSlice';
 import { fetchHiringPipeline } from '../../../redux/slices/hiringPipelineSlice';
 import countryList from '../../../utils/countryList';
 import {
@@ -73,24 +73,65 @@ function FileField({ label, accept, file, onChange, hint, error }) {
   );
 }
 
-export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJob = null, onSuccess }) {
+function experienceLabel(value) {
+  const number = Number(value);
+  if (value === '' || value == null || Number.isNaN(number)) return '';
+  if (number <= 0) return 'Fresher';
+  if (number <= 3) return '1-3 years';
+  if (number <= 4) return '3-5 years';
+  return '5+ years';
+}
+
+export default function AddCandidateDrawer({
+  open,
+  onClose,
+  jobs = [],
+  selectedJob = null,
+  application = null,
+  onSuccess,
+}) {
   const dispatch = useDispatch();
   const pipelineStages = useSelector((state) => state.hiringPipeline.stages);
+  const directory = useSelector((state) => state.candidates.directory);
+  const [mode, setMode] = useState('new');
+  const [existingId, setExistingId] = useState('');
   const [form, setForm] = useState(EMPTY);
   const [errors, setErrors] = useState({});
   const [loading, runLocked] = useSubmitLock();
   const [showFormPicker, setShowFormPicker] = useState(false);
 
+  const editing = Boolean(application?.id);
+
   useEffect(() => {
     if (!open) return;
+    const person = application?.candidate || {};
     setForm({
       ...EMPTY,
-      jobId: selectedJob?.id || '',
+      firstName: person.first_name || person.firstName || '',
+      lastName: person.last_name || person.lastName || '',
+      email: person.email || '',
+      phone: person.phone || '',
+      location: person.location || '',
+      country: person.country || '',
+      designation: person.designation || '',
+      education: person.education || '',
+      experience: experienceLabel(person.experience),
+      currentCtc: person.current_ctc ?? person.currentCtc ?? '',
+      expectedCtc: person.expected_ctc ?? person.expectedCtc ?? '',
+      dateOfBirth: person.date_of_birth || (person.dateOfBirth ? String(person.dateOfBirth).slice(0, 10) : ''),
+      summary: person.summary || '',
+      skills: person.skills || '',
+      jobId: application?.job?.id || application?.jobPostId || selectedJob?.id || '',
     });
     setErrors({});
     setShowFormPicker(false);
-    dispatch(fetchHiringPipeline());
-  }, [open, selectedJob, dispatch]);
+    setMode('new');
+    setExistingId('');
+    if (!editing) {
+      dispatch(fetchHiringPipeline());
+      dispatch(fetchCandidateDirectory());
+    }
+  }, [open, selectedJob, application, editing, dispatch]);
 
   const firstStage = useMemo(() => {
     const sorted = [...(pipelineStages || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -132,8 +173,24 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
     [jobs, form.jobId, selectedJob],
   );
 
+  const availablePeople = useMemo(
+    () => (directory || []).filter((person) => (person.availability || 'Available') === 'Available'),
+    [directory],
+  );
+
   const submitCandidate = (documentCodes) => runLocked(async () => {
     try {
+      if (mode === 'existing' && !editing) {
+        await dispatch(addCandidateToJob({
+          candidate_id: existingId,
+          job_id: form.jobId,
+          document_codes: documentCodes || [],
+        })).unwrap();
+        setShowFormPicker(false);
+        onSuccess?.();
+        onClose();
+        return;
+      }
       const data = new FormData();
       data.append('first_name', form.firstName.trim());
       data.append('last_name', form.lastName.trim());
@@ -154,7 +211,11 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
       if (form.profilePic) data.append('profile_pic', form.profilePic);
       if (form.resume) data.append('resume', form.resume);
 
-      await dispatch(addCandidateToJob(data)).unwrap();
+      if (editing) {
+        await dispatch(updateCandidate({ id: application.id, payload: data })).unwrap();
+      } else {
+        await dispatch(addCandidateToJob(data)).unwrap();
+      }
       setShowFormPicker(false);
       onSuccess?.();
       onClose();
@@ -165,11 +226,19 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const nextErrors = validateCandidateForm(form);
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    if (mode === 'existing' && !editing) {
+      const nextErrors = {};
+      if (!form.jobId) nextErrors.jobId = 'Select a job';
+      if (!existingId) nextErrors.existingId = 'Select a candidate';
+      setErrors(nextErrors);
+      if (Object.keys(nextErrors).length > 0) return;
+    } else {
+      const nextErrors = validateCandidateForm(form);
+      setErrors(nextErrors);
+      if (Object.keys(nextErrors).length > 0) return;
+    }
 
-    if (firstStageDocuments.length > 0) {
+    if (!editing && firstStageDocuments.length > 0) {
       setShowFormPicker(true);
       return;
     }
@@ -180,7 +249,7 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
     <Drawer
       open={open}
       onClose={onClose}
-      title="Add Candidate"
+      title={editing ? 'Edit Candidate' : 'Add Candidate'}
       width="xl"
       footer={
         <div className="flex gap-3">
@@ -197,10 +266,10 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
             form="add-candidate-form"
             loading={loading}
             icon={UserPlus}
-            loadingLabel="Adding..."
+            loadingLabel={editing ? 'Saving...' : 'Adding...'}
             className="flex-1 rounded-lg bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-hover"
           >
-            Add Candidate
+            {editing ? 'Save changes' : mode === 'existing' ? 'Assign to job' : 'Add Candidate'}
           </SubmitButton>
         </div>
       }
@@ -218,19 +287,61 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
           </div>
         )}
 
+        {!editing && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setMode('new')}
+              className={`rounded-lg px-3 py-2 text-sm font-medium ${mode === 'new' ? 'bg-primary text-white' : 'border border-gray-300 text-gray-700'}`}
+            >
+              New candidate
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('existing')}
+              className={`rounded-lg px-3 py-2 text-sm font-medium ${mode === 'existing' ? 'bg-primary text-white' : 'border border-gray-300 text-gray-700'}`}
+            >
+              Existing candidate
+            </button>
+          </div>
+        )}
+
+        {mode === 'existing' && !editing ? (
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Available candidate *</label>
+            <select value={existingId} onChange={(e) => setExistingId(e.target.value)} className={fieldClass(errors.existingId)}>
+              <option value="">Select candidate</option>
+              {availablePeople.map((person) => (
+                <option key={person.id} value={person.id}>
+                  {person.first_name || person.firstName} {person.last_name || person.lastName} · {person.email}
+                </option>
+              ))}
+            </select>
+            {errors.existingId && <p className="mt-1 text-xs text-red-600">{errors.existingId}</p>}
+            {availablePeople.length === 0 && (
+              <p className="mt-1 text-xs text-gray-500">No candidates are marked Available. Set a candidate to Available on the Candidates page to assign them to another job.</p>
+            )}
+          </div>
+        ) : null}
+
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Job *</label>
-          <select value={form.jobId} onChange={set('jobId')} className={fieldClass(errors.jobId)} disabled={!!selectedJob}>
+          <select value={form.jobId} onChange={set('jobId')} className={fieldClass(errors.jobId)} disabled={!!selectedJob || editing}>
             <option value="">Select job</option>
             {jobs.map((j) => (
               <option key={j.id} value={j.id}>
                 {j.job_title || j.jobTitle}
               </option>
             ))}
+            {editing && form.jobId && !jobs.some((j) => j.id === form.jobId) ? (
+              <option value={form.jobId}>{application?.job?.job_title || 'Current job'}</option>
+            ) : null}
           </select>
           {errors.jobId && <p className="mt-1 text-xs text-red-600">{errors.jobId}</p>}
         </div>
 
+        {(mode === 'new' || editing) && (
+        <>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">First Name *</label>
@@ -352,6 +463,8 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
             error={errors.resume}
           />
         </div>
+        </>
+        )}
       </form>
 
       <SelectFormsToSendModal
@@ -360,7 +473,11 @@ export default function AddCandidateDrawer({ open, onClose, jobs = [], selectedJ
         onConfirm={submitCandidate}
         title="Select forms for first stage"
         stageName={firstStage?.name || ''}
-        candidateName={`${form.firstName} ${form.lastName}`.trim()}
+        candidateName={
+          mode === 'existing'
+            ? `${availablePeople.find((person) => person.id === existingId)?.first_name || ''} ${availablePeople.find((person) => person.id === existingId)?.last_name || ''}`.trim()
+            : `${form.firstName} ${form.lastName}`.trim()
+        }
         documents={firstStageDocuments}
         confirmLabel="Add & send selected"
         allowSkip

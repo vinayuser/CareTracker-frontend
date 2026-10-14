@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 
-export default function TagInput({ value = [], onChange, suggestions = [], placeholder = 'Add keyword' }) {
+export default function TagInput({ value = [], onChange, suggestions = [], placeholder = 'Add keyword', invalid = false }) {
   const [input, setInput] = useState('');
 
   const addTag = (tag) => {
@@ -15,7 +15,7 @@ export default function TagInput({ value = [], onChange, suggestions = [], place
 
   return (
     <div>
-      <div className="flex flex-wrap gap-2 rounded-lg border border-gray-300 px-3 py-2">
+      <div className={`flex flex-wrap gap-2 rounded-lg border px-3 py-2 ${invalid ? 'border-red-400 ring-2 ring-red-100' : 'border-gray-300'}`}>
         {value.map((tag) => (
           <span
             key={tag}

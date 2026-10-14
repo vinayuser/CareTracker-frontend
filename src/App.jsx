@@ -237,6 +237,7 @@ export default function App() {
               <Route path={ROUTES.ADMIN_CRM} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_REPORTS} element={<Reports />} />
               <Route path={ROUTES.ADMIN_AUDIT_LOGS} element={<AuditLogs />} />
+              <Route path={ROUTES.ADMIN_LOG_TRACKING} element={<AuditLogs />} />
               <Route path={ROUTES.ADMIN_INTEGRATIONS} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_SUPPORT} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_CONTENT} element={<AdminModulePage />} />

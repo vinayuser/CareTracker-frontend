@@ -157,7 +157,9 @@ const API_ROUTES = {
     JOB_APPLICATIONS: {
       STATS: '/agency/job-applications/stats',
       LIST: '/agency/job-applications',
+      CANDIDATES: '/agency/job-applications/candidates',
       CREATE: '/agency/job-applications',
+      UPDATE: '/agency/job-applications',
       SET_STAGE: '/agency/job-applications',
       NEXT_STAGE: '/agency/job-applications',
       PREVIOUS_STAGE: '/agency/job-applications',

@@ -43,6 +43,34 @@ export const fetchStageCandidates = createAsyncThunk(
   },
 );
 
+export const fetchCandidateDirectory = createAsyncThunk(
+  'candidates/directory',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(API_ROUTES.AGENCY.JOB_APPLICATIONS.CANDIDATES);
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  },
+);
+
+export const setCandidateAvailability = createAsyncThunk(
+  'candidates/availability',
+  async ({ id, availability }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.patch(
+        `${API_ROUTES.AGENCY.JOB_APPLICATIONS.CANDIDATES}/${id}/availability`,
+        { availability },
+      );
+      return response.data.data;
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not update availability');
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  },
+);
+
 export const addCandidateToJob = createAsyncThunk(
   'candidates/apply',
   async (payload, { rejectWithValue }) => {
@@ -55,6 +83,24 @@ export const addCandidateToJob = createAsyncThunk(
       toast.success('Candidate added successfully');
       return response.data.data;
     } catch (error) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  },
+);
+
+export const updateCandidate = createAsyncThunk(
+  'candidates/update',
+  async ({ id, payload }, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.put(
+        `${API_ROUTES.AGENCY.JOB_APPLICATIONS.UPDATE}/${id}/candidate`,
+        payload,
+        payload instanceof FormData ? { timeout: 60000 } : undefined,
+      );
+      toast.success('Candidate updated');
+      return response.data.data;
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not update candidate');
       return rejectWithValue(error.response?.data || error.message);
     }
   },
@@ -172,7 +218,9 @@ const candidatesSlice = createSlice({
   name: 'candidates',
   initialState: {
     applications: [],
+    directory: [],
     loading: false,
+    listVersion: 0,
   },
   reducers: {},
   extraReducers: (builder) => {
@@ -183,11 +231,29 @@ const candidatesSlice = createSlice({
         state.applications = Array.isArray(action.payload) ? action.payload : [];
       })
       .addCase(fetchApplications.rejected, (state) => { state.loading = false; })
+      .addCase(fetchCandidateDirectory.fulfilled, (state, action) => {
+        state.directory = Array.isArray(action.payload) ? action.payload : [];
+      })
+      .addCase(setCandidateAvailability.fulfilled, (state, action) => {
+        const next = action.payload;
+        state.directory = state.directory.map((person) => (person.id === next.id ? { ...person, ...next } : person));
+        state.applications = state.applications.map((app) => (
+          app.candidate?.id === next.id
+            ? { ...app, candidate: { ...app.candidate, availability: next.availability } }
+            : app
+        ));
+      })
       .addCase(addCandidateToJob.fulfilled, (state, action) => {
         state.applications.unshift(action.payload);
+        state.listVersion += 1;
+      })
+      .addCase(updateCandidate.fulfilled, (state, action) => {
+        const next = action.payload;
+        state.applications = state.applications.map((app) => (app.id === next.id ? { ...app, ...next } : app));
       })
       .addCase(deleteCandidate.fulfilled, (state, action) => {
         state.applications = state.applications.filter((app) => app.id !== action.payload);
+        state.listVersion += 1;
       });
   },
 });

@@ -120,8 +120,31 @@ export function memberToHrForm(member) {
   };
 }
 
+function isoDateKey(date) {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function shiftYears(years) {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() + years);
+  return isoDateKey(date);
+}
+
+function ageFromIso(value) {
+  const [year, month, day] = String(value).split('-').map(Number);
+  if (!year || !month || !day) return null;
+  const today = new Date();
+  let age = today.getFullYear() - year;
+  const monthDelta = today.getMonth() + 1 - month;
+  if (monthDelta < 0 || (monthDelta === 0 && today.getDate() < day)) age -= 1;
+  return age;
+}
+
 export function validateHrForm(form, { requirePassword = true } = {}) {
   const errors = {};
+  const today = isoDateKey(new Date());
 
   if (!form.firstName.trim()) errors.firstName = 'First name is required';
   if (!form.lastName.trim()) errors.lastName = 'Last name is required';
@@ -129,7 +152,15 @@ export function validateHrForm(form, { requirePassword = true } = {}) {
   if (!form.phone.trim()) errors.phone = 'Phone is required';
   if (!form.employeeId.trim()) errors.employeeId = 'Employee ID is required';
   if (!form.jobTitle.trim()) errors.jobTitle = 'Job title is required';
-  if (!form.hireDate) errors.hireDate = 'Hire date is required';
+  if (form.dateOfBirth) {
+    if (form.dateOfBirth >= today) errors.dateOfBirth = 'Date of birth must be in the past';
+    else if (ageFromIso(form.dateOfBirth) < 18) errors.dateOfBirth = 'Staff member must be at least 18 years old';
+  }
+  if (!form.hireDate) errors.hireDate = 'Date of joining is required';
+  else if (form.hireDate > today) errors.hireDate = 'Date of joining cannot be in the future';
+  else if (form.dateOfBirth && form.hireDate < form.dateOfBirth) {
+    errors.hireDate = 'Date of joining cannot be before date of birth';
+  }
   if (!form.emergencyContactName.trim()) errors.emergencyContactName = 'Emergency contact name is required';
   if (!form.emergencyContactPhone.trim()) errors.emergencyContactPhone = 'Emergency contact phone is required';
   if (!form.userId.trim()) errors.userId = 'User ID is required';
@@ -190,8 +221,14 @@ export function HrFormFields({
           <Field label="Phone Number" required error={errors.phone}>
             <input type="tel" value={form.phone} onChange={set('phone')} {...inputProps} placeholder="(555) 000-0000" />
           </Field>
-          <Field label="Date of Birth">
-            <input type="date" value={form.dateOfBirth} onChange={set('dateOfBirth')} {...inputProps} />
+          <Field label="Date of Birth" error={errors.dateOfBirth}>
+            <input
+              type="date"
+              max={shiftYears(-18)}
+              value={form.dateOfBirth}
+              onChange={set('dateOfBirth')}
+              {...inputProps}
+            />
           </Field>
           <Field label="Gender">
             <select value={form.gender} onChange={set('gender')} {...inputProps}>
@@ -220,8 +257,15 @@ export function HrFormFields({
               ))}
             </select>
           </Field>
-          <Field label="Hire Date" required error={errors.hireDate}>
-            <input type="date" value={form.hireDate} onChange={set('hireDate')} {...inputProps} />
+          <Field label="Date of Joining" required error={errors.hireDate}>
+            <input
+              type="date"
+              min={form.dateOfBirth || undefined}
+              max={isoDateKey(new Date())}
+              value={form.hireDate}
+              onChange={set('hireDate')}
+              {...inputProps}
+            />
           </Field>
           <Field label="Employment Type">
             <select value={form.employmentType} onChange={set('employmentType')} {...inputProps}>

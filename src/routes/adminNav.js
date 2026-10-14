@@ -51,6 +51,7 @@ export const ADMIN_NAV_GROUPS = [
     items: [
       { key: 'ADMIN_TIME_CARD', label: 'Time Card', icon: 'Clock' },
       { key: 'ADMIN_REPORTS', label: 'Reports', icon: 'BarChart3' },
+      { key: 'ADMIN_AUDIT_LOGS', label: 'Audit Logs', icon: 'FileText' },
       { key: 'ADMIN_SETTINGS', label: 'Settings', icon: 'Settings' },
     ],
   },
