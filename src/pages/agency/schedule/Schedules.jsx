@@ -66,6 +66,7 @@ export default function Schedules() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [coverOpen, setCoverOpen] = useState(false);
+  const [caregiverFilter, setCaregiverFilter] = useState('');
 
   const loadMonth = (year = cursor.year, month = cursor.month) => {
     const { from, to } = monthRange(year, month);
@@ -83,11 +84,31 @@ export default function Schedules() {
     [visits],
   );
 
+  const caregiverOptions = useMemo(() => {
+    const map = new Map();
+    activeVisits.forEach((visit) => {
+      const id = String(visit.caregiverAccountId || '');
+      if (!id) return;
+      if (!map.has(id)) map.set(id, visit.caregiverName || 'Caregiver');
+    });
+    return [...map.entries()]
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [activeVisits]);
+
+  const requireCaregiverPick = caregiverOptions.length > 5 && !caregiverFilter;
+
+  const visibleVisits = useMemo(() => {
+    if (requireCaregiverPick) return [];
+    if (!caregiverFilter) return activeVisits;
+    return activeVisits.filter((visit) => String(visit.caregiverAccountId) === caregiverFilter);
+  }, [activeVisits, caregiverFilter, requireCaregiverPick]);
+
   const dayVisits = useMemo(
-    () => activeVisits
+    () => visibleVisits
       .filter((visit) => visit.scheduledDate === selectedDate)
       .sort((a, b) => new Date(a.scheduledStartAt) - new Date(b.scheduledStartAt)),
-    [activeVisits, selectedDate],
+    [visibleVisits, selectedDate],
   );
 
   const shiftMonth = (delta) => {
@@ -202,13 +223,34 @@ export default function Schedules() {
             <ChevronRight size={18} />
           </button>
         </div>
-        <button
-          type="button"
-          onClick={goToday}
-          className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          Today
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="text-sm font-medium text-gray-700" htmlFor="schedule-caregiver-filter">
+            Caregiver
+          </label>
+          <select
+            id="schedule-caregiver-filter"
+            value={caregiverFilter}
+            onChange={(e) => {
+              setCaregiverFilter(e.target.value);
+              setSelectedVisit(null);
+            }}
+            className="min-w-[220px] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-800 outline-none focus:border-primary"
+          >
+            <option value="">
+              {caregiverOptions.length > 5 ? 'Select a caregiver' : 'All caregivers'}
+            </option>
+            {caregiverOptions.map((caregiver) => (
+              <option key={caregiver.id} value={caregiver.id}>{caregiver.name}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={goToday}
+            className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Today
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
@@ -221,7 +263,7 @@ export default function Schedules() {
             <VisitMonthCalendar
               year={cursor.year}
               month={cursor.month}
-              visits={activeVisits}
+              visits={visibleVisits}
               selectedDate={selectedDate}
               selectedVisitId={selectedVisit?.id}
               onSelectDate={(dateKey) => {
@@ -242,7 +284,7 @@ export default function Schedules() {
                   {dayVisits.length} visit{dayVisits.length === 1 ? '' : 's'} scheduled
                 </p>
               </div>
-              {dayVisits.length > 0 ? (
+              {selectedDate >= toDateKey(new Date()) && dayVisits.some((visit) => !visit.checkOutAt && visit.status !== 'Completed' && visit.status !== 'InProgress') ? (
                 <button
                   type="button"
                   onClick={() => setCoverOpen(true)}
@@ -256,8 +298,14 @@ export default function Schedules() {
             <div className="max-h-[560px] space-y-3 overflow-y-auto p-4">
               {dayVisits.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-gray-200 px-4 py-8 text-center">
-                  <p className="text-sm font-medium text-gray-900">No visits this day</p>
-                  <p className="mt-1 text-xs text-gray-500">Create a schedule to generate recurring visits.</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {requireCaregiverPick ? 'Select a caregiver' : 'No visits this day'}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {requireCaregiverPick
+                      ? 'This agency has more than 5 caregivers. Choose one above to see only their visits.'
+                      : 'Create a schedule to generate recurring visits.'}
+                  </p>
                   <button
                     type="button"
                     onClick={openCreate}

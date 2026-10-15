@@ -138,11 +138,15 @@ function SelectMenu({ value, options, onChange, className = '' }) {
         onChange={(e) => onChange(e.target.value)}
         className="w-full appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-3 pr-8 text-sm text-slate-700 outline-none focus:border-primary focus:ring-1 focus:ring-primary"
       >
-        {options.map((opt) => (
-          <option key={opt.value || opt} value={opt.value || opt}>
-            {opt.label || opt}
-          </option>
-        ))}
+        {options.map((opt) => {
+          const optionValue = typeof opt === 'string' ? opt : String(opt.value ?? '');
+          const optionLabel = typeof opt === 'string' ? opt : opt.label;
+          return (
+            <option key={optionValue || optionLabel} value={optionValue}>
+              {optionLabel}
+            </option>
+          );
+        })}
       </select>
       <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
     </div>

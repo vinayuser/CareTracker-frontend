@@ -324,7 +324,7 @@ export default function AddCandidateDrawer({
           </div>
         ) : null}
 
-        <div>
+        {/* <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Job *</label>
           <select value={form.jobId} onChange={set('jobId')} className={fieldClass(errors.jobId)} disabled={!!selectedJob || editing}>
             <option value="">Select job</option>
@@ -338,7 +338,7 @@ export default function AddCandidateDrawer({
             ) : null}
           </select>
           {errors.jobId && <p className="mt-1 text-xs text-red-600">{errors.jobId}</p>}
-        </div>
+        </div> */}
 
         {(mode === 'new' || editing) && (
         <>

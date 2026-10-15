@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { Save, Sparkles } from 'lucide-react';
@@ -112,20 +112,32 @@ export default function CreateJob({ editId = null }) {
     });
   }, [editId, selected]);
 
+  const salaryCheckTimer = useRef(null);
+
   const setField = (field, value) => {
-    if (field === 'annual_salary_from' && value !== '' && form.annual_salary_to !== '' && Number(value) > Number(form.annual_salary_to)) {
-      setErrors((prev) => ({ ...prev, annual_salary_from: 'Cannot be greater than salary to' }));
-      return;
-    }
-    if (field === 'annual_salary_to' && value !== '' && form.annual_salary_from !== '' && Number(form.annual_salary_from) > Number(value)) {
-      setErrors((prev) => ({ ...prev, annual_salary_to: 'Must be greater than or equal to salary from' }));
-      return;
-    }
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field] || errors.annual_salary_from || errors.annual_salary_to) {
       setErrors((prev) => ({ ...prev, [field]: undefined, annual_salary_from: undefined, annual_salary_to: undefined }));
     }
   };
+
+  useEffect(() => {
+    if (salaryCheckTimer.current) clearTimeout(salaryCheckTimer.current);
+    const from = form.annual_salary_from;
+    const to = form.annual_salary_to;
+    if (from === '' || to === '') return undefined;
+    salaryCheckTimer.current = setTimeout(() => {
+      if (Number(from) > Number(to)) {
+        setErrors((prev) => ({
+          ...prev,
+          annual_salary_to: 'Must be greater than or equal to salary from',
+        }));
+      }
+    }, 600);
+    return () => {
+      if (salaryCheckTimer.current) clearTimeout(salaryCheckTimer.current);
+    };
+  }, [form.annual_salary_from, form.annual_salary_to]);
 
   const validate = () => {
     const next = {};

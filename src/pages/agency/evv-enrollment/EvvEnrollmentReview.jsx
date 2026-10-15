@@ -80,7 +80,8 @@ export default function EvvEnrollmentReview() {
   const bothSigned = clientSigned && caregiverSigned;
   const canVerify = form.status === 'Submitted';
   const canApprove = canVerify && bothSigned;
-  const allowClientSignCapture = canVerify && !clientSigned;
+  const savedClientSignature = hasInk(selected?.formData?.authorization?.clientSignature);
+  const allowClientSignCapture = canVerify && !savedClientSignature;
 
   const handleVerify = (action) => runLocked(async () => {
     if (action === 'verify' && !bothSigned) {

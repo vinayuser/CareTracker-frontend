@@ -196,6 +196,7 @@ export function HrFormFields({
   onChange,
   readOnly = false,
   showPasswordFields = true,
+  lockEmployeeId = false,
 }) {
   const set = (field) => (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -245,7 +246,17 @@ export function HrFormFields({
         <h3 className={sectionTitleClass}>Employment Details</h3>
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Employee ID" required error={errors.employeeId}>
-            <input type="text" value={form.employeeId} onChange={set('employeeId')} {...inputProps} placeholder="HR-1002" />
+            <input
+              type="text"
+              value={form.employeeId}
+              readOnly
+              disabled={lockEmployeeId || readOnly}
+              className={`${inputClass} bg-gray-50`}
+              placeholder="HR-AGY-001"
+            />
+            {(lockEmployeeId || readOnly) && (
+              <p className="mt-1 text-xs text-gray-500">Assigned automatically and unique across the platform.</p>
+            )}
           </Field>
           <Field label="Job Title" required error={errors.jobTitle}>
             <input type="text" value={form.jobTitle} onChange={set('jobTitle')} {...inputProps} placeholder="HR Coordinator" />

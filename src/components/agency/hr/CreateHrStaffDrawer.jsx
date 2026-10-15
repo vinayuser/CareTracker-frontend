@@ -3,6 +3,8 @@ import { useDispatch } from 'react-redux';
 import { CheckCircle2, UserPlus } from 'lucide-react';
 import Drawer from '../../ui/Drawer';
 import SubmitButton from '../../ui/SubmitButton';
+import axiosInstance from '../../../api/axiosInstance';
+import API_ROUTES from '../../../api/apiRoutes';
 import { addHrStaff } from '../../../redux/slices/hrStaffSlice';
 import useSubmitLock from '../../../hooks/useSubmitLock';
 import {
@@ -21,9 +23,21 @@ export default function CreateHrStaffDrawer({ open, onClose, onSuccess }) {
 
   useEffect(() => {
     if (!open) return;
+    let cancelled = false;
     setForm(EMPTY_HR_FORM);
     setErrors({});
     setCreatedMember(null);
+    axiosInstance
+      .get(API_ROUTES.AGENCY.HR_STAFF.NEXT_EMPLOYEE_ID)
+      .then((response) => {
+        if (cancelled) return;
+        const employeeId = response.data?.data?.employeeId || '';
+        setForm((prev) => ({ ...prev, employeeId }));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, [open]);
 
   const handleChange = (field, value) => {
@@ -123,7 +137,7 @@ export default function CreateHrStaffDrawer({ open, onClose, onSuccess }) {
         </div>
       ) : (
         <form id="create-hr-form" onSubmit={handleSubmit}>
-          <HrFormFields form={form} errors={errors} onChange={handleChange} />
+          <HrFormFields form={form} errors={errors} onChange={handleChange} lockEmployeeId />
         </form>
       )}
     </Drawer>

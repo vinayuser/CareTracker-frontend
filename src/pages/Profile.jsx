@@ -218,7 +218,7 @@ export default function Profile() {
     if (!isAdmin) {
       payload.phone = profile.phone.trim();
       payload.dateOfBirth = profile.dateOfBirth.trim();
-      if (!isClient) {
+      if (!isClient && !isCaregiver) {
         payload.employeeId = profile.employeeId.trim();
       }
       const draftUsername = normalizeUsername(profile.userId);
@@ -414,8 +414,9 @@ export default function Profile() {
                     <span className="mb-1.5 block text-sm font-medium text-gray-700">Employee ID</span>
                     <input
                       value={profile.employeeId}
-                      onChange={setProfileField('employeeId')}
-                      className={inputClass}
+                      onChange={isCaregiver ? undefined : setProfileField('employeeId')}
+                      readOnly={isCaregiver}
+                      className={isCaregiver ? readOnlyInputClass : inputClass}
                     />
                   </label>
                 )}

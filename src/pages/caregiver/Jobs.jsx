@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   CalendarClock,
@@ -97,6 +98,7 @@ function StatCard({ label, value, icon: Icon, tone }) {
 
 export default function CaregiverJobs() {
   const dispatch = useDispatch();
+  const [searchParams] = useSearchParams();
   const { caregiverVisits } = useSelector((state) => state.visitSchedules);
   const now = new Date();
   const [cursor, setCursor] = useState({ year: now.getFullYear(), month: now.getMonth() });
@@ -115,8 +117,27 @@ export default function CaregiverJobs() {
   };
 
   useEffect(() => {
+    const date = searchParams.get('date');
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+    const [year, month] = date.split('-').map(Number);
+    setSelectedDate(date);
+    setCursor((prev) => (
+      prev.year === year && prev.month === month - 1 ? prev : { year, month: month - 1 }
+    ));
+  }, [searchParams]);
+
+  useEffect(() => {
     loadMonth();
   }, [dispatch, cursor.year, cursor.month]);
+
+  useEffect(() => {
+    const visitId = searchParams.get('visit');
+    if (!visitId) return;
+    const match = caregiverVisits.find((visit) => String(visit.id) === visitId);
+    if (!match) return;
+    setSelectedVisit(match);
+    if (match.scheduledDate) setSelectedDate(match.scheduledDate);
+  }, [searchParams, caregiverVisits]);
 
   const todayKey = toDateKey(new Date());
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { X, User, BriefcaseMedical, Check, Save } from 'lucide-react';
+import { X, User, BriefcaseMedical, Save } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { fetchCarePlans } from '../../../redux/slices/carePlansSlice';
 import {
@@ -65,41 +65,24 @@ function CaregiverScheduleCard({
   onToggleDay,
 }) {
   return (
-    <div className={`rounded-2xl border bg-white shadow-sm transition ${card.enabled ? 'border-primary/25' : 'border-gray-200 opacity-60'}`}>
+    <div className="rounded-2xl border border-primary/25 bg-white shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-100 bg-gradient-to-r from-primary/5 to-transparent px-5 py-4">
-        <div className="flex items-start gap-3">
-          <button
-            type="button"
-            onClick={() => onChange(index, { enabled: !card.enabled })}
-            className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border ${
-              card.enabled ? 'border-primary bg-primary text-white' : 'border-gray-300 bg-white'
-            }`}
-            aria-label={card.enabled ? 'Include caregiver' : 'Exclude caregiver'}
-          >
-            {card.enabled ? <Check size={12} strokeWidth={3} /> : null}
-          </button>
+        <div className="flex items-center gap-2">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <User size={18} />
+          </span>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <User size={18} />
-              </span>
-              <div>
-                <p className="text-base font-semibold text-gray-900">{card.caregiver_name || 'Caregiver'}</p>
-                <p className="flex items-center gap-1 text-xs text-gray-500">
-                  <BriefcaseMedical size={12} />
-                  {card.service_area || 'Service'}
-                  {card.frequency_hint ? ` · Plan: ${card.frequency_hint}` : ''}
-                </p>
-              </div>
-            </div>
+            <p className="text-base font-semibold text-gray-900">{card.caregiver_name || 'Caregiver'}</p>
+            <p className="flex items-center gap-1 text-xs text-gray-500">
+              <BriefcaseMedical size={12} />
+              {card.service_area || 'Service'}
+              {card.frequency_hint ? ` · Plan: ${card.frequency_hint}` : ''}
+            </p>
           </div>
         </div>
-        <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${card.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
-          {card.enabled ? 'Included' : 'Skipped'}
-        </span>
       </div>
 
-      <div className={`space-y-4 px-5 py-5 ${card.enabled ? '' : 'pointer-events-none'}`}>
+      <div className="space-y-4 px-5 py-5">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Field label="Service area">
             <input
@@ -253,6 +236,7 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
   const [clientId, setClientId] = useState('');
   const [carePlanId, setCarePlanId] = useState('');
   const [sources, setSources] = useState(null);
+  const [selectedCaregiverId, setSelectedCaregiverId] = useState('');
   const [cards, setCards] = useState([]);
   const [editForm, setEditForm] = useState(null);
   const [loadingSources, setLoadingSources] = useState(false);
@@ -352,7 +336,9 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
         setSources(data);
         const needs = (data.care_needs || []).filter((need) => need.caregiver_account_id);
         const defaultTz = detectBrowserTimezone();
-        setCards(needs.map((need) => buildCardFromNeed(need, data.client?.address || '', defaultTz)));
+        const nextCards = needs.map((need) => buildCardFromNeed(need, data.client?.address || '', defaultTz));
+        setCards(nextCards);
+        setSelectedCaregiverId('');
       })
       .catch(() => {
         if (!cancelled) {
@@ -390,7 +376,24 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
     }));
   };
 
-  const enabledCards = cards.filter((card) => card.enabled && card.caregiver_account_id);
+  const caregiverChoices = useMemo(() => {
+    const map = new Map();
+    cards.forEach((card) => {
+      if (!card.caregiver_account_id || map.has(card.caregiver_account_id)) return;
+      map.set(card.caregiver_account_id, card.caregiver_name || 'Caregiver');
+    });
+    return [...map.entries()].map(([id, name]) => ({ id, name }));
+  }, [cards]);
+
+  const scopedCards = caregiverChoices.length > 1
+    ? cards
+      .map((card, index) => ({ card, index }))
+      .filter(({ card }) => card.caregiver_account_id === selectedCaregiverId)
+    : cards.map((card, index) => ({ card, index }));
+
+  const enabledCards = scopedCards
+    .map(({ card }) => card)
+    .filter((card) => card.enabled && card.caregiver_account_id);
 
   const saveCreate = () => {
     if (!carePlanId) {
@@ -603,15 +606,33 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-medium text-gray-700">
-                      {cards.length} caregiver{cards.length === 1 ? '' : 's'} from care plan services
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {enabledCards.length} selected to create
-                    </p>
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">
+                        {caregiverChoices.length} caregiver{caregiverChoices.length === 1 ? '' : 's'} on this care plan
+                      </p>
+                      <p className="mt-0.5 text-xs text-gray-500">
+                        Choose a caregiver. Only that schedule is shown.
+                      </p>
+                    </div>
+                    {caregiverChoices.length > 1 && (
+                      <select
+                        className={`${inputClass} min-w-[240px]`}
+                        value={selectedCaregiverId}
+                        onChange={(e) => setSelectedCaregiverId(e.target.value)}
+                      >
+                        <option value="">Select caregiver</option>
+                        {caregiverChoices.map((caregiver) => (
+                          <option key={caregiver.id} value={caregiver.id}>{caregiver.name}</option>
+                        ))}
+                      </select>
+                    )}
                   </div>
-                  {cards.map((card, index) => (
+                  {scopedCards.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-gray-300 bg-white px-5 py-12 text-center text-sm text-gray-500">
+                      Select a caregiver to set their visit times.
+                    </div>
+                  ) : scopedCards.map(({ card, index }) => (
                     <CaregiverScheduleCard
                       key={`${card.caregiver_account_id}-${card.care_need_area_key}-${index}`}
                       card={card}

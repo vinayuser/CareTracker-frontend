@@ -132,6 +132,7 @@ const API_ROUTES = {
   AGENCY: {
     HR_STAFF: {
       STATS: '/agency/hr-staff/stats',
+      NEXT_EMPLOYEE_ID: '/agency/hr-staff/next-employee-id',
       LIST: '/agency/hr-staff',
       CREATE: '/agency/hr-staff',
       UPDATE: '/agency/hr-staff',

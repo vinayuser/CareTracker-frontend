@@ -50,7 +50,7 @@ export const fetchInvoiceById = createAsyncThunk('invoices/fetchById', async (id
 
 export const generateInvoice = createAsyncThunk('invoices/generate', async (payload, { rejectWithValue }) => {
   try {
-    const response = await axiosInstance.post(API_ROUTES.AGENCY.INVOICES.GENERATE, payload);
+    const response = await axiosInstance.post(API_ROUTES.AGENCY.INVOICES.GENERATE, payload, { skipErrorToast: true });
     toast.success(response.data.message || 'Invoice draft created');
     return response.data.data;
   } catch (error) {

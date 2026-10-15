@@ -35,6 +35,21 @@ function StatusBadge({ status }) {
   return <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[status] || styles.Pending}`}>{status}</span>;
 }
 
+function timeAgo(value) {
+  if (!value) return '—';
+  const then = new Date(value).getTime();
+  if (Number.isNaN(then)) return '—';
+  const seconds = Math.round((Date.now() - then) / 1000);
+  if (seconds < 45) return 'just now';
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+  const days = Math.round(hours / 24);
+  if (days < 30) return `${days} day${days === 1 ? '' : 's'} ago`;
+  return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 function pageNumbers(current, total) {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
   const pages = [1];
@@ -53,6 +68,7 @@ export default function EvvEnrollments() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [sortBy, setSortBy] = useState('updatedAt:desc');
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -62,20 +78,23 @@ export default function EvvEnrollments() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, statusFilter]);
+  }, [debouncedSearch, statusFilter, sortBy]);
 
   const loadList = (nextPage = page) => {
+    const [sort, order] = sortBy.split(':');
     dispatch(fetchEvvEnrollments({
       page: nextPage,
       limit: PAGE_SIZE,
       search: debouncedSearch || undefined,
       status: statusFilter === 'All' ? undefined : statusFilter,
+      sort,
+      order,
     }));
   };
 
   useEffect(() => {
     loadList(page);
-  }, [dispatch, page, debouncedSearch, statusFilter]);
+  }, [dispatch, page, debouncedSearch, statusFilter, sortBy]);
 
   useEffect(() => {
     dispatch(fetchEvvEnrollmentStats());
@@ -137,6 +156,17 @@ export default function EvvEnrollments() {
             />
           </div>
           <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
+            aria-label="Sort enrollments"
+          >
+            <option value="updatedAt:desc">Updated, newest first</option>
+            <option value="updatedAt:asc">Updated, oldest first</option>
+            <option value="createdAt:desc">Created, newest first</option>
+            <option value="createdAt:asc">Created, oldest first</option>
+          </select>
+          <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700"
@@ -175,6 +205,7 @@ export default function EvvEnrollments() {
                     <th className="px-5 py-3">Care Plan</th>
                     <th className="px-5 py-3">Enrollment ID</th>
                     <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3">Updated</th>
                     <th className="px-5 py-3">Actions</th>
                   </tr>
                 </thead>
@@ -189,6 +220,9 @@ export default function EvvEnrollments() {
                       <td className="px-5 py-4 text-gray-700">{item.planCode || '—'}</td>
                       <td className="px-5 py-4 text-gray-700">{item.enrollmentCode}</td>
                       <td className="px-5 py-4"><StatusBadge status={item.status} /></td>
+                      <td className="px-5 py-4 text-gray-600" title={item.updatedAt ? new Date(item.updatedAt).toLocaleString() : ''}>
+                        {timeAgo(item.updatedAt)}
+                      </td>
                       <td className="px-5 py-4">
                         <div className="flex flex-wrap gap-2">
                           <Link

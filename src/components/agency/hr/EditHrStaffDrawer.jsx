@@ -92,6 +92,7 @@ export default function EditHrStaffDrawer({ open, onClose, member, onSuccess }) 
           errors={errors}
           onChange={handleChange}
           showPasswordFields={false}
+          lockEmployeeId
         />
       </form>
     </Drawer>

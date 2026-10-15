@@ -200,6 +200,8 @@ export function EvvEnrollmentStepTwo({
   const canEditClientSig = clientSignatureEditable;
   const canEditCaregiverSig = !readOnly && !clientSignatureEditable;
   const fieldsReadOnly = readOnly || clientSignatureEditable;
+  const methods = Array.isArray(d.evvMethods?.methods) ? d.evvMethods.methods : [];
+  const usesOtherMethod = methods.includes('Other');
 
   return (
     <div className="space-y-5">
@@ -213,21 +215,21 @@ export function EvvEnrollmentStepTwo({
           required
           error={err(errors, 'evvMethods.methods')}
         />
-        <InputOrRead label="Other Method" value={d.evvMethods.other} onChange={(v) => patch('evvMethods', 'other', v)} readOnly={fieldsReadOnly} error={err(errors, 'evvMethods.other')} />
+        <InputOrRead label="Other Method" value={d.evvMethods.other} onChange={(v) => patch('evvMethods', 'other', v)} readOnly={fieldsReadOnly} required={usesOtherMethod} error={err(errors, 'evvMethods.other')} />
       </Section>
 
       <Section n="5" title="Mobile App Enrollment" subtitle="Complete if using Mobile App.">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Chips label="Smartphone Type" options={SMARTPHONE_TYPES} values={d.mobileEnrollment.smartphoneType} single onToggle={(v) => patch('mobileEnrollment', 'smartphoneType', v)} readOnly={fieldsReadOnly} error={err(errors, 'mobileEnrollment.smartphoneType')} />
-          <InputOrRead label="Mobile Number" value={d.mobileEnrollment.mobileNumber} onChange={(v) => patch('mobileEnrollment', 'mobileNumber', v)} readOnly={fieldsReadOnly} error={err(errors, 'mobileEnrollment.mobileNumber')} />
-          <InputOrRead label="Email for App Registration" value={d.mobileEnrollment.email} onChange={(v) => patch('mobileEnrollment', 'email', v)} readOnly={fieldsReadOnly} className="sm:col-span-2" error={err(errors, 'mobileEnrollment.email')} />
+          <Chips label="Smartphone Type" options={SMARTPHONE_TYPES} values={d.mobileEnrollment.smartphoneType} single onToggle={(v) => patch('mobileEnrollment', 'smartphoneType', v)} readOnly={fieldsReadOnly} required error={err(errors, 'mobileEnrollment.smartphoneType')} />
+          <InputOrRead label="Mobile Number" value={d.mobileEnrollment.mobileNumber} onChange={(v) => patch('mobileEnrollment', 'mobileNumber', v)} readOnly={fieldsReadOnly} required error={err(errors, 'mobileEnrollment.mobileNumber')} />
+          <InputOrRead label="Email for App Registration" value={d.mobileEnrollment.email} onChange={(v) => patch('mobileEnrollment', 'email', v)} readOnly={fieldsReadOnly} required className="sm:col-span-2" error={err(errors, 'mobileEnrollment.email')} />
         </div>
       </Section>
 
       <Section n="6" title="Landline / IVR Enrollment" subtitle="Complete if using Landline or IVR.">
         <div className="grid gap-4 sm:grid-cols-2">
-          <InputOrRead label="Primary Phone for EVV" value={d.landlineEnrollment.primaryPhone} onChange={(v) => patch('landlineEnrollment', 'primaryPhone', v)} readOnly={fieldsReadOnly} error={err(errors, 'landlineEnrollment.primaryPhone')} />
-          <Chips label="Phone Type" options={PHONE_TYPES} values={d.landlineEnrollment.phoneType} single onToggle={(v) => patch('landlineEnrollment', 'phoneType', v)} readOnly={fieldsReadOnly} error={err(errors, 'landlineEnrollment.phoneType')} />
+          <InputOrRead label="Primary Phone for EVV" value={d.landlineEnrollment.primaryPhone} onChange={(v) => patch('landlineEnrollment', 'primaryPhone', v)} readOnly={fieldsReadOnly} required error={err(errors, 'landlineEnrollment.primaryPhone')} />
+          <Chips label="Phone Type" options={PHONE_TYPES} values={d.landlineEnrollment.phoneType} single onToggle={(v) => patch('landlineEnrollment', 'phoneType', v)} readOnly={fieldsReadOnly} required error={err(errors, 'landlineEnrollment.phoneType')} />
           <InputOrRead label="Alternate Phone (optional)" value={d.landlineEnrollment.alternatePhone} onChange={(v) => patch('landlineEnrollment', 'alternatePhone', v)} readOnly={fieldsReadOnly} className="sm:col-span-2" error={err(errors, 'landlineEnrollment.alternatePhone')} />
         </div>
       </Section>

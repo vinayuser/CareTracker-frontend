@@ -22,6 +22,8 @@ import Drawer from '../ui/Drawer';
 import { confirmAlert } from '../../utils/swal';
 import { validateImageUpload, MAX_IMAGE_UPLOAD_LABEL } from '../../utils/imageUploadValidation';
 
+const ALLOWED_DOC_EXT = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv', '.jpg', '.jpeg', '.png', '.webp'];
+
 const PAGE_SIZE = 7;
 const MENU_WIDTH = 176;
 const CATEGORIES = ['Legal', 'Insurance', 'Tax', 'Policy', 'Finance', 'HR', 'Other'];
@@ -464,17 +466,29 @@ export default function AgencyDocumentsTab({ agencyId }) {
               <input
                 type="file"
                 className="hidden"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png,.webp"
                 onChange={(e) => {
                   const file = e.target.files?.[0] || null;
                   e.target.value = '';
-                  if (file) {
-                    const imageCheck = validateImageUpload(file, { imagesOnly: false });
-                    if (!imageCheck.ok) {
-                      toast.error(imageCheck.error || `Image must be ${MAX_IMAGE_UPLOAD_LABEL} or smaller`);
-                      return;
-                    }
+                  if (!file) return;
+                  const ext = `.${String(file.name || '').split('.').pop().toLowerCase()}`;
+                  if (!ALLOWED_DOC_EXT.includes(ext)) {
+                    toast.error('File must be PDF, Word, Excel, CSV, or image');
+                    return;
                   }
-                  setForm((prev) => ({ ...prev, file, name: prev.name || file?.name || '' }));
+                  const imageCheck = validateImageUpload(file, { imagesOnly: false });
+                  if (!imageCheck.ok) {
+                    toast.error(imageCheck.error || `Image must be ${MAX_IMAGE_UPLOAD_LABEL} or smaller`);
+                    return;
+                  }
+                  setForm((prev) => {
+                    const nameFollowsFile = !prev.name || prev.name === prev.file?.name;
+                    return {
+                      ...prev,
+                      file,
+                      name: nameFollowsFile ? file.name : prev.name,
+                    };
+                  });
                 }}
               />
             </label>

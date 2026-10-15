@@ -117,6 +117,15 @@ function greetingForNow() {
   return 'Good evening';
 }
 
+function alertHref(alert) {
+  if (alert.enrollment_id) return `/caregiver/evv-enrollments/${alert.enrollment_id}`;
+  const params = new URLSearchParams();
+  if (alert.visit_id) params.set('visit', alert.visit_id);
+  if (alert.scheduled_date) params.set('date', alert.scheduled_date);
+  const query = params.toString();
+  return query ? `${ROUTES.CAREGIVER_JOBS}?${query}` : ROUTES.CAREGIVER_JOBS;
+}
+
 function formatVisitDate(dateKey) {
   if (!dateKey) return '—';
   try {
@@ -332,7 +341,11 @@ export default function CaregiverDashboard() {
               <div className="px-5 py-8 text-center text-sm text-gray-500">No alerts right now.</div>
             ) : (
               alerts.map((alert) => (
-                <div key={alert.id} className="flex items-start gap-3 px-5 py-3">
+                <Link
+                  key={alert.id}
+                  to={alertHref(alert)}
+                  className="flex items-start gap-3 px-5 py-3 hover:bg-gray-50"
+                >
                   <div className={`mt-0.5 shrink-0 ${alert.tone === 'warning' ? 'text-amber-500' : 'text-blue-500'}`}>
                     {alert.tone === 'warning' ? <AlertTriangle size={16} /> : <Info size={16} />}
                   </div>
@@ -343,8 +356,8 @@ export default function CaregiverDashboard() {
                     </div>
                     <p className="mt-0.5 text-sm text-gray-500">{alert.text}</p>
                   </div>
-                  <ChevronRight size={16} className="shrink-0 text-gray-300" />
-                </div>
+                  <ChevronRight size={16} className="mt-0.5 shrink-0 text-gray-400" />
+                </Link>
               ))
             )}
           </div>
