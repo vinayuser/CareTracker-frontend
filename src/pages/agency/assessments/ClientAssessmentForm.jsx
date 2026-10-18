@@ -372,7 +372,13 @@ export default function ClientAssessmentForm() {
     setPrintingCode(code);
     try {
       const forms = mergePacketForms(form.formData?.forms || {});
-      const bytes = await fillAssessmentPacketPdf(code, forms[code] || {}, {
+      const filled = prefillPacketFormFromClient(code, forms, {
+        formData: form.formData,
+        assessmentDate: form.assessmentDate,
+        assessorName: form.assessorName,
+        assessorTitle: form.assessorTitle,
+      });
+      const bytes = await fillAssessmentPacketPdf(code, filled || {}, {
         agencyBranding,
         assessmentDate: form.assessmentDate,
       });
@@ -435,6 +441,7 @@ export default function ClientAssessmentForm() {
             shared={{
               assessmentDate: form.assessmentDate,
               assessorName: form.assessorName,
+              assessorTitle: form.assessorTitle,
               agencyName,
               agencyLogo,
               agencyBranding,
@@ -537,6 +544,7 @@ export default function ClientAssessmentForm() {
               formData: withClient,
               assessmentDate: prev.assessmentDate,
               assessorName: prev.assessorName,
+              assessorTitle: prev.assessorTitle,
             });
             return {
               ...prev,

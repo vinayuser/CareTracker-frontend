@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  FileText, Mail, Ban, CheckCircle2, Plus, Printer, ChevronLeft, ChevronRight,
+  FileText, Mail, Ban, CheckCircle2, Plus, Printer, Download, ChevronLeft, ChevronRight,
 } from 'lucide-react';
+import { toast } from 'react-toastify';
+import { downloadClientInvoicePdf } from '../../../utils/clientInvoicePdf';
 import Drawer from '../../../components/ui/Drawer';
 import InvoiceDetailView from '../../../components/agency/billing/InvoiceDetailView';
 import {
@@ -45,7 +47,7 @@ function pageNumbers(current, total) {
 
 export default function ClientInvoices() {
   const dispatch = useDispatch();
-  const { list, pagination, loading, actionLoading } = useSelector((state) => state.invoices);
+  const { list, pagination, loading, actionLoading, nextDueDate } = useSelector((state) => state.invoices);
   const { list: clients } = useSelector((state) => state.clients);
   const authUser = useSelector((state) => state.auth.user);
   const [statusFilter, setStatusFilter] = useState('All');
@@ -137,6 +139,18 @@ export default function ClientInvoices() {
     window.print();
   };
 
+  const handleDownloadPdf = async (invoice) => {
+    try {
+      const full = invoice?.lines?.length
+        ? invoice
+        : await dispatch(fetchInvoiceById(invoice.id)).unwrap();
+      await downloadClientInvoicePdf(full);
+      toast.success(`Downloaded ${full.invoiceCode}.pdf`);
+    } catch (err) {
+      toast.error(err?.message || 'Failed to download invoice PDF');
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -144,6 +158,14 @@ export default function ClientInvoices() {
           <h1 className="text-xl font-bold text-gray-900">Client Invoices</h1>
           <p className="mt-1 text-sm text-gray-500">
             Generate private-pay invoices from approved EVV visits and care-plan rates.
+          </p>
+        </div>
+        <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary">Next due date</p>
+          <p className="mt-1 text-base font-bold text-gray-900">
+            {nextDueDate
+              ? new Date(nextDueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+              : 'No open invoices'}
           </p>
         </div>
         <button
@@ -179,6 +201,7 @@ export default function ClientInvoices() {
                 <th className="px-5 py-3">Period</th>
                 <th className="px-5 py-3">Visits</th>
                 <th className="px-5 py-3">Total</th>
+                <th className="px-5 py-3">Due</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3">Actions</th>
               </tr>
@@ -186,11 +209,11 @@ export default function ClientInvoices() {
             <tbody className="divide-y divide-gray-100">
               {loading && list.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-gray-500">Loading invoices…</td>
+                  <td colSpan={8} className="px-5 py-12 text-center text-gray-500">Loading invoices…</td>
                 </tr>
               ) : list.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-gray-500">
+                  <td colSpan={8} className="px-5 py-12 text-center text-gray-500">
                     No invoices yet. Generate a draft from approved visits.
                   </td>
                 </tr>
@@ -211,6 +234,11 @@ export default function ClientInvoices() {
                     <td className="px-5 py-4 font-semibold text-gray-900">
                       ${Number(inv.total || 0).toFixed(2)}
                     </td>
+                    <td className="px-5 py-4 text-gray-700">
+                      {inv.dueDate
+                        ? new Date(inv.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : '—'}
+                    </td>
                     <td className="px-5 py-4">
                       <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyles[inv.status] || statusStyles.Draft}`}>
                         {inv.status}
@@ -218,6 +246,13 @@ export default function ClientInvoices() {
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadPdf(inv)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                        >
+                          <Download size={12} /> PDF
+                        </button>
                         <button
                           type="button"
                           onClick={() => openDetail(inv)}
@@ -377,6 +412,13 @@ export default function ClientInvoices() {
         width="3xl"
         footer={(
           <div className="flex flex-wrap items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => handleDownloadPdf(detail)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <Download size={15} /> PDF
+            </button>
             <button
               type="button"
               onClick={handlePrint}

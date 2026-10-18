@@ -23,14 +23,6 @@ import ReportRowActionsMenu, { openReportRowMenu } from '../../../components/rep
 
 const PAGE_SIZE = 5;
 
-function todayKey() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
 const STATUS_STYLE = {
   caregiver_only: 'bg-slate-100 text-slate-700',
   no_schedule: 'bg-amber-50 text-amber-700 ring-1 ring-amber-100',
@@ -212,33 +204,19 @@ export default function EvvSummaryReport() {
     };
   }, []);
 
-  const today = todayKey();
-
   const setRangeFrom = (value) => {
-    const next = value && value > today ? today : value;
-    setDraftFrom(next);
-    if (next && draftTo && next > draftTo) setDraftTo(next);
+    setDraftFrom(value);
+    if (value && draftTo && value > draftTo) setDraftTo(value);
   };
 
   const setRangeTo = (value) => {
-    const capped = value && value > today ? today : value;
-    const next = capped && draftFrom && capped < draftFrom ? draftFrom : capped;
+    const next = value && draftFrom && value < draftFrom ? draftFrom : value;
     setDraftTo(next);
   };
 
   const applyFilters = (next = {}) => {
-    let from = next.from ?? draftFrom;
-    let to = next.to ?? draftTo;
-    if (from && from > today) {
-      toast.error('Start date cannot be in the future');
-      from = today;
-      setDraftFrom(today);
-    }
-    if (to && to > today) {
-      toast.error('End date cannot be in the future');
-      to = today;
-      setDraftTo(today);
-    }
+    const from = next.from ?? draftFrom;
+    const to = next.to ?? draftTo;
     if (from && to && from > to) {
       toast.error('Start date must be on or before end date');
       return;
@@ -318,7 +296,7 @@ export default function EvvSummaryReport() {
               <input
                 type="date"
                 value={draftFrom}
-                max={draftTo && draftTo < today ? draftTo : today}
+                max={draftTo || undefined}
                 onChange={(e) => setRangeFrom(e.target.value)}
                 className="min-w-0 flex-1 border-0 bg-transparent py-1 text-sm text-slate-800 outline-none"
               />
@@ -327,7 +305,6 @@ export default function EvvSummaryReport() {
                 type="date"
                 value={draftTo}
                 min={draftFrom || undefined}
-                max={today}
                 onChange={(e) => setRangeTo(e.target.value)}
                 className="min-w-0 flex-1 border-0 bg-transparent py-1 text-sm text-slate-800 outline-none"
               />

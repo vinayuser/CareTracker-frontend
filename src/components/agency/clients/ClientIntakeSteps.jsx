@@ -124,11 +124,14 @@ function SectionCard({ number, title, subtitle, children }) {
   );
 }
 
-function ChipGroup({ label, options, values, onToggle, single = false }) {
+function ChipGroup({ label, options, values, onToggle, single = false, error, required = false }) {
   return (
     <div>
-      <p className={labelClass}>{label}</p>
-      <div className="flex flex-wrap gap-2">
+      <p className={labelClass}>
+        {label}
+        {required ? <span className="text-red-500"> *</span> : null}
+      </p>
+      <div className={`flex flex-wrap gap-2 rounded-xl ${error ? 'border border-red-400 bg-red-50/60 p-2' : ''}`}>
         {options.map((option) => {
           const selected = single ? values === option : values.includes(option);
           return (
@@ -139,7 +142,9 @@ function ChipGroup({ label, options, values, onToggle, single = false }) {
               className={`rounded-xl border px-3.5 py-2 text-sm font-medium transition ${
                 selected
                   ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                  : error
+                    ? 'border-red-300 bg-white text-gray-700 hover:border-red-400'
+                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
               }`}
             >
               {option}
@@ -147,6 +152,7 @@ function ChipGroup({ label, options, values, onToggle, single = false }) {
           );
         })}
       </div>
+      {error ? <p className="mt-1.5 text-sm font-medium text-red-600">{error}</p> : null}
     </div>
   );
 }
@@ -416,7 +422,15 @@ export function ClientIntakeStepTwo({ form, onChange, errors = {} }) {
           onFieldChange={onChange}
           errors={errors}
         />
-        <ChipGroup label="Frequency" options={CARE_FREQUENCIES} values={form.careFrequency} single onToggle={(opt) => onChange('careFrequency', form.careFrequency === opt ? '' : opt)} />
+        <ChipGroup
+          label="Care Frequency"
+          required
+          error={errors.careFrequency}
+          options={CARE_FREQUENCIES}
+          values={form.careFrequency}
+          single
+          onToggle={(opt) => onChange('careFrequency', form.careFrequency === opt ? '' : opt)}
+        />
         <ChipGroup label="Preferred Days" options={PREFERRED_DAYS} values={form.preferredDays} onToggle={(opt) => toggleArray('preferredDays', opt)} />
         <ChipGroup label="Preferred Times" options={PREFERRED_TIMES} values={form.preferredTimes} onToggle={(opt) => toggleArray('preferredTimes', opt)} />
         <Field label="Special requests or notes" error={errors.careNotes}>

@@ -90,17 +90,25 @@ export function SectionCard({ title, children, subtitle }) {
   );
 }
 
-export function CheckboxRow({ options, value = [], onChange, columns = 2 }) {
+export function CheckboxRow({ options, value = [], onChange, columns = 2, compact = false }) {
   const selected = Array.isArray(value) ? value : [];
   const toggle = (opt) => {
     if (selected.includes(opt)) onChange(selected.filter((v) => v !== opt));
     else onChange([...selected, opt]);
   };
+  const layout = compact
+    ? 'flex flex-wrap gap-x-4 gap-y-2'
+    : `grid gap-2 ${columns === 3 ? 'sm:grid-cols-3' : columns === 1 ? 'grid-cols-1' : 'sm:grid-cols-2'}`;
   return (
-    <div className={`grid gap-2 ${columns === 3 ? 'sm:grid-cols-3' : columns === 1 ? 'grid-cols-1' : 'sm:grid-cols-2'}`}>
+    <div className={layout}>
       {options.map((opt) => (
-        <label key={opt} className="flex items-start gap-2 text-sm text-gray-700">
-          <input type="checkbox" className="mt-0.5" checked={selected.includes(opt)} onChange={() => toggle(opt)} />
+        <label
+          key={opt}
+          className={compact
+            ? 'inline-flex items-center gap-1.5 text-xs font-medium text-gray-700'
+            : 'flex items-start gap-2 text-sm text-gray-700'}
+        >
+          <input type="checkbox" className={compact ? 'h-3.5 w-3.5' : 'mt-0.5'} checked={selected.includes(opt)} onChange={() => toggle(opt)} />
           <span>{opt}</span>
         </label>
       ))}

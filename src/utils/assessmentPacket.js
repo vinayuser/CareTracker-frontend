@@ -564,6 +564,10 @@ export function prefillPacketFormFromClient(code, forms = {}, extras = {}) {
     fillBlank(current, 'assessorDate', extras.assessmentDate || '');
     fillBlank(current, 'date', extras.assessmentDate || '');
   }
+  if (code === '790') {
+    fillBlank(current, 'representativeName', extras.assessorName || '');
+    fillBlank(current, 'representativeTitle', extras.assessorTitle || '');
+  }
   if (code === '7050') {
     fillBlank(current, 'date', extras.assessmentDate || '');
     fillBlank(current, 'performedBy', extras.assessorName || '');

@@ -43,6 +43,7 @@ import {
   formStateToAgencyPayload,
 } from '../../utils/agencyStore';
 import { formatPrice, formatBillingCycle } from '../../utils/subscriptionStore';
+import { FALLBACK_TIMEZONES } from '../../utils/visitTimezone';
 import { ROUTES } from '../../routes/routes';
 import { confirmAlert } from '../../utils/swal';
 import axiosInstance from '../../api/axiosInstance';
@@ -593,8 +594,10 @@ export default function Agencies() {
                   <dl>
                     <DetailRow label="Name">{agency.name}</DetailRow>
                     <DetailRow label="Legal Name">{agency.legalName || '—'}</DetailRow>
-                    <DetailRow label="EIN">—</DetailRow>
-                    <DetailRow label="Address">{addressLine(agency)}</DetailRow>
+                    <DetailRow label="EIN">{agency.ein || '—'}</DetailRow>
+                    <DetailRow label="Address">{agency.address || '—'}</DetailRow>
+                    <DetailRow label="City">{agency.city || '—'}</DetailRow>
+                    <DetailRow label="State">{agency.state || '—'}</DetailRow>
                     <DetailRow label="Phone">{agency.phone || '—'}</DetailRow>
                     <DetailRow label="Email">
                       {agency.email ? (
@@ -617,7 +620,9 @@ export default function Agencies() {
                     </DetailRow>
                     <DetailRow label="Primary Contact">{agency.ownerName || '—'}</DetailRow>
                     <DetailRow label="Service Type">{agency.agencyType || '—'}</DetailRow>
-                    <DetailRow label="Timezone">—</DetailRow>
+                    <DetailRow label="Timezone">
+                      {FALLBACK_TIMEZONES.find((tz) => tz.value === agency.timezone)?.label || agency.timezone || '—'}
+                    </DetailRow>
                     <DetailRow label="Status"><StatusPill status={agency.status} /></DetailRow>
                   </dl>
                 </CardShell>

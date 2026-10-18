@@ -22,6 +22,7 @@ const normalizeListPayload = (data) => {
   return {
     list: Array.isArray(data?.list) ? data.list : [],
     pagination: { ...emptyPagination, ...(data?.pagination || {}) },
+    nextDueDate: data?.nextDueDate || null,
   };
 };
 
@@ -99,6 +100,7 @@ const invoicesSlice = createSlice({
     pagination: emptyPagination,
     loading: false,
     actionLoading: false,
+    nextDueDate: null,
   },
   reducers: {},
   extraReducers: (builder) => {
@@ -108,6 +110,7 @@ const invoicesSlice = createSlice({
         state.loading = false;
         state.list = action.payload.list;
         state.pagination = action.payload.pagination;
+        state.nextDueDate = action.payload.nextDueDate || null;
       })
       .addCase(fetchInvoices.rejected, (state) => { state.loading = false; })
       .addCase(generateInvoice.pending, (state) => { state.actionLoading = true; })
@@ -122,6 +125,7 @@ const invoicesSlice = createSlice({
             clientEmail: action.payload.clientEmail,
             periodFrom: action.payload.periodFrom,
             periodTo: action.payload.periodTo,
+            dueDate: action.payload.dueDate,
             status: action.payload.status,
             total: action.payload.total,
             lineCount: action.payload.lines?.length || 0,

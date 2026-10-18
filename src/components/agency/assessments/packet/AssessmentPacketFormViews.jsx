@@ -887,8 +887,10 @@ function Form610({ data, onChange, shared }) {
 const CASE_NOTES_DEFAULT_ROWS = 5;
 const emptyCaseNoteEntry = () => ({ date: '', time: '', notes: '' });
 
-function Form790({ data, onChange }) {
+function Form790({ data, onChange, shared }) {
   const d = data || {};
+  const representativeName = d.representativeName || shared?.assessorName || '';
+  const representativeTitle = d.representativeTitle || shared?.assessorTitle || '';
   const stored = Array.isArray(d.entries) ? d.entries : [];
   const entries = stored.length >= CASE_NOTES_DEFAULT_ROWS
     ? stored
@@ -908,8 +910,8 @@ function Form790({ data, onChange }) {
           <Field label="Client ID"><PacketInput readOnly disabled className={readOnlyInputClass} value={d.clientId || ''} tabIndex={-1} /></Field>
           <Field label="Client Name"><PacketInput readOnly disabled className={readOnlyInputClass} value={clientDisplayName(d)} tabIndex={-1} /></Field>
           <Field label="Client DOB"><PacketInput readOnly disabled type="date" className={readOnlyInputClass} value={clientDisplayDob(d)} tabIndex={-1} /></Field>
-          <Field label="Representative Name"><PacketInput className={inputClass} value={d.representativeName || ''} onChange={(e) => onChange({ representativeName: e.target.value })} /></Field>
-          <Field label="Representative Title"><PacketInput className={inputClass} value={d.representativeTitle || ''} onChange={(e) => onChange({ representativeTitle: e.target.value })} /></Field>
+          <Field label="Representative Name"><PacketInput readOnly disabled className={readOnlyInputClass} value={representativeName} tabIndex={-1} /></Field>
+          <Field label="Representative Title"><PacketInput readOnly disabled className={readOnlyInputClass} value={representativeTitle} tabIndex={-1} /></Field>
         </div>
         <div className="mt-4 space-y-3">
           {entries.map((entry, i) => (
@@ -990,14 +992,14 @@ function Form1009({ data, onChange, shared }) {
 
                 {isPayment ? (
                   <div className="space-y-3 rounded-lg border border-gray-100 bg-gray-50/70 p-3">
-                    <p className="text-xs font-semibold text-gray-800">The services that I agree to receive are:</p>
+                    <p className="text-sm font-semibold text-gray-900">The services that I agree to receive are:</p>
                     <div>
-                      <p className="mb-1 text-xs font-medium text-gray-600">Non-Medical</p>
-                      <CheckboxRow options={NON_MED} value={d.nonMedical || []} onChange={(nonMedical) => onChange({ nonMedical })} columns={3} />
+                      <p className="mb-1.5 text-sm font-semibold text-gray-800">Non-Medical</p>
+                      <CheckboxRow compact options={NON_MED} value={d.nonMedical || []} onChange={(nonMedical) => onChange({ nonMedical })} />
                     </div>
                     <div>
-                      <p className="mb-1 text-xs font-medium text-gray-600">Private Duty Nursing</p>
-                      <CheckboxRow options={PDN} value={d.privateDutyNursing || []} onChange={(privateDutyNursing) => onChange({ privateDutyNursing })} columns={2} />
+                      <p className="mb-1.5 text-sm font-semibold text-gray-800">Private Duty Nursing</p>
+                      <CheckboxRow compact options={PDN} value={d.privateDutyNursing || []} onChange={(privateDutyNursing) => onChange({ privateDutyNursing })} />
                     </div>
                     <Field label="Frequency by Discipline">
                       <PacketInput className={inputClass} value={d.frequencyByDiscipline || ''} onChange={(e) => onChange({ frequencyByDiscipline: e.target.value })} />
@@ -1126,8 +1128,8 @@ function Form1081({ data, onChange }) {
         <LegalText>
           <p className="mt-3">Under HIPAA I have privacy rights regarding protected health information (PHI). PHI may be used to conduct treatment among providers, obtain payment from third-party payers, and conduct normal agency operations such as quality reviews. I may request restrictions (the agency is not required to agree) and may revoke this consent in writing except for information already used or disclosed.</p>
         </LegalText>
-        <p className="mb-1 mt-3 text-xs font-medium text-gray-600">I authorize the agency to</p>
-        <CheckboxRow options={['Release', 'Obtain']} value={d.releaseObtain || []} onChange={(releaseObtain) => onChange({ releaseObtain })} columns={2} />
+        <p className="mb-1.5 mt-3 text-sm font-semibold text-gray-900">I authorize the agency to</p>
+        <CheckboxRow compact options={['Release', 'Obtain']} value={d.releaseObtain || []} onChange={(releaseObtain) => onChange({ releaseObtain })} />
         <div className="mt-3 space-y-2">
           <BoolCheck label="Entire Medical Records (including billing, insurance, and other provider records)" checked={d.entireMedicalRecords} onChange={(entireMedicalRecords) => onChange({ entireMedicalRecords })} />
           <BoolCheck label="Include Mental Health Records" checked={d.includeMentalHealth} onChange={(includeMentalHealth) => onChange({ includeMentalHealth })} />

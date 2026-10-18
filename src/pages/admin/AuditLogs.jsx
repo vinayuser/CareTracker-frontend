@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import axiosInstance from '../../api/axiosInstance';
 import {
   Calendar,
   ChevronLeft,
@@ -9,104 +10,15 @@ import {
   Users,
 } from 'lucide-react';
 
-const ROWS = [
-  {
-    id: 1,
-    date: '14 Oct 2026, 10:42 AM',
-    dateKey: '2026-10-14',
-    caregiver: 'Sarah Johnson',
-    agency: 'Sunrise Home Care',
-    activity: 'Caregiver linked with care plan',
-    activityType: 'Care plan',
-    related: 'Client: Robert Miller',
-    detail: 'Care plan CP-1048 linked',
-    status: 'Completed',
-  },
-  {
-    id: 2,
-    date: '14 Oct 2026, 10:15 AM',
-    dateKey: '2026-10-14',
-    caregiver: 'Michael Brown',
-    agency: 'Sunrise Home Care',
-    activity: 'Schedule created',
-    activityType: 'Schedule',
-    related: 'Client: Emma Wilson',
-    detail: 'Schedule for 15 Oct, 09:00–13:00',
-    status: 'Completed',
-  },
-  {
-    id: 3,
-    date: '14 Oct 2026, 09:58 AM',
-    dateKey: '2026-10-14',
-    caregiver: 'Sarah Johnson',
-    agency: 'Sunrise Home Care',
-    activity: 'EVV form verified',
-    activityType: 'EVV',
-    related: 'EVV-2084',
-    detail: 'Verified by caregiver',
-    status: 'Verified',
-  },
-  {
-    id: 4,
-    date: '14 Oct 2026, 09:30 AM',
-    dateKey: '2026-10-14',
-    caregiver: 'David Wilson',
-    agency: 'Sunrise Home Care',
-    activity: 'Worklog check-in',
-    activityType: 'Worklog',
-    related: 'Client: James Taylor',
-    detail: 'Check-in: 09:30 AM',
-    status: 'Recorded',
-  },
-  {
-    id: 5,
-    date: '14 Oct 2026, 01:05 PM',
-    dateKey: '2026-10-14',
-    caregiver: 'David Wilson',
-    agency: 'Sunrise Home Care',
-    activity: 'Worklog check-out',
-    activityType: 'Worklog',
-    related: 'Client: James Taylor',
-    detail: 'Check-out: 01:05 PM',
-    status: 'Recorded',
-  },
-  {
-    id: 6,
-    date: '14 Oct 2026, 08:50 AM',
-    dateKey: '2026-10-14',
-    caregiver: 'Michael Brown',
-    agency: 'Sunrise Home Care',
-    activity: 'Sign in',
-    activityType: 'Session',
-    related: 'Platform session',
-    detail: 'Successful login',
-    status: 'Success',
-  },
-  {
-    id: 7,
-    date: '14 Oct 2026, 04:10 PM',
-    dateKey: '2026-10-14',
-    caregiver: 'Michael Brown',
-    agency: 'Sunrise Home Care',
-    activity: 'Sign out',
-    activityType: 'Session',
-    related: 'Platform session',
-    detail: 'Session ended',
-    status: 'Success',
-  },
-];
-
-const AGENCIES = ['Sunrise Home Care'];
-const CAREGIVERS = [...new Set(ROWS.map((row) => row.caregiver))];
-const ACTIVITY_TYPES = ['Care plan', 'Schedule', 'EVV', 'Worklog', 'Session'];
-
 const EMPTY_FILTERS = {
   agency: '',
   caregiver: '',
-  from: '2026-10-14',
-  to: '2026-10-14',
+  from: '',
+  to: '',
   activity: '',
 };
+
+const EMPTY_SUMMARY = { total: 0, caregivers: 0, carePlans: 0, schedules: 0, evv: 0 };
 
 function Kpi({ icon: Icon, iconWrap, label, value }) {
   return (
@@ -139,22 +51,40 @@ export default function AuditLogs() {
   const [draft, setDraft] = useState(EMPTY_FILTERS);
   const [applied, setApplied] = useState(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
+  const [rows, setRows] = useState([]);
+  const [options, setOptions] = useState({ agencies: [], caregivers: [], activityTypes: [] });
+  const [summary, setSummary] = useState(EMPTY_SUMMARY);
+  const [pagination, setPagination] = useState({ from: 0, to: 0, total: 0, totalPages: 1 });
   const pageSize = 7;
 
-  const filtered = useMemo(() => ROWS.filter((row) => {
-    if (applied.agency && row.agency !== applied.agency) return false;
-    if (applied.caregiver && row.caregiver !== applied.caregiver) return false;
-    if (applied.activity && row.activityType !== applied.activity) return false;
-    if (applied.from && row.dateKey < applied.from) return false;
-    if (applied.to && row.dateKey > applied.to) return false;
-    return true;
-  }), [applied]);
+  useEffect(() => {
+    const params = {
+      page,
+      limit: pageSize,
+      agency: applied.agency || undefined,
+      caregiver: applied.caregiver || undefined,
+      activity: applied.activity || undefined,
+      from: applied.from || undefined,
+      to: applied.to || undefined,
+    };
+    axiosInstance.get('/admin/audit-logs', { params })
+      .then((response) => {
+        const data = response.data?.data || {};
+        setRows(data.list || []);
+        setOptions(data.options || { agencies: [], caregivers: [], activityTypes: [] });
+        setSummary(data.summary || EMPTY_SUMMARY);
+        setPagination(data.pagination || { from: 0, to: 0, total: 0, totalPages: 1 });
+      })
+      .catch(() => {
+        setRows([]);
+        setSummary(EMPTY_SUMMARY);
+      });
+  }, [applied, page]);
 
-  const total = filtered.length;
-  const pages = Math.max(1, Math.ceil(total / pageSize));
+  const total = pagination.total || 0;
+  const pages = pagination.totalPages || 1;
   const safePage = Math.min(page, pages);
-  const start = total === 0 ? 0 : (safePage - 1) * pageSize;
-  const visible = filtered.slice(start, start + pageSize);
+  const visible = rows;
 
   const setField = (key) => (event) => setDraft((current) => ({ ...current, [key]: event.target.value }));
 
@@ -176,14 +106,14 @@ export default function AuditLogs() {
             Agency Name
             <select value={draft.agency} onChange={setField('agency')} className="mt-1 h-10 w-full rounded-lg border border-[#d0d5dd] bg-white px-3 text-[13px] text-[#344054] outline-none">
               <option value="">Select Agency</option>
-              {AGENCIES.map((name) => <option key={name} value={name}>{name}</option>)}
+              {options.agencies.map((name) => <option key={name} value={name}>{name}</option>)}
             </select>
           </label>
           <label className="block text-[12px] font-medium text-[#344054]">
             Caregiver
             <select value={draft.caregiver} onChange={setField('caregiver')} className="mt-1 h-10 w-full rounded-lg border border-[#d0d5dd] bg-white px-3 text-[13px] text-[#344054] outline-none">
               <option value="">All Caregivers</option>
-              {CAREGIVERS.map((name) => <option key={name} value={name}>{name}</option>)}
+              {options.caregivers.map((name) => <option key={name} value={name}>{name}</option>)}
             </select>
           </label>
           <label className="block text-[12px] font-medium text-[#344054]">
@@ -198,7 +128,7 @@ export default function AuditLogs() {
             Activity Type
             <select value={draft.activity} onChange={setField('activity')} className="mt-1 h-10 w-full rounded-lg border border-[#d0d5dd] bg-white px-3 text-[13px] text-[#344054] outline-none">
               <option value="">All Activities</option>
-              {ACTIVITY_TYPES.map((name) => <option key={name} value={name}>{name}</option>)}
+              {options.activityTypes.map((name) => <option key={name} value={name}>{name}</option>)}
             </select>
           </label>
           <button
@@ -219,11 +149,11 @@ export default function AuditLogs() {
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <Kpi icon={FileText} iconWrap="bg-[#e8f1ff] text-[#2f6fed]" label="Total Activities" value={248} />
-        <Kpi icon={Users} iconWrap="bg-[#f4ebff] text-[#7a5af8]" label="Caregivers" value={18} />
-        <Kpi icon={Heart} iconWrap="bg-[#e7f8ef] text-[#12b76a]" label="Care Plans Linked" value={32} />
-        <Kpi icon={Calendar} iconWrap="bg-[#e8f1ff] text-[#2f6fed]" label="Schedules Created" value={46} />
-        <Kpi icon={ShieldCheck} iconWrap="bg-[#f4ebff] text-[#7a5af8]" label="EVV Verified" value={71} />
+        <Kpi icon={FileText} iconWrap="bg-[#e8f1ff] text-[#2f6fed]" label="Total Activities" value={summary.total} />
+        <Kpi icon={Users} iconWrap="bg-[#f4ebff] text-[#7a5af8]" label="Caregivers" value={summary.caregivers} />
+        <Kpi icon={Heart} iconWrap="bg-[#e7f8ef] text-[#12b76a]" label="Care Plans Linked" value={summary.carePlans} />
+        <Kpi icon={Calendar} iconWrap="bg-[#e8f1ff] text-[#2f6fed]" label="Schedules Created" value={summary.schedules} />
+        <Kpi icon={ShieldCheck} iconWrap="bg-[#f4ebff] text-[#7a5af8]" label="EVV Verified" value={summary.evv} />
       </div>
 
       <div className="overflow-hidden rounded-xl border border-[#e8eef6] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
@@ -231,7 +161,7 @@ export default function AuditLogs() {
           <h2 className="text-[16px] font-semibold text-[#101828]">Caregiver Activity Log</h2>
           <button
             type="button"
-            onClick={() => exportExcel(filtered)}
+            onClick={() => exportExcel(visible)}
             className="inline-flex h-9 items-center rounded-lg border border-[#abefc6] bg-[#ecfdf3] px-3 text-[13px] font-semibold text-[#067647]"
           >
             Export Excel
@@ -276,7 +206,7 @@ export default function AuditLogs() {
           </table>
         </div>
         <div className="flex items-center justify-between border-t border-[#eef2f6] px-5 py-3 text-[13px] text-[#667085]">
-          <span>Showing {total === 0 ? 0 : start + 1}–{Math.min(start + pageSize, total)} of {total} entries</span>
+          <span>Showing {pagination.from || 0}–{pagination.to || 0} of {total} entries</span>
           <div className="flex items-center gap-1">
             <button type="button" onClick={() => setPage((current) => Math.max(1, current - 1))} className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#e4e7ec] text-[#344054]">
               <ChevronLeft size={16} />

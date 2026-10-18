@@ -325,7 +325,7 @@ export default function AgencyNotesTab({ agencyId }) {
             <div className="mt-3 space-y-1">
               <button
                 type="button"
-                onClick={() => setCategory('All')}
+                onClick={() => { setCategory('All'); setTag(''); setPage(1); }}
                 className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm ${category === 'All' ? 'bg-primary/10 font-semibold text-primary' : 'text-slate-600 hover:bg-slate-50'}`}
               >
                 <span>All Notes</span>
@@ -335,7 +335,7 @@ export default function AgencyNotesTab({ agencyId }) {
                 <button
                   key={item.name}
                   type="button"
-                  onClick={() => setCategory(item.name)}
+                  onClick={() => { setCategory(item.name); setTag(''); setPage(1); }}
                   className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm ${category === item.name ? 'bg-primary/10 font-semibold text-primary' : 'text-slate-600 hover:bg-slate-50'}`}
                 >
                   <span>{item.name}</span>

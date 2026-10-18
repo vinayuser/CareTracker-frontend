@@ -6,6 +6,7 @@ import {
   agencyToFormState,
 } from '../../utils/agencyStore';
 import { LIMIT_FIELDS, formatPrice, formatBillingCycle } from '../../utils/subscriptionStore';
+import { FALLBACK_TIMEZONES } from '../../utils/visitTimezone';
 
 const inputClass =
   'w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
@@ -91,6 +92,29 @@ export default function AgencyFormDrawer({ open, editingAgency, plans, onSubmit 
               className={inputClass}
             />
           </div>
+        </div>
+        <div>
+          <label className={labelClass}>EIN</label>
+          <input
+            type="text"
+            value={formData.ein || ''}
+            onChange={(e) => setFormData({ ...formData, ein: e.target.value })}
+            placeholder="12-3456789"
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label className={labelClass}>Timezone</label>
+          <select
+            value={formData.timezone || ''}
+            onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
+            className={inputClass}
+          >
+            <option value="">Select timezone</option>
+            {FALLBACK_TIMEZONES.map((tz) => (
+              <option key={tz.value} value={tz.value}>{tz.label}</option>
+            ))}
+          </select>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>

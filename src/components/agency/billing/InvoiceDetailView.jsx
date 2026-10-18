@@ -13,8 +13,11 @@ function money(value) {
 
 function formatDisplayDate(dateKey) {
   if (!dateKey) return '—';
-  const d = new Date(`${dateKey}T12:00:00`);
-  if (Number.isNaN(d.getTime())) return dateKey;
+  const raw = String(dateKey);
+  const d = raw.includes('T') || dateKey instanceof Date
+    ? new Date(dateKey)
+    : new Date(`${raw.slice(0, 10)}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return raw;
   return d.toLocaleDateString('en-US', {
     month: '2-digit',
     day: '2-digit',
@@ -94,6 +97,10 @@ export default function InvoiceDetailView({ invoice }) {
             {formatPeriod(invoice.periodFrom, invoice.periodTo)}
           </p>
           <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-xs text-gray-500">Due date</p>
+              <p className="font-semibold text-gray-900">{formatDisplayDate(invoice.dueDate)}</p>
+            </div>
             <div>
               <p className="text-xs text-gray-500">Visits</p>
               <p className="font-semibold text-gray-900">{lines.length}</p>

@@ -245,11 +245,16 @@ export default function LeadFormSections({
           <IconInput
             icon={Calendar}
             type="date"
-            min={todayDateKey()}
+            min={[todayDateKey(), basic.inquiryDate].filter(Boolean).sort().at(-1)}
             disabled={readOnly}
             error={err('basicInfo.preferredStartDate')}
-            value={basic.preferredStartDate}
-            onChange={(e) => patch('basicInfo', 'preferredStartDate', e.target.value)}
+            value={basic.preferredStartDate || ''}
+            onChange={(e) => {
+              const value = e.target.value;
+              const earliest = [todayDateKey(), basic.inquiryDate].filter(Boolean).sort().at(-1);
+              if (value && earliest && value < earliest) return;
+              patch('basicInfo', 'preferredStartDate', value);
+            }}
           />
         </Field>
         <Field label="Zip Code" required className="sm:col-span-2" error={err('basicInfo.zipLocation')}>

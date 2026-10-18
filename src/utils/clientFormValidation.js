@@ -148,6 +148,9 @@ export function validateClientForm(form = {}) {
   const errors = validateClientStepOne(form);
   const billingZipMsg = zipError(form.billingZip, 'billing ZIP');
   if (billingZipMsg) errors.billingZip = billingZipMsg;
+  if (!String(form.careFrequency || '').trim()) {
+    errors.careFrequency = 'Care frequency is required. Select how often care is needed.';
+  }
   return errors;
 }
 
