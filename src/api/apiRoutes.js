@@ -16,6 +16,10 @@ const API_ROUTES = {
 
   ADMIN: {
     DASHBOARD: '/admin/dashboard',
+    AUDIT_LOGS: {
+      LIST: '/admin/audit-logs',
+      CAREGIVERS: '/admin/audit-logs/caregivers',
+    },
     AGENCY: {
       LIST: '/admin/agencies',
       OPTIONS: '/admin/agencies/options',

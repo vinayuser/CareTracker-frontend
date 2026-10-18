@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import axiosInstance from '../../api/axiosInstance';
+import API_ROUTES from '../../api/apiRoutes';
 import {
   Calendar,
   ChevronLeft,
@@ -19,6 +20,7 @@ const EMPTY_FILTERS = {
 };
 
 const EMPTY_SUMMARY = { total: 0, caregivers: 0, carePlans: 0, schedules: 0, evv: 0 };
+const ACTIVITY_TYPES = ['Session', 'Profile', 'Schedule', 'Worklog', 'EVV', 'Leave', 'Care plan'];
 
 function Kpi({ icon: Icon, iconWrap, label, value }) {
   return (
@@ -52,26 +54,55 @@ export default function AuditLogs() {
   const [applied, setApplied] = useState(EMPTY_FILTERS);
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState([]);
-  const [options, setOptions] = useState({ agencies: [], caregivers: [], activityTypes: [] });
+  const [agencies, setAgencies] = useState([]);
+  const [caregivers, setCaregivers] = useState([]);
+  const [activityTypes, setActivityTypes] = useState(ACTIVITY_TYPES);
   const [summary, setSummary] = useState(EMPTY_SUMMARY);
   const [pagination, setPagination] = useState({ from: 0, to: 0, total: 0, totalPages: 1 });
   const pageSize = 7;
 
   useEffect(() => {
+    axiosInstance.get(API_ROUTES.ADMIN.AGENCY.OPTIONS)
+      .then((response) => {
+        const list = response.data?.data;
+        setAgencies(Array.isArray(list) ? list : []);
+      })
+      .catch(() => setAgencies([]));
+  }, []);
+
+  useEffect(() => {
+    if (!draft.agency) {
+      setCaregivers([]);
+      return undefined;
+    }
+    let cancelled = false;
+    axiosInstance.get(API_ROUTES.ADMIN.AUDIT_LOGS.CAREGIVERS, { params: { agencyId: draft.agency } })
+      .then((response) => {
+        if (cancelled) return;
+        const list = response.data?.data;
+        setCaregivers(Array.isArray(list) ? list : []);
+      })
+      .catch(() => {
+        if (!cancelled) setCaregivers([]);
+      });
+    return () => { cancelled = true; };
+  }, [draft.agency]);
+
+  useEffect(() => {
     const params = {
       page,
       limit: pageSize,
-      agency: applied.agency || undefined,
-      caregiver: applied.caregiver || undefined,
+      agencyId: applied.agency || undefined,
+      caregiverId: applied.caregiver || undefined,
       activity: applied.activity || undefined,
       from: applied.from || undefined,
       to: applied.to || undefined,
     };
-    axiosInstance.get('/admin/audit-logs', { params })
+    axiosInstance.get(API_ROUTES.ADMIN.AUDIT_LOGS.LIST, { params })
       .then((response) => {
         const data = response.data?.data || {};
         setRows(data.list || []);
-        setOptions(data.options || { agencies: [], caregivers: [], activityTypes: [] });
+        if (data.options?.activityTypes?.length) setActivityTypes(data.options.activityTypes);
         setSummary(data.summary || EMPTY_SUMMARY);
         setPagination(data.pagination || { from: 0, to: 0, total: 0, totalPages: 1 });
       })
@@ -104,16 +135,25 @@ export default function AuditLogs() {
         <div className="grid grid-cols-1 items-end gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1fr_140px_140px_1fr_auto_auto]">
           <label className="block text-[12px] font-medium text-[#344054]">
             Agency Name
-            <select value={draft.agency} onChange={setField('agency')} className="mt-1 h-10 w-full rounded-lg border border-[#d0d5dd] bg-white px-3 text-[13px] text-[#344054] outline-none">
+            <select
+              value={draft.agency}
+              onChange={(event) => setDraft((current) => ({ ...current, agency: event.target.value, caregiver: '' }))}
+              className="mt-1 h-10 w-full rounded-lg border border-[#d0d5dd] bg-white px-3 text-[13px] text-[#344054] outline-none"
+            >
               <option value="">Select Agency</option>
-              {options.agencies.map((name) => <option key={name} value={name}>{name}</option>)}
+              {agencies.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
             </select>
           </label>
           <label className="block text-[12px] font-medium text-[#344054]">
             Caregiver
-            <select value={draft.caregiver} onChange={setField('caregiver')} className="mt-1 h-10 w-full rounded-lg border border-[#d0d5dd] bg-white px-3 text-[13px] text-[#344054] outline-none">
-              <option value="">All Caregivers</option>
-              {options.caregivers.map((name) => <option key={name} value={name}>{name}</option>)}
+            <select
+              value={draft.caregiver}
+              onChange={setField('caregiver')}
+              disabled={!draft.agency}
+              className="mt-1 h-10 w-full rounded-lg border border-[#d0d5dd] bg-white px-3 text-[13px] text-[#344054] outline-none disabled:bg-[#f8fafc]"
+            >
+              <option value="">{draft.agency ? 'All Caregivers' : 'Select an agency first'}</option>
+              {caregivers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
             </select>
           </label>
           <label className="block text-[12px] font-medium text-[#344054]">
@@ -128,7 +168,7 @@ export default function AuditLogs() {
             Activity Type
             <select value={draft.activity} onChange={setField('activity')} className="mt-1 h-10 w-full rounded-lg border border-[#d0d5dd] bg-white px-3 text-[13px] text-[#344054] outline-none">
               <option value="">All Activities</option>
-              {options.activityTypes.map((name) => <option key={name} value={name}>{name}</option>)}
+              {activityTypes.map((name) => <option key={name} value={name}>{name}</option>)}
             </select>
           </label>
           <button
@@ -140,7 +180,7 @@ export default function AuditLogs() {
           </button>
           <button
             type="button"
-            onClick={() => { setDraft(EMPTY_FILTERS); setApplied(EMPTY_FILTERS); setPage(1); }}
+            onClick={() => { setDraft(EMPTY_FILTERS); setApplied(EMPTY_FILTERS); setCaregivers([]); setPage(1); }}
             className="h-10 px-2 text-[13px] font-medium text-[#155eef]"
           >
             Reset
