@@ -8,12 +8,15 @@ import {
   Bell,
   Building2,
   CheckCircle2,
+  Clock,
+  Database,
   DollarSign,
   HeartHandshake,
   Landmark,
   LayoutDashboard,
   Megaphone,
   MessageSquare,
+  Server,
   Settings,
   Shield,
   ShieldCheck,
@@ -77,6 +80,9 @@ const EMPTY = {
   finance: {},
   social: {},
   members: {},
+  operations: {},
+  system: {},
+  systemAlerts: [],
 };
 
 function pulse(className) {
@@ -213,6 +219,8 @@ export default function Dashboard() {
   const loading = adminLoading && !admin;
   const k = data.kpis || {};
   const members = data.members || {};
+  const ops = data.operations || {};
+  const sys = data.system || {};
   const show = (names) => names.includes(tab);
 
   return (
@@ -253,15 +261,14 @@ export default function Dashboard() {
         </div>
       )}
 
-      {show(['Overview', 'Analytics', 'Operations', 'System Health']) && (
+      {show(['Overview', 'Analytics']) && (
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
-          {show(['Overview', 'Analytics']) && (
-            <div className="xl:col-span-8">
-              {loading ? <ChartLoader /> : <PlatformPerformanceChart series={data.series} />}
-            </div>
-          )}
-          <div className={`space-y-5 ${show(['Overview', 'Analytics']) ? 'xl:col-span-4' : 'xl:col-span-12 grid gap-5 lg:grid-cols-3'}`}>
-            {show(['Overview', 'Operations', 'System Health']) && (
+          <div className={show(['Overview']) ? 'xl:col-span-8' : 'xl:col-span-12'}>
+            {loading ? <ChartLoader /> : <PlatformPerformanceChart series={data.series} />}
+          </div>
+          {show(['Overview']) && (
+          <div className="space-y-5 xl:col-span-4">
+            {show(['Overview']) && (
               <Card title="Platform Health" loading={loading} loader={<CardBodyLoader rows={5} />}>
                 <ul className="divide-y divide-gray-50 px-5 py-2">
                   {(data.health || []).map((row) => (
@@ -281,7 +288,7 @@ export default function Dashboard() {
                 </ul>
               </Card>
             )}
-            {show(['Overview', 'Operations']) && (
+            {show(['Overview']) && (
               <Card title="AI Insights & Recommendations" loading={loading}>
                 <ul className="space-y-2.5 p-4">
                   {(data.insights || []).map((item) => (
@@ -299,7 +306,7 @@ export default function Dashboard() {
                 </ul>
               </Card>
             )}
-            {show(['Overview', 'Operations', 'System Health', 'Security']) && (
+            {show(['Overview']) && (
               <Card
                 title="Urgent Alerts"
                 loading={loading}
@@ -323,10 +330,125 @@ export default function Dashboard() {
               </Card>
             )}
           </div>
+          )}
         </div>
       )}
 
-      {show(['Overview', 'Agencies', 'Finance', 'Operations']) && (
+      {show(['Operations']) && (
+        <>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+            <Kpi loading={loading} label="Pending Agencies" value={formatCount(ops.pendingAgencies)} sub={ops.pendingAgencies ? 'Awaiting approval' : 'None waiting'} up={!ops.pendingAgencies} icon={Building2} iconBg="bg-violet-100 text-violet-600" />
+            <Kpi loading={loading} label="Open Invitations" value={formatCount(ops.pendingInvites)} sub={ops.pendingInvites ? 'Need follow-up' : 'All accepted'} up={!ops.pendingInvites} icon={UserPlus} iconBg="bg-blue-100 text-blue-600" />
+            <Kpi loading={loading} label="Missed Visits" value={formatCount(ops.missedVisits)} sub={ops.missedVisits ? 'Need review' : 'None missed'} up={!ops.missedVisits} icon={AlertTriangle} iconBg="bg-rose-100 text-rose-600" />
+            <Kpi loading={loading} label="Pending EVV" value={formatCount(ops.pendingEnrollments)} sub={ops.pendingEnrollments ? 'Enrollments in queue' : 'Queue clear'} up={!ops.pendingEnrollments} icon={ShieldCheck} iconBg="bg-amber-100 text-amber-600" />
+            <Kpi loading={loading} label="Unpaid Invoices" value={formatCount(ops.unpaidInvoices)} sub={ops.unpaidInvoices ? 'Subscriptions outstanding' : 'All current'} up={!ops.unpaidInvoices} icon={DollarSign} iconBg="bg-orange-100 text-orange-600" />
+            <Kpi loading={loading} label="Visits This Month" value={formatCount(ops.visitsThisMonth)} sub="Completed visits" up icon={Landmark} iconBg="bg-emerald-100 text-emerald-600" />
+          </div>
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+            <Card title="Platform Tasks" loading={loading}>
+              <ul className="divide-y divide-gray-50 px-2 py-1">
+                {(data.tasks || []).map((task) => (
+                  <li key={task.id}>
+                    <Link to={task.to} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50">
+                      <input type="checkbox" readOnly checked={task.count === 0} className="h-4 w-4 rounded border-gray-300 text-primary" />
+                      <span className="min-w-0 flex-1 text-sm text-gray-800">{task.label}</span>
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-700">{task.count}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+            <Card title="AI Insights & Recommendations" loading={loading}>
+              <ul className="space-y-2.5 p-4">
+                {(data.insights || []).map((item) => (
+                  <li key={item.id} className="flex gap-2.5 rounded-lg bg-gray-50 px-3 py-2.5">
+                    <Sparkles size={16} className={`mt-0.5 shrink-0 ${
+                      item.tone === 'emerald' ? 'text-emerald-500' : item.tone === 'amber' ? 'text-amber-500' : 'text-primary'
+                    }`}
+                    />
+                    <div>
+                      <p className="text-xs font-semibold text-gray-900">{item.title}</p>
+                      <p className="mt-0.5 text-xs text-gray-500">{item.text}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </div>
+        </>
+      )}
+
+      {show(['System Health']) && (
+        <>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <Kpi loading={loading} label="API" value={sys.api || 'Online'} sub="Request path healthy" up={sys.api !== 'Offline'} icon={Activity} iconBg="bg-emerald-100 text-emerald-600" />
+            <Kpi loading={loading} label="Database" value={sys.database || '—'} sub={sys.database === 'Connected' ? 'MongoDB reachable' : 'Connection issue'} up={sys.database === 'Connected'} icon={Database} iconBg="bg-blue-100 text-blue-600" />
+            <Kpi loading={loading} label="Uptime" value={sys.uptime || '—'} sub="API process" up icon={Clock} iconBg="bg-violet-100 text-violet-600" />
+            <Kpi loading={loading} label="Memory" value={sys.memory || '—'} sub={sys.heap ? `${sys.heap} heap` : 'Process RSS'} up icon={Server} iconBg="bg-slate-100 text-slate-600" />
+          </div>
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+            <Card title="Platform Health" loading={loading} loader={<CardBodyLoader rows={5} />}>
+              <ul className="divide-y divide-gray-50 px-5 py-2">
+                {(data.health || []).map((row) => (
+                  <li key={row.label} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                    <span className="text-gray-600">{row.label}</span>
+                    <span className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">{row.value}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        row.status === 'Healthy' ? 'bg-emerald-50 text-emerald-700' : 'bg-orange-50 text-orange-700'
+                      }`}
+                      >
+                        {row.status}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+            <Card title="Runtime" loading={loading} loader={<CardBodyLoader rows={5} />}>
+              <ul className="divide-y divide-gray-50 px-5 py-2">
+                {[
+                  ['Node.js', sys.node || '—'],
+                  ['Process ID', sys.pid || '—'],
+                  ['Heap used', sys.heap || '—'],
+                  ['Memory (RSS)', sys.memory || '—'],
+                  ['Database', sys.database || '—'],
+                ].map(([label, value]) => (
+                  <li key={label} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                    <span className="text-gray-600">{label}</span>
+                    <span className="font-medium text-gray-900">{value}</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </div>
+          <Card
+            title="System Alerts"
+            loading={loading}
+            action={<span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">{(data.systemAlerts || []).length}</span>}
+          >
+            {(data.systemAlerts || []).length === 0 ? (
+              <p className="flex items-center gap-2 px-5 py-8 text-sm text-emerald-700">
+                <CheckCircle2 size={16} /> No system issues detected.
+              </p>
+            ) : (
+              <ul className="divide-y divide-gray-50 px-4 py-2">
+                {data.systemAlerts.map((alert) => (
+                  <li key={alert.id} className="flex items-start gap-2.5 py-2.5">
+                    <AlertTriangle size={15} className={alert.tone === 'danger' ? 'mt-0.5 text-red-500' : 'mt-0.5 text-amber-500'} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-900">{alert.title}</p>
+                      <p className="text-[11px] text-gray-400">{alert.time}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </>
+      )}
+
+      {show(['Overview', 'Agencies', 'Finance']) && (
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
           {show(['Overview', 'Agencies']) && (
             <Card
@@ -418,7 +540,7 @@ export default function Dashboard() {
                 </div>
               </Card>
             )}
-            {show(['Overview', 'Operations']) && (
+            {show(['Overview']) && (
               <Card title="Platform Tasks" loading={loading}>
                 <ul className="divide-y divide-gray-50 px-2 py-1">
                   {(data.tasks || []).map((task) => (

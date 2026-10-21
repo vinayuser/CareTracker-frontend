@@ -2,6 +2,10 @@ const API_ROUTES = {
   LOGIN: '/auth/login',
   FORGOT_PASSWORD: '/auth/forgot-password',
   RESET_PASSWORD: '/auth/reset-password',
+  EMAIL: {
+    UNSUBSCRIBE: '/email/unsubscribe',
+    PREFERENCES: '/email/preferences',
+  },
   ME: '/auth/me',
   UPDATE_PROFILE: '/auth/me',
   CHECK_LOGIN_ID: '/auth/check-login-id',

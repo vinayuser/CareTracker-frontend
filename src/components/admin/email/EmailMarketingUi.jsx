@@ -106,19 +106,37 @@ export function BlockView({ block }) {
     borderRadius: block.backgroundColor ? 8 : undefined,
     padding: block.backgroundColor ? '8px 10px' : undefined,
   };
-  if (block.type === 'heading') return <h3 className="text-lg font-semibold" style={style}>{block.text}</h3>;
-  if (block.type === 'text' || block.type === 'footer') return <p className="whitespace-pre-wrap" style={style}>{block.text}</p>;
+  if (block.type === 'heading') {
+    return <h3 className="text-lg font-semibold leading-snug" style={style}>{block.text || 'Heading'}</h3>;
+  }
+  if (block.type === 'text' || block.type === 'footer') {
+    return <p className="whitespace-pre-wrap leading-relaxed" style={style}>{block.text || 'Paragraph'}</p>;
+  }
   if (block.type === 'image') {
     return block.url
-      ? <img src={block.url} alt="" className="max-h-40 w-full rounded-lg object-cover" style={{ backgroundColor: block.backgroundColor }} />
+      ? (
+        <div style={{ textAlign: block.align || 'left' }}>
+          <img
+            src={block.url}
+            alt=""
+            className="inline-block max-h-56 max-w-full rounded-lg object-contain"
+            style={{ backgroundColor: block.backgroundColor }}
+          />
+        </div>
+      )
       : <p className="text-xs text-gray-400" style={style}>Image</p>;
   }
   if (block.type === 'divider') return <hr style={{ borderColor: block.color || '#e2e8f0' }} />;
   if (block.type === 'button' || block.type === 'cta') {
     return (
-      <span className="inline-flex rounded-lg px-3 py-2 text-sm font-semibold" style={{ backgroundColor: block.buttonColor || '#2563eb', color: block.color || '#ffffff', textAlign: block.align }}>
-        {block.text || 'Button'}
-      </span>
+      <div style={{ textAlign: block.align || 'left' }}>
+        <span
+          className="inline-flex rounded-lg px-3 py-2 text-sm font-semibold"
+          style={{ backgroundColor: block.buttonColor || '#2563eb', color: block.color || '#ffffff' }}
+        >
+          {block.text || 'Button'}
+        </span>
+      </div>
     );
   }
   return null;

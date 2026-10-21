@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Download, Upload } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { MarketingTabs, PageHeader, StatusPill, fieldClass, labelClass } from '../../../components/admin/email/EmailMarketingUi';
 import { importContacts, listLists, validateImportRows } from '../../../services/emailMarketingStore';
@@ -52,11 +53,16 @@ export default function ImportContacts() {
 
       {step === 0 ? (
         <div className="space-y-4">
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
-              <div>
-                <p className="text-sm font-semibold text-gray-900">CSV column schema</p>
-                <p className="text-xs text-gray-500">Use these exact column names in the first row.</p>
+          <div className="overflow-hidden rounded-xl border-2 border-sky-300 bg-sky-50 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-sky-200 bg-sky-100 px-4 py-3">
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-600 text-white">
+                  <Download size={16} />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-sky-950">Download sample CSV</p>
+                  <p className="text-xs text-sky-800">Use these exact column names in the first row.</p>
+                </div>
               </div>
               <button
                 type="button"
@@ -69,15 +75,16 @@ export default function ImportContacts() {
                   link.click();
                   URL.revokeObjectURL(url);
                 }}
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-700"
               >
+                <Download size={14} />
                 Download sample CSV
               </button>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto bg-white">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+                  <tr className="border-b bg-sky-50 text-xs uppercase tracking-wide text-sky-800">
                     <th className="px-4 py-3">Column</th>
                     <th className="px-4 py-3">Required</th>
                     <th className="px-4 py-3">Example</th>
@@ -97,9 +104,12 @@ export default function ImportContacts() {
               </table>
             </div>
           </div>
-          <label className="flex cursor-pointer flex-col items-center rounded-xl border border-dashed border-gray-300 bg-white px-6 py-10 text-center shadow-sm">
-            <span className="text-sm font-semibold text-gray-900">Upload CSV or XLSX</span>
-            <span className="mt-1 text-xs text-gray-500">The first row must match the schema. Excel uses the first sheet.</span>
+          <label className="flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed border-emerald-400 bg-emerald-50 px-6 py-10 text-center shadow-sm hover:border-emerald-500 hover:bg-emerald-100/70">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600 text-white">
+              <Upload size={22} />
+            </span>
+            <span className="mt-3 text-sm font-semibold text-emerald-950">Import contacts</span>
+            <span className="mt-1 text-xs text-emerald-800">Upload a CSV or XLSX. The first row must match the schema. Excel uses the first sheet.</span>
             <input type="file" accept=".csv,.txt,.xlsx" className="mt-4 text-sm" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
             {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
           </label>

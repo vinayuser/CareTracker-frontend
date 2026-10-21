@@ -580,6 +580,7 @@ export default function AdminSchedules() {
       createdAt: src.createdAt || caregiver?.createdAt || null,
       agencyName: src.agencyName || caregiver?.agencyName || agencyLabel || '',
       source_job_title: src.source_job_title || '',
+      clients: src.clients || caregiver?.clients || [],
     };
   };
 
@@ -591,7 +592,12 @@ export default function AdminSchedules() {
     try {
       const res = await axiosInstance.get(`${API_ROUTES.ADMIN.CAREGIVERS.OVERVIEW}/${caregiver.id}/overview`);
       const data = res.data?.data;
-      if (data?.caregiver) setViewCaregiver(toViewModel(caregiver, data.caregiver));
+      if (data?.caregiver) {
+        setViewCaregiver(toViewModel(caregiver, {
+          ...data.caregiver,
+          clients: data.clients || [],
+        }));
+      }
     } catch {
       /* keep list/header details */
     }

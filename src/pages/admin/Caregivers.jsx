@@ -281,6 +281,8 @@ export default function AdminCaregivers() {
       profilePic: src.profilePic || caregiver?.profilePic || '',
       createdAt: src.createdAt || caregiver?.createdAt || null,
       agencyName: src.agencyName || caregiver?.agencyName || '',
+      source_job_title: src.source_job_title || caregiver?.source_job_title || '',
+      clients: src.clients || caregiver?.clients || [],
     };
   };
 
@@ -307,7 +309,12 @@ export default function AdminCaregivers() {
       const data = res.data?.data;
       if (data) {
         setOverview(data);
-        if (data.caregiver) setViewCaregiver(toViewModel(caregiver, data.caregiver));
+        if (data.caregiver) {
+          setViewCaregiver(toViewModel(caregiver, {
+            ...data.caregiver,
+            clients: data.clients || [],
+          }));
+        }
       }
     } catch {
       /* keep list row details */

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Building2,
@@ -175,6 +175,8 @@ export default function Agencies() {
     detailStatus,
   } = useSelector((state) => state.agencies);
   const { list: plans } = useSelector((state) => state.subscriptionPlans);
+  const [searchParams] = useSearchParams();
+  const queryAgencyId = searchParams.get('id') || '';
   const [selectedId, setSelectedId] = useState('');
   const [detailTab, setDetailTab] = useState('overview');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -207,10 +209,15 @@ export default function Agencies() {
       dispatch(clearSelectedAgency());
       return;
     }
-    if (!selectedId || !options.some((a) => a.id === selectedId)) {
-      setSelectedId(options[0].id);
+    if (queryAgencyId && options.some((a) => a.id === queryAgencyId)) {
+      setSelectedId(queryAgencyId);
+      return;
     }
-  }, [options, selectedId, dispatch]);
+    setSelectedId((current) => {
+      if (current && options.some((a) => a.id === current)) return current;
+      return options[0].id;
+    });
+  }, [options, queryAgencyId, dispatch]);
 
   useEffect(() => {
     if (!selectedId) {

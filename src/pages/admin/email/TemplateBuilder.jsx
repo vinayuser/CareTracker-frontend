@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { ROUTES } from '../../../routes/routes';
 import EmailDesigner from '../../../components/admin/email/EmailDesigner';
-import { fieldClass, labelClass } from '../../../components/admin/email/EmailMarketingUi';
+import { StatusPill, fieldClass, labelClass } from '../../../components/admin/email/EmailMarketingUi';
 import { getTemplate, saveTemplate } from '../../../services/emailMarketingStore';
 
 const SAMPLE = {
@@ -42,16 +42,24 @@ function TemplateBuilderForm({ templateId }) {
       toast.error('Add a template name and subject');
       return;
     }
-    const saved = saveTemplate(form, status);
-    setForm(saved);
-    toast.success(status === 'Draft' ? 'Draft saved' : 'Template published');
-    navigate(ROUTES.ADMIN_EMAIL_TEMPLATE_EDIT.replace(':id', saved.id), { replace: true });
+    try {
+      const saved = saveTemplate(form, status);
+      setForm(saved);
+      toast.success(status === 'Draft' ? 'Draft saved' : 'Template published');
+      const nextPath = ROUTES.ADMIN_EMAIL_TEMPLATE_EDIT.replace(':id', saved.id);
+      if (templateId !== saved.id) navigate(nextPath, { replace: true });
+    } catch (err) {
+      toast.error(err?.message || 'Could not save the template. Try a smaller image.');
+    }
   };
 
   return (
     <div className="space-y-5">
       <Link to={ROUTES.ADMIN_EMAIL_TEMPLATES} className="text-sm font-medium text-primary">Back to templates</Link>
-      <h1 className="text-2xl font-bold text-gray-900">{templateId ? 'Edit template' : 'Create template'}</h1>
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-bold text-gray-900">{templateId ? 'Edit template' : 'Create template'}</h1>
+        <StatusPill status={form.status || 'Draft'} />
+      </div>
       <button
         type="button"
         onClick={() => {
@@ -97,23 +105,13 @@ function TemplateBuilderForm({ templateId }) {
         >
           Save draft
         </button>
-        {isPublished ? (
-          <button
-            type="button"
-            disabled
-            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-default"
-          >
-            Published
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => persist('Published')}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
-          >
-            Publish
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => persist('Published')}
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
+        >
+          {isPublished ? 'Save published' : 'Publish'}
+        </button>
       </div>
     </div>
   );

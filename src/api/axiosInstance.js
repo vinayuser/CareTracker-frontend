@@ -48,7 +48,8 @@ const clearSessionAndRedirect = async () => {
     || path === ROUTES.FORGOT_PASSWORD
     || path === ROUTES.RESET_PASSWORD
     || path.startsWith('/register')
-    || path.startsWith('/candidate');
+    || path.startsWith('/candidate')
+    || path.startsWith('/email/');
 
   if (!isPublic && typeof window !== 'undefined') {
     window.location.assign(ROUTES.LOGIN);

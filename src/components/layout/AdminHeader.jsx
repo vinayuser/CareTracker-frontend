@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import {
-  CheckSquare,
+  Building2,
   ChevronDown,
-  MessageSquare,
+  LayoutGrid,
   PanelLeft,
   Plus,
   Search,
@@ -13,6 +14,7 @@ import UserMenuDropdown from './UserMenuDropdown';
 import NotificationBell from '../notifications/NotificationBell';
 import { ADMIN_NAV_ITEMS } from '../../routes/adminNav';
 import { ROUTES } from '../../routes/routes';
+import { fetchAgencyOptions } from '../../redux/slices/agencySlice';
 
 const QUICK_CREATE = [
   { label: 'Send Invitation', to: ROUTES.ADMIN_INVITATIONS, state: { openSendDrawer: true } },
@@ -21,6 +23,8 @@ const QUICK_CREATE = [
 
 export default function AdminHeader({ collapsed, onToggleSidebar }) {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const agencyOptions = useSelector((state) => state.agencies.options || []);
   const [query, setQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
@@ -28,11 +32,19 @@ export default function AdminHeader({ collapsed, onToggleSidebar }) {
   const quickRef = useRef(null);
   const inputRef = useRef(null);
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
+  const q = query.trim().toLowerCase();
+
+  const pageResults = useMemo(() => {
     if (!q) return ADMIN_NAV_ITEMS.slice(0, 8);
     return ADMIN_NAV_ITEMS.filter((item) => item.label.toLowerCase().includes(q)).slice(0, 8);
-  }, [query]);
+  }, [q]);
+
+  const agencyResults = useMemo(() => {
+    if (!q) return [];
+    return agencyOptions
+      .filter((agency) => String(agency.name || '').toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [q, agencyOptions]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -58,6 +70,17 @@ export default function AdminHeader({ collapsed, onToggleSidebar }) {
     document.addEventListener('mousedown', onPointer);
     return () => document.removeEventListener('mousedown', onPointer);
   }, []);
+
+  useEffect(() => {
+    if (searchOpen) dispatch(fetchAgencyOptions());
+  }, [searchOpen, dispatch]);
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setQuery('');
+  };
+
+  const hasResults = agencyResults.length > 0 || pageResults.length > 0;
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-4 border-b border-gray-200 bg-white px-5">
@@ -101,23 +124,60 @@ export default function AdminHeader({ collapsed, onToggleSidebar }) {
         </kbd>
         {searchOpen && (
           <div className="absolute z-30 mt-1.5 w-full overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
-            {results.length === 0 ? (
-              <p className="px-3 py-2.5 text-sm text-gray-500">No matching pages</p>
+            {!hasResults ? (
+              <p className="px-3 py-2.5 text-sm text-gray-500">
+                {q ? 'No matching agencies or pages' : 'No matching pages'}
+              </p>
             ) : (
-              results.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => {
-                    navigate(ROUTES[item.key]);
-                    setSearchOpen(false);
-                    setQuery('');
-                  }}
-                  className="flex w-full items-center px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  {item.label}
-                </button>
-              ))
+              <>
+                {agencyResults.length > 0 && (
+                  <div>
+                    <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                      Agencies
+                    </p>
+                    {agencyResults.map((agency) => (
+                      <button
+                        key={agency.id}
+                        type="button"
+                        onClick={() => {
+                          navigate(`${ROUTES.ADMIN_AGENCIES}?id=${encodeURIComponent(agency.id)}`);
+                          closeSearch();
+                        }}
+                        className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        <Building2 size={14} className="shrink-0 text-gray-400" />
+                        <span className="min-w-0 flex-1 truncate font-medium">{agency.name}</span>
+                        {agency.status ? (
+                          <span className="shrink-0 text-[11px] text-gray-400">{agency.status}</span>
+                        ) : null}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {pageResults.length > 0 && (
+                  <div>
+                    {agencyResults.length > 0 && (
+                      <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                        Pages
+                      </p>
+                    )}
+                    {pageResults.map((item) => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => {
+                          navigate(ROUTES[item.key]);
+                          closeSearch();
+                        }}
+                        className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        <LayoutGrid size={14} className="shrink-0 text-gray-400" />
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

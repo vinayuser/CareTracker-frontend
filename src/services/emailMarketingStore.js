@@ -35,8 +35,8 @@ function seed() {
       replyTo: 'support@caretraker.com',
       domain: 'caretraker.com',
       domainStatus: 'Pending',
-      unsubscribeUrl: 'https://caretraker.com/email/unsubscribe',
-      preferencesUrl: 'https://caretraker.com/email/preferences',
+      unsubscribeUrl: '/email/unsubscribe',
+      preferencesUrl: '/email/preferences',
       footer: 'CareTracker helps agencies coordinate care. This message is a product or marketing update, not a clinical record.',
       suppression: ['bounce@example.com', 'left@example.com'],
     },
@@ -225,7 +225,12 @@ function load() {
 }
 
 function save(data) {
-  localStorage.setItem(KEY, JSON.stringify(data));
+  try {
+    localStorage.setItem(KEY, JSON.stringify(data));
+  } catch (err) {
+    const quota = err?.name === 'QuotaExceededError' || err?.code === 22;
+    throw new Error(quota ? 'This template is too large to save. Use a smaller image.' : (err?.message || 'Could not save.'));
+  }
   return data;
 }
 
@@ -530,6 +535,16 @@ const escapeHtml = (value) => String(value ?? '')
   .replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;');
 
+const withEmailParam = (url, fallbackPath) => {
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://caretraker.com';
+  let href = String(url || fallbackPath || '').trim() || fallbackPath;
+  if (href.startsWith('/')) href = `${origin}${href}`;
+  if (!/^https?:\/\//i.test(href)) href = `${origin}/${href.replace(/^\/+/, '')}`;
+  const joiner = href.includes('?') ? '&' : '?';
+  if (/[?&]email=/i.test(href)) return href;
+  return `${href}${joiner}email=*|EMAIL|*`;
+};
+
 export function audienceRecipients(audience, platformUsers = null) {
   const preview = audience?.kind === 'leads'
     ? previewLeadAudience(audience)
@@ -549,8 +564,10 @@ export function campaignHtml(content = {}) {
     if (block.type === 'text' || block.type === 'footer') {
       return `<p style="margin:0 0 12px;color:${color};text-align:${align}">${escapeHtml(block.text)}</p>`;
     }
-    if (block.type === 'image' && block.url && !String(block.url).startsWith('data:')) {
-      return `<p style="text-align:${align}"><img src="${escapeHtml(block.url)}" alt="" style="max-width:100%;border-radius:8px" /></p>`;
+    if (block.type === 'image' && block.url) {
+      const src = String(block.url);
+      const safeSrc = src.startsWith('data:') ? src : escapeHtml(src);
+      return `<p style="text-align:${align};margin:0 0 16px"><img src="${safeSrc}" alt="" style="max-width:100%;height:auto;border-radius:8px;display:block" /></p>`;
     }
     if (block.type === 'divider') return '<hr style="border:none;border-top:1px solid #e2e8f0;margin:16px 0" />';
     if (block.type === 'button' || block.type === 'cta') {
@@ -558,7 +575,7 @@ export function campaignHtml(content = {}) {
     }
     return '';
   }).join('');
-  const footer = `<p style="margin-top:28px;font-size:12px;color:#94a3b8">${escapeHtml(settings.footer || '')}<br/><a href="${escapeHtml(settings.unsubscribeUrl || '#')}">Unsubscribe</a> · <a href="${escapeHtml(settings.preferencesUrl || '#')}">Manage preferences</a></p>`;
+  const footer = `<p style="margin-top:28px;font-size:12px;color:#94a3b8">${escapeHtml(settings.footer || '')}<br/><a href="${escapeHtml(withEmailParam(settings.unsubscribeUrl, '/email/unsubscribe'))}">Unsubscribe</a> · <a href="${escapeHtml(withEmailParam(settings.preferencesUrl, '/email/preferences'))}">Manage preferences</a></p>`;
   return `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:${content.backgroundColor || '#ffffff'};font-family:Arial,sans-serif">${body}${footer}</body></html>`;
 }
 

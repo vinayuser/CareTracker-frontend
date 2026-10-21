@@ -12,6 +12,8 @@ export const ROUTES = {
   LOGIN: '/login',
   FORGOT_PASSWORD: '/forgot-password',
   RESET_PASSWORD: '/reset-password',
+  EMAIL_UNSUBSCRIBE: '/email/unsubscribe',
+  EMAIL_PREFERENCES: '/email/preferences',
 
   ADMIN_PREFIX: '/admin',
   AGENCY_PREFIX: '/agency',

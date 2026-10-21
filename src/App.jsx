@@ -38,6 +38,8 @@ import TemplateBuilder from './pages/admin/email/TemplateBuilder';
 import ListsSegments from './pages/admin/email/ListsSegments';
 import ImportContacts from './pages/admin/email/ImportContacts';
 import MarketingSettings from './pages/admin/email/MarketingSettings';
+import Unsubscribe from './pages/email/Unsubscribe';
+import EmailPreferences from './pages/email/Preferences';
 import Reports from './pages/admin/Reports';
 import AuditLogs from './pages/admin/AuditLogs';
 import Settings from './pages/admin/Settings';
@@ -190,6 +192,9 @@ export default function App() {
         />
 
         <Route path={ROUTES.REGISTRATION_ENTRY} element={<RegisterEntry />} />
+
+        <Route path={ROUTES.EMAIL_UNSUBSCRIBE} element={<Unsubscribe />} />
+        <Route path={ROUTES.EMAIL_PREFERENCES} element={<EmailPreferences />} />
 
         <Route path={ROUTES.CANDIDATE_FORM_PORTAL} element={<CandidateFormPortal />} />
         <Route path={ROUTES.CANDIDATE_FORM_DOCUMENT} element={<CandidateDocumentForm />} />

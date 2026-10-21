@@ -43,6 +43,14 @@ export default function ViewCaregiverDrawer({ open, onClose, caregiver }) {
           <Row label="Status" value={caregiver.status} />
           <Row label="Hired for job" value={caregiver.source_job_title} />
           <Row
+            label="Assigned clients"
+            value={
+              Array.isArray(caregiver.clients) && caregiver.clients.length
+                ? caregiver.clients.map((client) => client.name || client.fullName).filter(Boolean).join(', ')
+                : ''
+            }
+          />
+          <Row
             label="Added"
             value={
               caregiver.createdAt

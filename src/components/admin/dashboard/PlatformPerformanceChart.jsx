@@ -1,6 +1,9 @@
 const W = 760;
 const H = 280;
 const PAD = { l: 52, r: 64, t: 18, b: 32 };
+const COLOR_REVENUE = '#2563EB';
+const COLOR_AGENCIES = '#F59E0B';
+const COLOR_VISITS = '#16A34A';
 
 function niceMax(raw, fallback = 4) {
   const v = Number(raw) || 0;
@@ -67,13 +70,13 @@ export default function PlatformPerformanceChart({ series = [] }) {
           <h2 className="text-[15px] font-semibold text-gray-900">Platform Performance Overview</h2>
           <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-gray-500">
             <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-2.5 rounded-[3px] bg-[#5B7CFA]" /> Revenue (USD)
+              <span className="h-2.5 w-2.5 rounded-[3px]" style={{ backgroundColor: COLOR_REVENUE }} /> Revenue (USD)
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="h-2 w-4 border-t-2 border-[#7C5CFC]" /> Agency Growth
+              <span className="h-2 w-4 border-t-2" style={{ borderColor: COLOR_AGENCIES }} /> Agency Growth
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="h-2 w-4 border-t-2 border-[#22C55E]" /> Visits Completed
+              <span className="h-2 w-4 border-t-2" style={{ borderColor: COLOR_VISITS }} /> Visits Completed
             </span>
           </div>
         </div>
@@ -88,10 +91,10 @@ export default function PlatformPerformanceChart({ series = [] }) {
               <text x={PAD.l - 8} y={y + 3} textAnchor="end" className="fill-gray-400 text-[10px]">
                 {formatAxisMoney((revMax / 4) * tick)}
               </text>
-              <text x={W - PAD.r + 8} y={y + 3} className="fill-[#7C5CFC] text-[10px]">
+              <text x={W - PAD.r + 8} y={y + 3} className="text-[10px]" fill={COLOR_AGENCIES}>
                 {formatAxisCount((agencyMax / 4) * tick)}
               </text>
-              <text x={W - 8} y={y + 3} textAnchor="end" className="fill-[#22C55E] text-[10px]">
+              <text x={W - 8} y={y + 3} textAnchor="end" className="text-[10px]" fill={COLOR_VISITS}>
                 {formatAxisCount((claimsMax / 4) * tick)}
               </text>
             </g>
@@ -109,19 +112,19 @@ export default function PlatformPerformanceChart({ series = [] }) {
               width={barW}
               height={Math.max(4, h)}
               rx="4"
-              fill="#5B7CFA"
+              fill={COLOR_REVENUE}
             />
           );
         })}
 
-        <path d={linePath(agencies, agencyMax)} fill="none" stroke="#7C5CFC" strokeWidth="2.5" strokeLinejoin="round" />
-        <path d={linePath(claims, claimsMax)} fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinejoin="round" />
+        <path d={linePath(agencies, agencyMax)} fill="none" stroke={COLOR_AGENCIES} strokeWidth="2.5" strokeLinejoin="round" />
+        <path d={linePath(claims, claimsMax)} fill="none" stroke={COLOR_VISITS} strokeWidth="2.5" strokeLinejoin="round" />
 
         {agencies.map((v, i) => (
-          <circle key={`a-${i}`} cx={xAt(i, n)} cy={yAt(v, agencyMax)} r="4" fill="#fff" stroke="#7C5CFC" strokeWidth="2.25" />
+          <circle key={`a-${i}`} cx={xAt(i, n)} cy={yAt(v, agencyMax)} r="4" fill="#fff" stroke={COLOR_AGENCIES} strokeWidth="2.25" />
         ))}
         {claims.map((v, i) => (
-          <circle key={`c-${i}`} cx={xAt(i, n)} cy={yAt(v, claimsMax)} r="4" fill="#fff" stroke="#22C55E" strokeWidth="2.25" />
+          <circle key={`c-${i}`} cx={xAt(i, n)} cy={yAt(v, claimsMax)} r="4" fill="#fff" stroke={COLOR_VISITS} strokeWidth="2.25" />
         ))}
 
         {data.map((d, i) => (

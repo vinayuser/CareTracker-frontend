@@ -1,7 +1,8 @@
-import { GripVertical, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { GripVertical, ImagePlus, Trash2, Upload } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { BlockView, fieldClass, labelClass } from './EmailMarketingUi';
-import { getImageUploadError, MAX_IMAGE_UPLOAD_LABEL } from '../../../utils/imageUploadValidation';
+import { getImageUploadError, IMAGE_UPLOAD_HINT } from '../../../utils/imageUploadValidation';
 
 const PALETTE = [
   { type: 'heading', label: 'Title', text: 'Your headline' },
@@ -39,6 +40,66 @@ function readImageFile(file) {
     reader.onerror = () => reject(new Error('Could not read that image'));
     reader.readAsDataURL(file);
   });
+}
+
+function ImageUploadField({ url, onUpload, onClear }) {
+  const [dragging, setDragging] = useState(false);
+
+  const takeFile = (file) => {
+    if (!file) return;
+    readImageFile(file).then(onUpload).catch((err) => toast.error(err.message));
+  };
+
+  return (
+    <div>
+      <span className={labelClass}>Image</span>
+      <label
+        onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(event) => {
+          event.preventDefault();
+          setDragging(false);
+          takeFile(event.dataTransfer.files?.[0]);
+        }}
+        className={`block cursor-pointer overflow-hidden rounded-xl border-2 border-dashed transition ${
+          dragging ? 'border-primary bg-primary/5' : 'border-slate-200 bg-slate-50 hover:border-primary/40 hover:bg-white'
+        }`}
+      >
+        {url ? (
+          <span className="block">
+            <img src={url} alt="" className="h-28 w-full object-cover" />
+            <span className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-primary">
+              <Upload size={13} /> Change image
+            </span>
+          </span>
+        ) : (
+          <span className="flex flex-col items-center gap-1.5 px-3 py-6 text-center">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-primary shadow-sm ring-1 ring-slate-200">
+              <ImagePlus size={18} />
+            </span>
+            <span className="text-sm font-semibold text-slate-800">Upload image</span>
+            <span className="text-[11px] leading-snug text-slate-500">Click or drop a file here</span>
+            <span className="text-[11px] text-slate-400">{IMAGE_UPLOAD_HINT}</span>
+          </span>
+        )}
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = '';
+            takeFile(file);
+          }}
+        />
+      </label>
+      {url ? (
+        <button type="button" onClick={onClear} className="mt-2 text-xs font-semibold text-rose-600 hover:underline">
+          Remove image
+        </button>
+      ) : null}
+    </div>
+  );
 }
 
 export default function EmailDesigner({ blocks = [], backgroundColor = '#ffffff', selectedId, onChange }) {
@@ -153,22 +214,11 @@ export default function EmailDesigner({ blocks = [], backgroundColor = '#ffffff'
               </label>
             ) : null}
             {selected.type === 'image' ? (
-              <label className="block">
-                <span className={labelClass}>Upload image</span>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  className="block w-full text-sm"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    const id = selected.id;
-                    event.target.value = '';
-                    if (!file) return;
-                    readImageFile(file).then((url) => patch(id, { url })).catch((err) => toast.error(err.message));
-                  }}
-                />
-                <span className="mt-1 block text-xs text-gray-500">Max {MAX_IMAGE_UPLOAD_LABEL}</span>
-              </label>
+              <ImageUploadField
+                url={selected.url}
+                onUpload={(url) => patch(selected.id, { url })}
+                onClear={() => patch(selected.id, { url: '' })}
+              />
             ) : null}
             {(selected.type === 'button') ? (
               <label className="block">

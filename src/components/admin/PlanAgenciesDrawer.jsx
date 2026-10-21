@@ -44,7 +44,7 @@ export default function PlanAgenciesDrawer({ open, onClose, plan, agencies }) {
                     <span>Location: {[agency.city, agency.state].filter(Boolean).join(', ') || '—'}</span>
                     <span>Registered: {formatAgencyDate(agency.registeredAt)}</span>
                     <span>
-                      Usage: {agency.usage.clients} clients, {agency.usage.caregivers} caregivers
+                      Usage: {agency.usage?.clients ?? 0} clients, {agency.usage?.caregivers ?? 0} caregivers
                     </span>
                   </div>
                 </li>

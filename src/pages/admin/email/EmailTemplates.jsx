@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Archive, Copy, Eye, Pencil, Plus, Search } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { ROUTES } from '../../../routes/routes';
-import { MarketingTabs, PageHeader, StatusPill } from '../../../components/admin/email/EmailMarketingUi';
+import { EmailPreview, MarketingTabs, PageHeader, StatusPill } from '../../../components/admin/email/EmailMarketingUi';
 import { archiveTemplate, duplicateTemplate, listTemplates } from '../../../services/emailMarketingStore';
 import { confirmAlert } from '../../../utils/swal';
 
@@ -94,14 +94,12 @@ export default function EmailTemplates() {
         </div>
         <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
           {preview ? (
-            <div className="rounded-lg bg-white p-4 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{preview.category}</p>
-              <h3 className="mt-1 text-base font-semibold text-gray-900">{preview.subject}</h3>
-              {(preview.blocks || []).map((block) => (
-                <p key={block.id} className="mt-2">{block.text || block.type}</p>
-              ))}
-              <p className="mt-4 border-t border-gray-100 pt-3 text-[11px] text-gray-400">Unsubscribe · Manage preferences</p>
-            </div>
+            <EmailPreview
+              blocks={preview.blocks}
+              backgroundColor={preview.backgroundColor}
+              subject={preview.subject}
+              previewText={preview.name}
+            />
           ) : <p>Select Preview on a template to see its content.</p>}
         </div>
       </div>
