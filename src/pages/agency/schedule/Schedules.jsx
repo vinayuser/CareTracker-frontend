@@ -389,7 +389,10 @@ export default function Schedules() {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         schedule={editing}
-        onSaved={loadMonth}
+        onSaved={() => {
+          setSelectedVisit(null);
+          loadMonth();
+        }}
       />
       <CoverCaregiverModal
         open={coverOpen}

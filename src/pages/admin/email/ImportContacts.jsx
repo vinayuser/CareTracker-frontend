@@ -1,14 +1,19 @@
-import { useState } from 'react';
-import { Download, Upload } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Download, Search, Trash2, Upload } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { MarketingTabs, PageHeader, StatusPill, fieldClass, labelClass } from '../../../components/admin/email/EmailMarketingUi';
-import { importContacts, listLists, validateImportRows } from '../../../services/emailMarketingStore';
+import { confirmAlert } from '../../../utils/swal';
+import { deleteContact, importContacts, listContacts, listLists, validateImportRows } from '../../../services/emailMarketingStore';
 import { CSV_SCHEMA, IMPORT_FIELDS, applyMapping, guessMapping, readTabularFile, sampleCsv } from '../../../services/spreadsheetImport';
 
 const STEPS = ['Upload', 'Map Columns', 'Validate', 'Import'];
 
 export default function ImportContacts() {
+  const [version, setVersion] = useState(0);
   const lists = listLists();
+  const contacts = listContacts();
+  void version;
+  const [contactQuery, setContactQuery] = useState('');
   const [step, setStep] = useState(0);
   const [headers, setHeaders] = useState([]);
   const [rawRows, setRawRows] = useState([]);
@@ -30,6 +35,29 @@ export default function ImportContacts() {
     } catch (err) {
       setError(err.message || 'Could not read that file');
     }
+  };
+
+  const listName = (id) => lists.find((list) => list.id === id)?.name || '—';
+  const visibleContacts = useMemo(() => {
+    const q = contactQuery.trim().toLowerCase();
+    if (!q) return contacts;
+    return contacts.filter((contact) => [contact.email, contact.firstName, contact.lastName, contact.company]
+      .join(' ')
+      .toLowerCase()
+      .includes(q));
+  }, [contacts, contactQuery]);
+
+  const removeContact = async (contact) => {
+    const confirmed = await confirmAlert({
+      title: 'Delete this contact?',
+      text: `${contact.email} will be removed from the contact list and will not be included in future campaigns.`,
+      confirmText: 'Delete',
+      danger: true,
+    });
+    if (!confirmed) return;
+    deleteContact(contact.id);
+    setVersion((n) => n + 1);
+    toast.success('Contact deleted');
   };
 
   const counts = {
@@ -186,6 +214,7 @@ export default function ImportContacts() {
                 const imported = importContacts({ rows: validated.filter((row) => row.eligible || (duplicateMode === 'update' && row.duplicate && row.consentStatus === 'Consented')), listId, duplicateMode });
                 setResult(imported);
                 setStep(3);
+                setVersion((n) => n + 1);
                 toast.success('Import finished');
               }}
             >
@@ -202,6 +231,61 @@ export default function ImportContacts() {
           <p className="mt-2 text-gray-500">Only consented contacts were added to campaign-eligible audiences.</p>
         </div>
       ) : null}
+
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Contact list</p>
+            <p className="text-xs text-gray-500">Delete individual emails without removing the whole import.</p>
+          </div>
+          <div className="relative min-w-[220px] flex-1 max-w-sm">
+            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              value={contactQuery}
+              onChange={(e) => setContactQuery(e.target.value)}
+              placeholder="Search email or name"
+              className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm outline-none focus:border-primary"
+            />
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+                <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3">Email</th>
+                <th className="px-4 py-3">List</th>
+                <th className="px-4 py-3">Consent</th>
+                <th className="px-4 py-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {visibleContacts.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-gray-500">No contacts match this search.</td>
+                </tr>
+              ) : visibleContacts.map((contact) => (
+                <tr key={contact.id}>
+                  <td className="px-4 py-3 font-medium text-gray-900">{[contact.firstName, contact.lastName].filter(Boolean).join(' ') || '—'}</td>
+                  <td className="px-4 py-3 text-gray-700">{contact.email}</td>
+                  <td className="px-4 py-3 text-gray-600">{listName(contact.listId)}</td>
+                  <td className="px-4 py-3">{contact.consentStatus || '—'}</td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => removeContact(contact)}
+                      className="inline-flex items-center gap-1 text-sm font-semibold text-rose-600 hover:text-rose-700"
+                    >
+                      <Trash2 size={14} />
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

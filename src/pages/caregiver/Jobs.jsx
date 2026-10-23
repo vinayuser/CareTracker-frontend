@@ -310,7 +310,9 @@ export default function CaregiverJobs() {
                       : visit.approvalStatus === 'Rejected'
                         ? 'Rejected'
                         : (visit.lateCheckIn ? 'Pending (Late)' : 'Pending Approval'))
-                    : (visit.lateCheckIn && visit.checkInAt ? 'Late / In Progress' : visit.status);
+                    : visit.status === 'Leave'
+                      ? (visit.leaveLabel || (visit.leaveSource === 'holiday' ? 'Holiday' : 'Leave'))
+                      : (visit.lateCheckIn && visit.checkInAt ? 'Late / In Progress' : visit.status);
 
                   return (
                     <div
@@ -353,6 +355,11 @@ export default function CaregiverJobs() {
                           {visit.latestCheckInAt ? ` · On-time until ${formatTime(visit.latestCheckInAt, visit.timezone)}` : ''}
                           {lateUntil ? ` · Late allowed until ${formatTime(lateUntil, visit.timezone)}` : ''}
                         </p>
+                        {visit.status === 'Leave' && (
+                          <p className="mt-2 rounded-lg bg-violet-50 px-2 py-1.5 text-[11px] font-medium text-violet-800">
+                            {visit.clockBlockReason || visit.leaveLabel || 'This visit is marked as leave.'}
+                          </p>
+                        )}
                         {tooEarly && (
                           <p className="mt-2 rounded-lg bg-amber-50 px-2 py-1.5 text-[11px] font-medium text-amber-800">
                             Too early to clock in. Window opens at {formatTime(visit.earliestCheckInAt, visit.timezone)}.

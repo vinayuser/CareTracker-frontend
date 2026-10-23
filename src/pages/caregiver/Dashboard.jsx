@@ -25,6 +25,8 @@ const STATUS_STYLES = {
   Missed: 'bg-red-100 text-red-700',
   Late: 'bg-orange-100 text-orange-700',
   Cancelled: 'bg-gray-100 text-gray-600',
+  Leave: 'bg-violet-100 text-violet-700',
+  Holiday: 'bg-violet-100 text-violet-700',
 };
 
 function KpiCard({ label, children, icon: Icon, iconBg }) {

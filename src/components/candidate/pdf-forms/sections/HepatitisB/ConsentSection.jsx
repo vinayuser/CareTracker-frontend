@@ -45,7 +45,7 @@ const ConsentSection = ({
               className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
             />
             <label htmlFor="consent-to-vaccine" className="ml-3 block">
-              <span className="text-sm font-medium text-gray-700">I elect to receive the Hepatitis B vaccine.</span>
+              <span className="text-sm font-medium text-gray-700">I choose to receive the Hepatitis B vaccine.</span>
               <p className="mt-1 text-sm text-gray-600">
                 Select this option if you consent to receive the Hepatitis B vaccine series.
               </p>

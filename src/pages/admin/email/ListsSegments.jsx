@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { Trash2, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { MarketingTabs, PageHeader, fieldClass, labelClass } from '../../../components/admin/email/EmailMarketingUi';
 import { confirmAlert } from '../../../utils/swal';
@@ -10,6 +10,7 @@ import {
   deleteTag,
   contactsInList,
   contactsInSegment,
+  deleteContact,
   listLists,
   listSegments,
   listTags,
@@ -210,12 +211,19 @@ export default function ListsSegments() {
           </form>
         </div>
       ) : null}
-      <ContactEmailsModal popup={emailPopup} onClose={() => setEmailPopup(null)} />
+      <ContactEmailsModal
+        popup={emailPopup}
+        onClose={() => setEmailPopup(null)}
+        onDeleted={(id) => {
+          setEmailPopup((prev) => (prev ? { ...prev, people: (prev.people || []).filter((person) => person.id !== id) } : prev));
+          refresh();
+        }}
+      />
     </div>
   );
 }
 
-function ContactEmailsModal({ popup, onClose }) {
+function ContactEmailsModal({ popup, onClose, onDeleted }) {
   useEffect(() => {
     if (!popup) return undefined;
     const onKey = (event) => {
@@ -249,6 +257,25 @@ function ContactEmailsModal({ popup, onClose }) {
                   <span className="font-medium text-gray-900">{person.firstName} {person.lastName}</span>
                   <span className="text-gray-600">{person.email}</span>
                   <span className="text-gray-500">{person.consentStatus}</span>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 text-sm font-semibold text-rose-600 hover:text-rose-700"
+                    onClick={async () => {
+                      const confirmed = await confirmAlert({
+                        title: 'Delete this contact?',
+                        text: `${person.email} will be removed from the contact list.`,
+                        confirmText: 'Delete',
+                        danger: true,
+                      });
+                      if (!confirmed) return;
+                      deleteContact(person.id);
+                      toast.success('Contact deleted');
+                      onDeleted?.(person.id);
+                    }}
+                  >
+                    <Trash2 size={14} />
+                    Delete
+                  </button>
                 </li>
               ))}
             </ul>

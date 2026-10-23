@@ -323,6 +323,12 @@ export function listContacts() {
   return load().contacts;
 }
 
+export function deleteContact(id) {
+  const data = load();
+  data.contacts = data.contacts.filter((contact) => contact.id !== id);
+  save(data);
+}
+
 export function contactsInList(listId) {
   return load().contacts.filter((contact) => contact.listId === listId);
 }
@@ -535,13 +541,39 @@ const escapeHtml = (value) => String(value ?? '')
   .replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;');
 
-const withEmailParam = (url, fallbackPath) => {
+const hexColor = (value, fallback) => {
+  const raw = String(value || '').trim();
+  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw)) return raw;
+  return fallback;
+};
+
+const contrastOn = (background) => {
+  const hex = hexColor(background, '#2563eb').replace('#', '');
+  const full = hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex;
+  const n = parseInt(full, 16);
+  if (Number.isNaN(n)) return '#ffffff';
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq >= 150 ? '#0f172a' : '#ffffff';
+};
+
+const absoluteUrl = (url, fallbackPath = '') => {
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://caretraker.com';
   let href = String(url || fallbackPath || '').trim() || fallbackPath;
+  if (!href) return '';
   if (href.startsWith('/')) href = `${origin}${href}`;
-  if (!/^https?:\/\//i.test(href)) href = `${origin}/${href.replace(/^\/+/, '')}`;
+  if (!/^https?:\/\//i.test(href) && !href.startsWith('data:') && !href.startsWith('mailto:')) {
+    href = `${origin}/${href.replace(/^\/+/, '')}`;
+  }
+  return href;
+};
+
+const withEmailParam = (url, fallbackPath) => {
+  const href = absoluteUrl(url, fallbackPath);
+  if (!href || href.startsWith('data:') || /[?&]email=/i.test(href)) return href;
   const joiner = href.includes('?') ? '&' : '?';
-  if (/[?&]email=/i.test(href)) return href;
   return `${href}${joiner}email=*|EMAIL|*`;
 };
 
@@ -555,28 +587,37 @@ export function audienceRecipients(audience, platformUsers = null) {
 export function campaignHtml(content = {}) {
   const settings = getSettings();
   const blocks = content.blocks || [];
+  const canvas = hexColor(content.backgroundColor, '#ffffff');
   const body = blocks.map((block) => {
-    const color = block.color || '#0f172a';
-    const align = block.align || 'left';
+    const color = hexColor(block.color, '#0f172a');
+    const align = ['center', 'right'].includes(block.align) ? block.align : 'left';
     if (block.type === 'heading') {
-      return `<h1 style="margin:0 0 12px;font-size:24px;color:${color};text-align:${align}">${escapeHtml(block.text)}</h1>`;
+      return `<h1 style="margin:0 0 16px;font-size:24px;line-height:30px;font-family:Arial,Helvetica,sans-serif;color:${color};text-align:${align}">${escapeHtml(block.text || '')}</h1>`;
     }
     if (block.type === 'text' || block.type === 'footer') {
-      return `<p style="margin:0 0 12px;color:${color};text-align:${align}">${escapeHtml(block.text)}</p>`;
+      return `<p style="margin:0 0 16px;font-size:15px;line-height:22px;font-family:Arial,Helvetica,sans-serif;color:${color};text-align:${align}">${escapeHtml(block.text || '')}</p>`;
     }
-    if (block.type === 'image' && block.url) {
-      const src = String(block.url);
-      const safeSrc = src.startsWith('data:') ? src : escapeHtml(src);
-      return `<p style="text-align:${align};margin:0 0 16px"><img src="${safeSrc}" alt="" style="max-width:100%;height:auto;border-radius:8px;display:block" /></p>`;
+    if (block.type === 'image') {
+      const src = String(block.url || block.src || block.imageUrl || '');
+      if (!src) return '';
+      const safeSrc = src.startsWith('data:') ? src : escapeHtml(absoluteUrl(src));
+      const alt = escapeHtml(block.alt || block.text || 'Image');
+      return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 16px"><tr><td align="${align}"><img src="${safeSrc}" alt="${alt}" width="560" style="display:block;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;border-radius:8px" /></td></tr></table>`;
     }
-    if (block.type === 'divider') return '<hr style="border:none;border-top:1px solid #e2e8f0;margin:16px 0" />';
+    if (block.type === 'divider') {
+      return '<hr style="border:none;border-top:1px solid #e2e8f0;margin:16px 0" />';
+    }
     if (block.type === 'button' || block.type === 'cta') {
-      return `<p style="text-align:${align}"><a href="${escapeHtml(block.url || '#')}" style="display:inline-block;padding:12px 18px;background:${block.buttonColor || '#2563eb'};color:${block.color || '#ffffff'};text-decoration:none;border-radius:8px;font-weight:600">${escapeHtml(block.text || 'Open')}</a></p>`;
+      const href = escapeHtml(absoluteUrl(block.url, 'https://caretraker.com') || 'https://caretraker.com');
+      const label = escapeHtml(block.text || block.label || block.buttonText || 'Open');
+      const btnBg = hexColor(block.buttonColor, '#2563eb');
+      const btnText = contrastOn(btnBg);
+      return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="${align}" style="margin:0 0 16px"><tr><td align="center" bgcolor="${btnBg}" style="background-color:${btnBg};border-radius:8px"><a href="${href}" target="_blank" style="display:inline-block;padding:12px 22px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:18px;font-weight:700;color:${btnText};text-decoration:none">${label}</a></td></tr></table>`;
     }
     return '';
   }).join('');
-  const footer = `<p style="margin-top:28px;font-size:12px;color:#94a3b8">${escapeHtml(settings.footer || '')}<br/><a href="${escapeHtml(withEmailParam(settings.unsubscribeUrl, '/email/unsubscribe'))}">Unsubscribe</a> · <a href="${escapeHtml(withEmailParam(settings.preferencesUrl, '/email/preferences'))}">Manage preferences</a></p>`;
-  return `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:${content.backgroundColor || '#ffffff'};font-family:Arial,sans-serif">${body}${footer}</body></html>`;
+  const footer = `<p style="margin-top:28px;font-size:12px;line-height:18px;font-family:Arial,Helvetica,sans-serif;color:#64748b">${escapeHtml(settings.footer || '')}<br/><a href="${escapeHtml(withEmailParam(settings.unsubscribeUrl, '/email/unsubscribe'))}" style="color:#2563eb">Unsubscribe</a> · <a href="${escapeHtml(withEmailParam(settings.preferencesUrl, '/email/preferences'))}" style="color:#2563eb">Manage preferences</a></p>`;
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;background:${canvas}"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:${canvas}"><tr><td align="center" style="padding:24px"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:100%;max-width:600px;font-family:Arial,Helvetica,sans-serif;color:#0f172a">${body}${footer}</table></td></tr></table></body></html>`;
 }
 
 export function saveCampaign(input, mode = 'draft', delivery = null, platformUsers = null) {

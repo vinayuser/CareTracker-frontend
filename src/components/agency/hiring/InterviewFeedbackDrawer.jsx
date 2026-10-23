@@ -435,6 +435,7 @@ export default function InterviewFeedbackDrawer({
           [activeStageId]: { ...prev[activeStageId], ...form_data },
         }));
         onSaved?.();
+        if (status === 'Submitted') onClose?.();
       } catch (err) {
         toast.error(err.response?.data?.message || 'Failed to save feedback');
       }

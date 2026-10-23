@@ -17,6 +17,12 @@ const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-3 py-2.
 const labelClass = 'mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500';
 const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+function toHm(value) {
+  const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return value || '';
+  return `${String(match[1]).padStart(2, '0')}:${match[2]}`;
+}
+
 function Field({ label, children, className = '' }) {
   return (
     <div className={className}>
@@ -172,16 +178,16 @@ function CaregiverScheduleCard({
             <input
               type="time"
               className={inputClass}
-              value={card.start_time}
-              onChange={(e) => onChange(index, { start_time: e.target.value })}
+              value={toHm(card.start_time)}
+              onChange={(e) => onChange(index, { start_time: toHm(e.target.value) })}
             />
           </Field>
           <Field label="End time (local)">
             <input
               type="time"
               className={inputClass}
-              value={card.end_time}
-              onChange={(e) => onChange(index, { end_time: e.target.value })}
+              value={toHm(card.end_time)}
+              onChange={(e) => onChange(index, { end_time: toHm(e.target.value) })}
             />
           </Field>
           <Field label="Effective from">
@@ -286,8 +292,8 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
         recurrence_type: schedule.recurrenceType || 'Weekly',
         days_of_week: schedule.daysOfWeek || [],
         day_of_month: schedule.dayOfMonth || 1,
-        start_time: schedule.startTime || '09:00',
-        end_time: schedule.endTime || '11:00',
+        start_time: toHm(schedule.startTime) || '09:00',
+        end_time: toHm(schedule.endTime) || '11:00',
         grace_minutes: schedule.graceMinutes || 15,
         timezone: schedule.timezone || detectBrowserTimezone(),
         effective_from: schedule.effectiveFrom || new Date().toISOString().slice(0, 10),
@@ -421,8 +427,8 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
             recurrence_type: card.recurrence_type,
             days_of_week: card.recurrence_type === 'Weekly' ? card.days_of_week : [],
             day_of_month: card.recurrence_type === 'Monthly' ? Number(card.day_of_month) || 1 : null,
-            start_time: card.start_time,
-            end_time: card.end_time,
+            start_time: toHm(card.start_time),
+            end_time: toHm(card.end_time),
             grace_minutes: card.grace_minutes,
             timezone: card.timezone || detectBrowserTimezone(),
             effective_from: card.effective_from,
@@ -454,8 +460,8 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
             recurrence_type: editForm.recurrence_type,
             days_of_week: editForm.recurrence_type === 'Weekly' ? editForm.days_of_week : [],
             day_of_month: editForm.recurrence_type === 'Monthly' ? Number(editForm.day_of_month) || 1 : null,
-            start_time: editForm.start_time,
-            end_time: editForm.end_time,
+            start_time: toHm(editForm.start_time),
+            end_time: toHm(editForm.end_time),
             grace_minutes: editForm.grace_minutes,
             timezone: editForm.timezone,
             effective_from: editForm.effective_from,
@@ -599,9 +605,9 @@ export default function VisitScheduleModal({ open, onClose, schedule, onSaved })
                 </div>
               ) : cards.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50 px-5 py-12 text-center">
-                  <p className="text-sm font-medium text-amber-900">No caregivers assigned on this care plan</p>
+                  <p className="text-sm font-medium text-amber-900">No active caregivers assigned on this care plan</p>
                   <p className="mt-1 text-sm text-amber-800">
-                    Assign responsible staff on care plan care needs first, then create schedules.
+                    Assign an active caregiver on the care plan first. Inactive caregivers cannot be scheduled.
                   </p>
                 </div>
               ) : (

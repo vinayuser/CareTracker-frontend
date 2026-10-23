@@ -19,11 +19,11 @@ const DeclinationSection = ({
       <h3 className="text-lg font-semibold mb-4">Hepatitis B Vaccine Declination</h3>
 
       <div className="mb-6 p-4 border border-gray-300 rounded bg-gray-50">
-        <h4 className="text-md font-semibold text-gray-800 mb-2">Declaration Statement:</h4>
+        <h4 className="text-md font-semibold text-gray-800 mb-2">Declination Statement:</h4>
         <p className="text-sm text-gray-700 mb-3">
-          I understand that due to my occupational exposure to blood or other potentially infectious materials
+          I understand that due to my occupational exposure to blood or other potentially infectious materials,
           I may be at risk of acquiring hepatitis B virus (HBV) infection. I have been given the opportunity
-          to be vaccinated with Hepatitis B vaccine, at no charge to myself. However, I elect to decline the
+          to be vaccinated with Hepatitis B vaccine, at no charge to myself. However, I choose to decline the
           Hepatitis B vaccination at this time.
         </p>
         <p className="text-sm text-gray-700">

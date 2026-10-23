@@ -31,7 +31,10 @@ export default function CoverCaregiverModal({ open, visits, onClose, onSaved }) 
       .map((visit) => String(visit.caregiverAccountId || ''))
       .filter(Boolean),
   );
-  const options = caregivers.filter((cg) => !assignedIds.has(String(cg.id || cg._id || '')));
+  const options = caregivers.filter((cg) => (
+    cg.status !== 'Inactive'
+    && !assignedIds.has(String(cg.id || cg._id || ''))
+  ));
 
   const toggle = (id) => {
     setSelected((current) => (current.includes(id) ? current.filter((x) => x !== id) : [...current, id]));

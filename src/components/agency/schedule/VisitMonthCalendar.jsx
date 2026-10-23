@@ -129,7 +129,11 @@ export default function VisitMonthCalendar({
                     className={`truncate rounded border px-1.5 py-0.5 text-[10px] font-medium leading-tight ${
                       statusColors[visit.status] || statusColors.Scheduled
                     } ${selectedVisitId === visit.id ? 'ring-1 ring-primary' : ''}`}
-                    title={`${visit.clientName || ''} · ${visit.caregiverName || ''}`}
+                    title={[
+                      visit.status === 'Leave' ? (visit.leaveLabel || 'Leave') : visit.status,
+                      visit.clientName,
+                      visit.caregiverName,
+                    ].filter(Boolean).join(' · ')}
                   >
                     {formatTime(visit.scheduledStartAt, visit.timezone)}{' '}
                     {visit[primaryNameKey] || visit.clientName || visit.caregiverName || 'Visit'}
