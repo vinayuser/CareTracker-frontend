@@ -113,6 +113,7 @@ const API_ROUTES = {
       DETAIL: (id) => `/admin/finance/${id}`,
     },
     EMAIL_MARKETING: {
+      STATE: '/admin/marketing/state',
       CAMPAIGNS: '/admin/marketing/campaigns',
       SEND: '/admin/marketing/campaigns/send',
       CAMPAIGN: (id) => `/admin/marketing/campaigns/${id}`,
@@ -248,6 +249,12 @@ const API_ROUTES = {
     DASHBOARD: '/agency/dashboard',
     EVV_SETTINGS: '/agency/evv/settings',
     SETTINGS: '/agency/settings',
+    EMAIL_MARKETING: {
+      STATE: '/agency/marketing/state',
+      AUDIENCE: '/agency/marketing/audience',
+      MAILCHIMP: '/agency/marketing/mailchimp',
+      SEND: '/agency/marketing/campaigns/send',
+    },
     INVOICES: {
       LIST: '/agency/invoices',
       GENERATE: '/agency/invoices/generate',

@@ -1,25 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { ROUTES } from '../../../routes/routes';
 import EmailDesigner from '../../../components/admin/email/EmailDesigner';
 import { EmailPreview, fieldClass, labelClass } from '../../../components/admin/email/EmailMarketingUi';
-import {
-  getCampaign,
-  getSettings,
-  getTemplate,
-  fetchPlatformAudience,
-  listLists,
-  listSegments,
-  listTags,
-  listTemplates,
-  previewLeadAudience,
-  previewPlatformAudience,
-  deliverAndSaveCampaign,
-  saveCampaign,
-} from '../../../services/emailMarketingStore';
+import { useMarketing } from '../../../services/marketingScope';
 
-const ROLES = ['Agency Owner', 'Caregiver', 'Office Staff'];
 const STATUSES = ['Active', 'Inactive', 'Invited'];
 const STEPS = ['Audience', 'Content', 'Review & Send'];
 
@@ -30,7 +15,7 @@ function emptyAudience(kind) {
   return { kind: 'platform', roles: ['Agency Owner'], agency: 'All', statuses: ['Active'], respectPreferences: true };
 }
 
-function fromCampaign(campaign) {
+function fromCampaign(campaign, getSettings) {
   const settings = getSettings();
   if (!campaign) {
     return {
@@ -49,11 +34,11 @@ function fromCampaign(campaign) {
   }
   return {
     audience: campaign.audience?.kind === 'leads' ? { ...emptyAudience('leads'), ...campaign.audience } : { ...emptyAudience('platform'), ...campaign.audience },
-        content: {
-          blocks: [],
-          backgroundColor: '#ffffff',
-          ...campaign.content,
-        },
+    content: {
+      blocks: [],
+      backgroundColor: '#ffffff',
+      ...campaign.content,
+    },
     scheduledAt: campaign.scheduledAt || '',
   };
 }
@@ -65,9 +50,10 @@ export default function CampaignWizard() {
 
 function CampaignWizardForm({ campaignId }) {
   const navigate = useNavigate();
-  const existing = campaignId ? getCampaign(campaignId) : null;
+  const { store, routes, labels, showAgencyFilter, roles } = useMarketing();
+  const existing = campaignId ? store.getCampaign(campaignId) : null;
   const [step, setStep] = useState(0);
-  const initial = fromCampaign(existing);
+  const initial = fromCampaign(existing, store.getSettings);
   const [audience, setAudience] = useState(initial.audience);
   const [content, setContent] = useState(initial.content);
   const [selectedBlockId, setSelectedBlockId] = useState(initial.content.blocks?.[0]?.id || '');
@@ -83,7 +69,7 @@ function CampaignWizardForm({ campaignId }) {
     const load = async () => {
       setAudienceLoading(true);
       try {
-        const data = await fetchPlatformAudience();
+        const data = await store.fetchPlatformAudience();
         if (cancelled) return;
         setAgencies(data.agencies || []);
         setPlatformUsers(data.users || []);
@@ -91,7 +77,7 @@ function CampaignWizardForm({ campaignId }) {
         if (!cancelled) {
           setAgencies([]);
           setPlatformUsers([]);
-          toast.error('Failed to load agencies and platform users');
+          toast.error('Failed to load campaign audience');
         }
       } finally {
         if (!cancelled) setAudienceLoading(false);
@@ -99,15 +85,15 @@ function CampaignWizardForm({ campaignId }) {
     };
     load();
     return () => { cancelled = true; };
-  }, []);
+  }, [store]);
 
-  const templates = listTemplates().filter((t) => t.status === 'Published' || t.id === content.templateId);
-  const lists = listLists();
-  const segments = listSegments();
-  const tags = listTags();
+  const templates = store.listTemplates().filter((t) => t.status === 'Published' || t.id === content.templateId);
+  const lists = store.listLists();
+  const segments = store.listSegments();
+  const tags = store.listTags();
   const preview = audience.kind === 'leads'
-    ? previewLeadAudience(audience)
-    : previewPlatformAudience(audience, platformUsers);
+    ? store.previewLeadAudience(audience)
+    : store.previewPlatformAudience(audience, platformUsers);
   const recipientCount = audience.kind === 'leads' ? preview.valid : preview.estimated;
 
   const setKind = (kind) => {
@@ -144,10 +130,10 @@ function CampaignWizardForm({ campaignId }) {
     try {
       const payload = { id: existing?.id, audience, content, scheduledAt };
       const row = mode === 'send'
-        ? await deliverAndSaveCampaign(payload, platformUsers)
-        : saveCampaign(payload, mode, null, platformUsers);
+        ? await store.deliverAndSaveCampaign(payload, platformUsers)
+        : store.saveCampaign(payload, mode, null, platformUsers);
       toast.success(mode === 'send' ? 'Campaign emails sent' : mode === 'schedule' ? 'Campaign scheduled' : 'Draft saved');
-      navigate(mode === 'draft' ? ROUTES.ADMIN_EMAIL_CAMPAIGNS : ROUTES.ADMIN_EMAIL_CAMPAIGN_DETAIL.replace(':id', row.id));
+      navigate(mode === 'draft' ? routes.campaigns : routes.campaignDetail.replace(':id', row.id));
     } catch (error) {
       toast.error(error?.response?.data?.message || error.message || 'Could not send the campaign');
     } finally {
@@ -161,7 +147,7 @@ function CampaignWizardForm({ campaignId }) {
   return (
     <div className="space-y-5">
       <div>
-        <Link to={ROUTES.ADMIN_EMAIL_CAMPAIGNS} className="text-sm font-medium text-primary">Back to campaigns</Link>
+        <Link to={routes.campaigns} className="text-sm font-medium text-primary">Back to campaigns</Link>
         <h1 className="mt-2 text-2xl font-bold text-gray-900">{existing ? 'Edit campaign' : 'Create campaign'}</h1>
         <p className="mt-1 text-sm text-gray-500">Do this in order: pick who gets the email, write it, then send or save. You can only pick one audience type.</p>
       </div>
@@ -184,8 +170,8 @@ function CampaignWizardForm({ campaignId }) {
           <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <div className="grid gap-3 sm:grid-cols-2">
               <AudienceCard
-                title="Platform Users"
-                text="People with a CareTracker login. Example: tell agency owners about a new billing screen. Do not use this for a sales list."
+                title={labels.userAudienceTitle}
+                text={labels.userAudienceText}
                 active={audience.kind === 'platform'}
                 onClick={() => setKind('platform')}
               />
@@ -199,7 +185,8 @@ function CampaignWizardForm({ campaignId }) {
 
             {audience.kind === 'platform' ? (
               <div className="space-y-4">
-                <CheckGroup label="Roles" options={ROLES} selected={audience.roles} onToggle={(value) => setAudience({ ...audience, roles: toggle(audience.roles, value) })} />
+                <CheckGroup label="Roles" options={roles} selected={audience.roles} onToggle={(value) => setAudience({ ...audience, roles: toggle(audience.roles, value) })} />
+                {showAgencyFilter ? (
                 <label className="block">
                   <span className={labelClass}>Agency</span>
                   <select
@@ -223,6 +210,9 @@ function CampaignWizardForm({ campaignId }) {
                     </p>
                   )}
                 </label>
+                ) : (
+                  <p className="text-xs text-gray-500">Audience is limited to this agency only.</p>
+                )}
                 <CheckGroup label="Status" options={STATUSES} selected={audience.statuses} onToggle={(value) => setAudience({ ...audience, statuses: toggle(audience.statuses, value) })} />
                 <label className="flex items-center gap-2 text-sm text-gray-700">
                   <input type="checkbox" checked={audience.respectPreferences} onChange={(e) => setAudience({ ...audience, respectPreferences: e.target.checked })} />
@@ -292,7 +282,7 @@ function CampaignWizardForm({ campaignId }) {
               <span className={labelClass}>Start from a template</span>
               <select className={fieldClass} value={content.templateId || ''} onChange={(e) => {
                 const templateId = e.target.value;
-                const template = templateId ? getTemplate(templateId) : null;
+                const template = templateId ? store.getTemplate(templateId) : null;
                 const blocks = (template?.blocks || []).map((block) => ({ ...block, id: `${block.id}-${Date.now()}` }));
                 setContent({
                   ...content,
@@ -308,7 +298,7 @@ function CampaignWizardForm({ campaignId }) {
                 {templates.map((tpl) => <option key={tpl.id} value={tpl.id}>{tpl.name}</option>)}
               </select>
             </label>
-            <Link to={ROUTES.ADMIN_EMAIL_TEMPLATE_NEW} className="self-end text-sm font-semibold text-primary">Open the full template editor</Link>
+            <Link to={routes.templateNew} className="self-end text-sm font-semibold text-primary">Open the full template editor</Link>
           </div>
           <EmailDesigner
             blocks={content.blocks || []}
@@ -325,7 +315,7 @@ function CampaignWizardForm({ campaignId }) {
       {step === 2 ? (
         <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
           <div className="space-y-4">
-            <SummaryCard preview={preview} kind={audience.kind} />
+            <SummaryCard preview={preview} kind={audience.kind} userSummaryTitle={labels.userSummaryTitle} />
             <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-gray-900">Validation</h3>
               <ul className="mt-3 space-y-2 text-sm">
@@ -390,7 +380,7 @@ function CheckGroup({ label, options, selected, onToggle }) {
   );
 }
 
-function SummaryCard({ preview, kind }) {
+function SummaryCard({ preview, kind, userSummaryTitle }) {
   if (kind === 'leads') {
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -406,7 +396,7 @@ function SummaryCard({ preview, kind }) {
   }
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-      <h3 className="text-sm font-semibold text-gray-900">Platform users</h3>
+      <h3 className="text-sm font-semibold text-gray-900">{userSummaryTitle || 'Platform users'}</h3>
       <dl className="mt-3 space-y-2 text-sm text-gray-600">
         <Row label="Estimated recipients" value={preview.estimated} />
         <Row label="Exclusions" value={preview.exclusions} />

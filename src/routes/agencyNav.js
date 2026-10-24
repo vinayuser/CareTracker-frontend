@@ -75,6 +75,30 @@ export const AGENCY_NAV_GROUPS = [
     ],
   },
   {
+    title: 'Growth',
+    items: [
+      {
+        key: 'AGENCY_EMAIL_CAMPAIGNS',
+        label: 'Marketing',
+        icon: 'Megaphone',
+        moduleKeys: [
+          'AGENCY_EMAIL_CAMPAIGNS',
+          'AGENCY_EMAIL_TEMPLATES',
+          'AGENCY_EMAIL_LISTS',
+          'AGENCY_EMAIL_IMPORT',
+          'AGENCY_EMAIL_SETTINGS',
+        ],
+        children: [
+          { key: 'AGENCY_EMAIL_CAMPAIGNS', label: 'Email Campaigns' },
+          { key: 'AGENCY_EMAIL_TEMPLATES', label: 'Email Templates' },
+          { key: 'AGENCY_EMAIL_LISTS', label: 'Lists & Segments' },
+          { key: 'AGENCY_EMAIL_IMPORT', label: 'Import Contacts' },
+          { key: 'AGENCY_EMAIL_SETTINGS', label: 'Settings' },
+        ],
+      },
+    ],
+  },
+  {
     title: 'Administration',
     items: [
       { key: 'AGENCY_SETTINGS', label: 'Settings', icon: 'Settings' },

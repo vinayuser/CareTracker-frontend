@@ -44,6 +44,16 @@ export const MODULE_GROUPS = [
     title: 'Human Resources',
     keys: ['AGENCY_HIRING_PIPELINE', 'AGENCY_JOBS', 'AGENCY_CANDIDATES'],
   },
+  {
+    title: 'Marketing',
+    keys: [
+      'AGENCY_EMAIL_CAMPAIGNS',
+      'AGENCY_EMAIL_TEMPLATES',
+      'AGENCY_EMAIL_LISTS',
+      'AGENCY_EMAIL_IMPORT',
+      'AGENCY_EMAIL_SETTINGS',
+    ],
+  },
 ];
 
 export const MODULE_LABELS = {
@@ -70,6 +80,11 @@ export const MODULE_LABELS = {
   AGENCY_HIRING_PIPELINE: 'Hiring Pipeline',
   AGENCY_JOBS: 'Jobs',
   AGENCY_CANDIDATES: 'Candidates',
+  AGENCY_EMAIL_CAMPAIGNS: 'Email Campaigns',
+  AGENCY_EMAIL_TEMPLATES: 'Email Templates',
+  AGENCY_EMAIL_LISTS: 'Lists & Segments',
+  AGENCY_EMAIL_IMPORT: 'Import Contacts',
+  AGENCY_EMAIL_SETTINGS: 'Marketing Settings',
 };
 
 /** Derived from MODULE_GROUPS — do not edit manually */
@@ -87,4 +102,9 @@ export const DEFAULT_HR_MODULES = [
   'AGENCY_HIRING_PIPELINE',
   'AGENCY_JOBS',
   'AGENCY_CANDIDATES',
+  'AGENCY_EMAIL_CAMPAIGNS',
+  'AGENCY_EMAIL_TEMPLATES',
+  'AGENCY_EMAIL_LISTS',
+  'AGENCY_EMAIL_IMPORT',
+  'AGENCY_EMAIL_SETTINGS',
 ];

@@ -1,9 +1,8 @@
 import { useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { ROUTES } from '../../../routes/routes';
 import { EmailPreview, StatusPill } from '../../../components/admin/email/EmailMarketingUi';
-import { deliverAndSaveCampaign, getCampaign } from '../../../services/emailMarketingStore';
+import { useMarketing } from '../../../services/marketingScope';
 
 function Metric({ label, value }) {
   return (
@@ -16,10 +15,11 @@ function Metric({ label, value }) {
 
 export default function CampaignDetail() {
   const { id } = useParams();
+  const { store, routes } = useMarketing();
   const [version, setVersion] = useState(0);
   const [sending, setSending] = useState(false);
   const sendingRef = useRef(false);
-  const campaign = getCampaign(id);
+  const campaign = store.getCampaign(id);
   void version;
   if (!campaign) {
     return <p className="text-sm text-gray-500">Campaign not found.</p>;
@@ -33,7 +33,7 @@ export default function CampaignDetail() {
     sendingRef.current = true;
     setSending(true);
     try {
-      await deliverAndSaveCampaign(campaign);
+      await store.deliverAndSaveCampaign(campaign);
       toast.success('Campaign emails sent');
       setVersion((n) => n + 1);
     } catch (error) {
@@ -47,7 +47,7 @@ export default function CampaignDetail() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link to={ROUTES.ADMIN_EMAIL_CAMPAIGNS} className="text-sm font-medium text-primary">Back to campaigns</Link>
+          <Link to={routes.campaigns} className="text-sm font-medium text-primary">Back to campaigns</Link>
           <h1 className="mt-2 text-2xl font-bold text-gray-900">{campaign.name}</h1>
           <p className="mt-1 text-sm text-gray-500">{campaign.type} · {campaign.audienceLabel}</p>
         </div>

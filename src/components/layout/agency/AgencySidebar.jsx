@@ -29,6 +29,7 @@ import {
   Home,
   Smartphone,
   ShieldCheck,
+  Megaphone,
   ChevronDown,
 } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
@@ -68,6 +69,7 @@ const iconMap = {
   Briefcase,
   Smartphone,
   ShieldCheck,
+  Megaphone,
 };
 
 function canShowNavGroup(item, role) {

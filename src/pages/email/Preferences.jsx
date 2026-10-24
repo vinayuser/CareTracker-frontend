@@ -16,6 +16,7 @@ const DEFAULT_TOPICS = [
 export default function Preferences() {
   const [params] = useSearchParams();
   const fromLink = String(params.get('email') || '').trim();
+  const agencyId = String(params.get('agencyId') || params.get('scope') || '').trim();
   const [email, setEmail] = useState(fromLink);
   const [topics, setTopics] = useState(DEFAULT_TOPICS.map((item) => item.id));
   const [options, setOptions] = useState(DEFAULT_TOPICS);
@@ -28,7 +29,9 @@ export default function Preferences() {
   useEffect(() => {
     if (!fromLink) return undefined;
     let cancelled = false;
-    axiosInstance.get(API_ROUTES.EMAIL.PREFERENCES, { params: { email: fromLink }, skipErrorToast: true })
+    const query = { email: fromLink };
+    if (agencyId) query.agencyId = agencyId;
+    axiosInstance.get(API_ROUTES.EMAIL.PREFERENCES, { params: query, skipErrorToast: true })
       .then((response) => {
         if (cancelled) return;
         const data = response.data?.data || {};
@@ -39,7 +42,7 @@ export default function Preferences() {
       })
       .catch(() => { if (!cancelled) setLoaded(true); });
     return () => { cancelled = true; };
-  }, [fromLink]);
+  }, [fromLink, agencyId]);
 
   const toggle = (id) => {
     setUnsubscribed(false);
@@ -51,9 +54,15 @@ export default function Preferences() {
     setSaving(true);
     setError('');
     try {
+      const payload = {
+        email: email.trim(),
+        unsubscribed: allOff || unsubscribed,
+        topics: allOff ? [] : topics,
+      };
+      if (agencyId) payload.agencyId = agencyId;
       await axiosInstance.post(
         API_ROUTES.EMAIL.PREFERENCES,
-        { email: email.trim(), unsubscribed: allOff || unsubscribed, topics: allOff ? [] : topics },
+        payload,
         { skipErrorToast: true },
       );
       if (allOff) setUnsubscribed(true);

@@ -2,32 +2,16 @@ import axiosInstance from '../api/axiosInstance';
 import API_ROUTES from '../api/apiRoutes';
 
 /**
- * Local email-marketing store.
- * Swap these functions for the admin API routes in apiRoutes.ADMIN.EMAIL_MARKETING
- * when the backend is ready. Platform users and leads are never combined.
+ * Platform email-marketing store.
+ * Persists to Mongo via /admin/marketing/state so every admin team member
+ * sees the same campaigns, templates, lists, and settings.
  */
 
-const KEY = 'caretracker.emailMarketing.v1';
+let cache = null;
+let persistQueue = Promise.resolve();
 
-const AGENCIES = ['Sunrise Home Care', 'BrightCare Services', 'HealthOne Agency', 'CarePlus Solutions'];
-
-const PLATFORM_USERS = [
-  { id: 'pu1', name: 'Ava Collins', email: 'ava@sunrisehomecare.example', role: 'Agency Owner', agency: 'Sunrise Home Care', status: 'Active', optedOut: false },
-  { id: 'pu2', name: 'Noah Bennett', email: 'noah@sunrisehomecare.example', role: 'Office Staff', agency: 'Sunrise Home Care', status: 'Active', optedOut: false },
-  { id: 'pu3', name: 'Maria Lopez', email: 'maria.lopez@sunrisehomecare.example', role: 'Caregiver', agency: 'Sunrise Home Care', status: 'Active', optedOut: false },
-  { id: 'pu4', name: 'James Carter', email: 'james.carter@brightcare.example', role: 'Caregiver', agency: 'BrightCare Services', status: 'Active', optedOut: false },
-  { id: 'pu5', name: 'Aisha Khan', email: 'aisha@healthone.example', role: 'Caregiver', agency: 'HealthOne Agency', status: 'Inactive', optedOut: false },
-  { id: 'pu6', name: 'Robert Smith', email: 'robert@careplus.example', role: 'Agency Owner', agency: 'CarePlus Solutions', status: 'Active', optedOut: true },
-  { id: 'pu7', name: 'Linda Garcia', email: 'linda@sunrisehomecare.example', role: 'Office Staff', agency: 'Sunrise Home Care', status: 'Invited', optedOut: false },
-  { id: 'pu8', name: 'David Wilson', email: 'david@brightcare.example', role: 'Caregiver', agency: 'BrightCare Services', status: 'Active', optedOut: false },
-  { id: 'pu9', name: 'Patricia Davis', email: 'patricia@healthone.example', role: 'Office Staff', agency: 'HealthOne Agency', status: 'Active', optedOut: false },
-  { id: 'pu10', name: 'Thomas Moore', email: 'thomas@careplus.example', role: 'Caregiver', agency: 'CarePlus Solutions', status: 'Inactive', optedOut: true },
-  { id: 'pu11', name: 'Barbara Wilson', email: 'barbara@brightcare.example', role: 'Agency Owner', agency: 'BrightCare Services', status: 'Active', optedOut: false },
-  { id: 'pu12', name: 'Kevin Lee', email: 'kevin@healthone.example', role: 'Caregiver', agency: 'HealthOne Agency', status: 'Invited', optedOut: false },
-];
-
-function seed() {
-  const now = '2026-04-12';
+function emptyAdminSeed() {
+  const today = new Date().toISOString().slice(0, 10);
   return {
     settings: {
       fromName: 'CareTracker',
@@ -38,199 +22,45 @@ function seed() {
       unsubscribeUrl: '/email/unsubscribe',
       preferencesUrl: '/email/preferences',
       footer: 'CareTracker helps agencies coordinate care. This message is a product or marketing update, not a clinical record.',
-      suppression: ['bounce@example.com', 'left@example.com'],
+      suppression: [],
     },
-    lists: [
-      { id: 'list-website', name: 'Website inquiries', updatedAt: '2026-04-18' },
-      { id: 'list-events', name: 'Conference contacts', updatedAt: '2026-03-02' },
-      { id: 'list-partners', name: 'Referral partners', updatedAt: '2026-04-01' },
-    ],
-    tags: ['Website', 'Referral', 'Demo', 'Newsletter'],
-    segments: [
-      {
-        id: 'seg-qualified',
-        name: 'Qualified website leads',
-        updatedAt: '2026-04-18',
-        rules: [
-          { field: 'leadStatus', value: 'Qualified' },
-          { field: 'consentStatus', value: 'Consented' },
-          { field: 'source', value: 'Website' },
-        ],
-      },
-    ],
-    contacts: [
-      { id: 'c1', firstName: 'Helen', lastName: 'Brooks', email: 'helen.brooks@northside.example', phone: '555-0142', company: 'Northside Family', consentStatus: 'Consented', leadStatus: 'Qualified', source: 'Website', tags: ['Website', 'Demo'], listId: 'list-website' },
-      { id: 'c2', firstName: 'Omar', lastName: 'Haddad', email: 'omar@lakeside.example', phone: '555-0177', company: 'Lakeside Care', consentStatus: 'Consented', leadStatus: 'Qualified', source: 'Website', tags: ['Website'], listId: 'list-website' },
-      { id: 'c3', firstName: 'Priya', lastName: 'Shah', email: 'priya.shah@harbor.example', phone: '555-0190', company: 'Harbor Home', consentStatus: 'Consented', leadStatus: 'New', source: 'Website', tags: ['Newsletter'], listId: 'list-website' },
-      { id: 'c4', firstName: 'Chris', lastName: 'Nguyen', email: 'chris@maple.example', phone: '555-0114', company: 'Maple Partners', consentStatus: 'Unsubscribed', leadStatus: 'Qualified', source: 'Referral', tags: ['Referral'], listId: 'list-partners' },
-      { id: 'c5', firstName: 'Dana', lastName: 'Cole', email: 'dana.cole@event.example', phone: '555-0166', company: 'Cole Consulting', consentStatus: 'Consented', leadStatus: 'Nurture', source: 'Event', tags: ['Demo'], listId: 'list-events' },
-      { id: 'c6', firstName: 'Evan', lastName: 'Price', email: 'evan.price@bad.example', phone: '555-0101', company: 'Price Group', consentStatus: 'Consented', leadStatus: 'Qualified', source: 'Website', tags: ['Website'], listId: 'list-website', bounced: true },
-      { id: 'c7', firstName: 'Gina', lastName: 'Walsh', email: 'gina@oak.example', phone: '555-0188', company: 'Oak Street', consentStatus: 'Consented', leadStatus: 'Qualified', source: 'Referral', tags: ['Referral'], listId: 'list-partners' },
-      { id: 'c8', firstName: 'Ian', lastName: 'Foster', email: 'ian.foster@pine.example', phone: '', company: 'Pine Health', consentStatus: 'Unknown', leadStatus: 'New', source: 'Website', tags: ['Website'], listId: 'list-website' },
-    ],
-    templates: [
-      {
-        id: 'tpl-welcome',
-        name: 'Product update',
-        category: 'Product',
-        subject: 'What is new in CareTracker',
-        status: 'Published',
-        updatedAt: now,
-        blocks: [
-          { id: 'b1', type: 'heading', text: 'A simpler week for your agency' },
-          { id: 'b2', type: 'text', text: 'Scheduling, billing, and caregiver updates in one place. This note is about the product, not a client record.' },
-          { id: 'b3', type: 'button', text: 'Open CareTracker', url: 'https://caretraker.com' },
-        ],
-      },
-      {
-        id: 'tpl-lead',
-        name: 'Intro for new leads',
-        category: 'Leads',
-        subject: 'See how agencies run visits in CareTracker',
-        status: 'Published',
-        updatedAt: '2026-03-20',
-        blocks: [
-          { id: 'b4', type: 'heading', text: 'Thanks for your interest' },
-          { id: 'b5', type: 'text', text: 'CareTracker is home-care software for scheduling, EVV, and billing. Reply if you would like a walkthrough.' },
-          { id: 'b6', type: 'cta', text: 'Book a demo', url: 'https://caretraker.com' },
-        ],
-      },
-      {
-        id: 'tpl-draft',
-        name: 'April newsletter draft',
-        category: 'Newsletter',
-        subject: 'April notes from CareTracker',
-        status: 'Draft',
-        updatedAt: '2026-04-02',
-        blocks: [
-          { id: 'b7', type: 'heading', text: 'April notes' },
-          { id: 'b8', type: 'text', text: 'Draft copy for consented contacts.' },
-          { id: 'b9', type: 'divider' },
-        ],
-      },
-    ],
-    campaigns: [
-      {
-        id: 'cmp-1',
-        name: 'April product update',
-        type: 'Platform Users',
-        audienceLabel: 'Agency owners · Active',
-        status: 'Sent',
-        recipients: 4,
-        openRate: 50,
-        clickRate: 25,
-        sentAt: '2026-04-08',
-        scheduledAt: '',
-        audience: {
-          kind: 'platform',
-          roles: ['Agency Owner'],
-          agency: 'All',
-          statuses: ['Active'],
-          respectPreferences: true,
-        },
-        content: {
-          name: 'April product update',
-          subject: 'What is new in CareTracker',
-          previewText: 'Scheduling and billing updates',
-          fromName: 'CareTracker',
-          fromEmail: 'hello@caretraker.com',
-          replyTo: 'support@caretraker.com',
-          templateId: 'tpl-welcome',
-        },
-        analytics: {
-          delivered: 4,
-          opened: 2,
-          clicked: 1,
-          bounced: 0,
-          unsubscribed: 0,
-          activity: [
-            { name: 'Ava Collins', email: 'ava@sunrisehomecare.example', status: 'Clicked', at: 'Apr 8, 2026' },
-            { name: 'Barbara Wilson', email: 'barbara@brightcare.example', status: 'Opened', at: 'Apr 8, 2026' },
-            { name: 'Robert Smith', email: 'robert@careplus.example', status: 'Excluded', at: 'Apr 8, 2026' },
-          ],
-        },
-      },
-      {
-        id: 'cmp-2',
-        name: 'Qualified lead intro',
-        type: 'Leads & Contacts',
-        audienceLabel: 'Qualified website leads',
-        status: 'Draft',
-        recipients: 2,
-        openRate: null,
-        clickRate: null,
-        sentAt: '',
-        scheduledAt: '',
-        audience: {
-          kind: 'leads',
-          listId: 'list-website',
-          segmentId: 'seg-qualified',
-          tags: [],
-          leadStatus: 'Qualified',
-        },
-        content: {
-          name: 'Qualified lead intro',
-          subject: 'See how agencies run visits in CareTracker',
-          previewText: 'A short introduction',
-          fromName: 'CareTracker',
-          fromEmail: 'hello@caretraker.com',
-          replyTo: 'support@caretraker.com',
-          templateId: 'tpl-lead',
-        },
-        analytics: null,
-      },
-      {
-        id: 'cmp-3',
-        name: 'Caregiver app reminder',
-        type: 'Platform Users',
-        audienceLabel: 'Caregivers · Active',
-        status: 'Scheduled',
-        recipients: 3,
-        openRate: null,
-        clickRate: null,
-        sentAt: '',
-        scheduledAt: '2026-05-02',
-        audience: {
-          kind: 'platform',
-          roles: ['Caregiver'],
-          agency: 'All',
-          statuses: ['Active'],
-          respectPreferences: true,
-        },
-        content: {
-          name: 'Caregiver app reminder',
-          subject: 'Your CareTracker visit tools',
-          previewText: 'Clock-in, schedule, and messages',
-          fromName: 'CareTracker',
-          fromEmail: 'hello@caretraker.com',
-          replyTo: 'support@caretraker.com',
-          templateId: 'tpl-welcome',
-        },
-        analytics: null,
-      },
-    ],
+    lists: [{ id: 'list-platform', name: 'Platform contacts', updatedAt: today }],
+    tags: [],
+    segments: [],
+    contacts: [],
+    templates: [],
+    campaigns: [],
   };
 }
 
-function load() {
+export async function hydrateAdminMarketing() {
+  cache = null;
+  const response = await axiosInstance.get(API_ROUTES.ADMIN.EMAIL_MARKETING.STATE);
+  cache = response.data?.data || emptyAdminSeed();
   try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw);
+    localStorage.removeItem('caretracker.emailMarketing.v1');
   } catch {
-    /* use seed */
+    /* ignore */
   }
-  const data = seed();
-  localStorage.setItem(KEY, JSON.stringify(data));
-  return data;
+  return cache;
+}
+
+function persistRemote(data) {
+  persistQueue = persistQueue
+    .then(() => axiosInstance.put(API_ROUTES.ADMIN.EMAIL_MARKETING.STATE, data))
+    .catch((err) => console.error('[admin-marketing]', err?.response?.data?.message || err.message));
+  return persistQueue;
+}
+
+function load() {
+  if (cache) return cache;
+  cache = emptyAdminSeed();
+  return cache;
 }
 
 function save(data) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(data));
-  } catch (err) {
-    const quota = err?.name === 'QuotaExceededError' || err?.code === 22;
-    throw new Error(quota ? 'This template is too large to save. Use a smaller image.' : (err?.message || 'Could not save.'));
-  }
+  cache = data;
+  persistRemote(data);
   return data;
 }
 
@@ -239,7 +69,7 @@ function uid(prefix) {
 }
 
 export function listAgencies() {
-  return AGENCIES;
+  return [];
 }
 
 /** Load real agencies + platform login users for campaign targeting. */
@@ -386,6 +216,21 @@ export function deleteSegment(id) {
   save(data);
 }
 
+export function saveList(input) {
+  const data = load();
+  const name = String(input?.name || '').trim();
+  if (!name) throw new Error('List name is required');
+  const row = {
+    id: input.id || uid('list'),
+    name,
+    updatedAt: new Date().toISOString().slice(0, 10),
+  };
+  if (input.id) data.lists = data.lists.map((list) => (list.id === input.id ? { ...list, ...row } : list));
+  else data.lists.unshift(row);
+  save(data);
+  return row;
+}
+
 export function deleteList(id) {
   const data = load();
   data.lists = data.lists.filter((list) => list.id !== id);
@@ -453,7 +298,7 @@ export function previewPlatformAudience(audience = {}, users = null) {
   const settings = getSettings();
   const roles = audience.roles?.length ? audience.roles : [];
   const statuses = audience.statuses?.length ? audience.statuses : [];
-  const source = Array.isArray(users) ? users : PLATFORM_USERS;
+  const source = Array.isArray(users) ? users : [];
   const pool = source.filter((user) => {
     if (roles.length && !roles.includes(user.role)) return false;
     if (audience.agency && audience.agency !== 'All') {

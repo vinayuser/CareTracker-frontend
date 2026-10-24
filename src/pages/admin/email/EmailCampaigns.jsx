@@ -2,16 +2,9 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Copy, Eye, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { ROUTES } from '../../../routes/routes';
 import { confirmAlert } from '../../../utils/swal';
 import { MarketingTabs, PageHeader, StatusPill } from '../../../components/admin/email/EmailMarketingUi';
-import {
-  deleteCampaign,
-  duplicateCampaign,
-  listCampaigns,
-} from '../../../services/emailMarketingStore';
-
-const FILTERS = ['All', 'Platform Users', 'Leads & Contacts', 'Draft', 'Scheduled', 'Sent'];
+import { useMarketing } from '../../../services/marketingScope';
 
 function formatDate(value) {
   if (!value) return '—';
@@ -22,17 +15,19 @@ function formatDate(value) {
 
 export default function EmailCampaigns() {
   const navigate = useNavigate();
+  const { store, routes, labels } = useMarketing();
+  const filters = ['All', labels.userFilter, 'Leads & Contacts', 'Draft', 'Scheduled', 'Sent'];
   const [version, setVersion] = useState(0);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('All');
-  const campaigns = listCampaigns();
+  const campaigns = store.listCampaigns();
   void version;
 
   const rows = campaigns.filter((row) => {
     const q = query.trim().toLowerCase();
     if (q && !`${row.name} ${row.audienceLabel}`.toLowerCase().includes(q)) return false;
     if (filter === 'All') return true;
-    if (filter === 'Platform Users' || filter === 'Leads & Contacts') return row.type === filter;
+    if (filter === labels.userFilter || filter === 'Leads & Contacts') return row.type === filter;
     return row.status === filter;
   });
 
@@ -41,18 +36,18 @@ export default function EmailCampaigns() {
   const onDelete = async (row) => {
     const confirmed = await confirmAlert({
       title: 'Delete campaign?',
-      text: `Remove “${row.name}”? This only deletes the draft record in this browser.`,
+      text: `Remove “${row.name}”? ${labels.deleteHint}`,
       confirmText: 'Delete',
       danger: true,
     });
     if (!confirmed) return;
-    deleteCampaign(row.id);
+    store.deleteCampaign(row.id);
     toast.success('Campaign deleted');
     refresh();
   };
 
   const onDuplicate = (row) => {
-    duplicateCampaign(row.id);
+    store.duplicateCampaign(row.id);
     toast.success('Campaign duplicated as a draft');
     refresh();
   };
@@ -64,7 +59,7 @@ export default function EmailCampaigns() {
         description="A campaign is one email you send to a chosen group. A template is only the design you reuse."
         action={(
           <Link
-            to={ROUTES.ADMIN_EMAIL_CAMPAIGN_NEW}
+            to={routes.campaignNew}
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary-hover"
           >
             <Plus size={16} /> Create Campaign
@@ -85,7 +80,7 @@ export default function EmailCampaigns() {
             />
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {FILTERS.map((item) => (
+            {filters.map((item) => (
               <button
                 key={item}
                 type="button"
@@ -134,8 +129,8 @@ export default function EmailCampaigns() {
                   <td className="px-4 py-3.5 text-gray-600">{row.status === 'Scheduled' ? formatDate(row.scheduledAt) : formatDate(row.sentAt)}</td>
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-2 text-primary">
-                      <button type="button" title="View" onClick={() => navigate(ROUTES.ADMIN_EMAIL_CAMPAIGN_DETAIL.replace(':id', row.id))} className="rounded p-1 hover:bg-primary/10"><Eye size={15} /></button>
-                      <button type="button" title="Edit" onClick={() => navigate(ROUTES.ADMIN_EMAIL_CAMPAIGN_EDIT.replace(':id', row.id))} className="rounded p-1 hover:bg-primary/10"><Pencil size={15} /></button>
+                      <button type="button" title="View" onClick={() => navigate(routes.campaignDetail.replace(':id', row.id))} className="rounded p-1 hover:bg-primary/10"><Eye size={15} /></button>
+                      <button type="button" title="Edit" onClick={() => navigate(routes.campaignEdit.replace(':id', row.id))} className="rounded p-1 hover:bg-primary/10"><Pencil size={15} /></button>
                       <button type="button" title="Duplicate" onClick={() => onDuplicate(row)} className="rounded p-1 hover:bg-primary/10"><Copy size={15} /></button>
                       <button type="button" title="Delete" onClick={() => onDelete(row)} className="rounded p-1 text-rose-600 hover:bg-rose-50"><Trash2 size={15} /></button>
                     </div>

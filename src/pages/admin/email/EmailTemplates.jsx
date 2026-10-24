@@ -2,18 +2,18 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Archive, Copy, Eye, Pencil, Plus, Search } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { ROUTES } from '../../../routes/routes';
 import { EmailPreview, MarketingTabs, PageHeader, StatusPill } from '../../../components/admin/email/EmailMarketingUi';
-import { archiveTemplate, duplicateTemplate, listTemplates } from '../../../services/emailMarketingStore';
+import { useMarketing } from '../../../services/marketingScope';
 import { confirmAlert } from '../../../utils/swal';
 
 export default function EmailTemplates() {
   const navigate = useNavigate();
+  const { store, routes } = useMarketing();
   const [version, setVersion] = useState(0);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
   const [previewId, setPreviewId] = useState('');
-  const templates = listTemplates();
+  const templates = store.listTemplates();
   void version;
   const categories = ['All', ...new Set(templates.map((t) => t.category).filter(Boolean))];
   const rows = templates.filter((row) => {
@@ -32,7 +32,7 @@ export default function EmailTemplates() {
       danger: true,
     });
     if (!confirmed) return;
-    archiveTemplate(row.id);
+    store.archiveTemplate(row.id);
     toast.success('Template archived');
     setVersion((n) => n + 1);
   };
@@ -43,7 +43,7 @@ export default function EmailTemplates() {
         title="Email Templates"
         description="Save the email layout here first. Later, a campaign picks one of these templates and chooses who receives it."
         action={(
-          <button type="button" onClick={() => navigate(ROUTES.ADMIN_EMAIL_TEMPLATE_NEW)} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white">
+          <button type="button" onClick={() => navigate(routes.templateNew)} className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white">
             <Plus size={16} /> Create Template
           </button>
         )}
@@ -81,8 +81,8 @@ export default function EmailTemplates() {
                   <td className="px-4 py-3"><StatusPill status={row.status} /></td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1 text-primary">
-                      <button type="button" title="Edit" onClick={() => navigate(ROUTES.ADMIN_EMAIL_TEMPLATE_EDIT.replace(':id', row.id))} className="rounded p-1 hover:bg-primary/10"><Pencil size={15} /></button>
-                      <button type="button" title="Duplicate" onClick={() => { duplicateTemplate(row.id); toast.success('Template duplicated'); setVersion((n) => n + 1); }} className="rounded p-1 hover:bg-primary/10"><Copy size={15} /></button>
+                      <button type="button" title="Edit" onClick={() => navigate(routes.templateEdit.replace(':id', row.id))} className="rounded p-1 hover:bg-primary/10"><Pencil size={15} /></button>
+                      <button type="button" title="Duplicate" onClick={() => { store.duplicateTemplate(row.id); toast.success('Template duplicated'); setVersion((n) => n + 1); }} className="rounded p-1 hover:bg-primary/10"><Copy size={15} /></button>
                       <button type="button" title="Preview" onClick={() => setPreviewId(row.id)} className="rounded p-1 hover:bg-primary/10"><Eye size={15} /></button>
                       <button type="button" title="Archive" onClick={() => onArchive(row)} className="rounded p-1 text-gray-500 hover:bg-gray-100"><Archive size={15} /></button>
                     </div>

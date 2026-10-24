@@ -1,18 +1,18 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import axiosInstance from '../../../api/axiosInstance';
-import API_ROUTES from '../../../api/apiRoutes';
 import { MarketingTabs, PageHeader, StatusPill, fieldClass, labelClass } from '../../../components/admin/email/EmailMarketingUi';
-import { getSettings, saveSettings } from '../../../services/emailMarketingStore';
+import { useMarketing } from '../../../services/marketingScope';
 
 export default function MarketingSettings() {
-  const [form, setForm] = useState(getSettings());
+  const { store, mailchimpPath } = useMarketing();
+  const [form, setForm] = useState(() => store.getSettings());
   const [suppressionText, setSuppressionText] = useState((form.suppression || []).join('\n'));
   const [mailchimp, setMailchimp] = useState({ connected: false, health: 'Not checked' });
 
   useEffect(() => {
     let cancelled = false;
-    axiosInstance.get(API_ROUTES.ADMIN.EMAIL_MARKETING.MAILCHIMP)
+    axiosInstance.get(mailchimpPath)
       .then((response) => {
         if (!cancelled) setMailchimp(response.data?.data || { connected: true, health: 'Connected' });
       })
@@ -21,7 +21,7 @@ export default function MarketingSettings() {
         if (!cancelled) setMailchimp({ connected: false, health });
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [mailchimpPath]);
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
 
@@ -33,7 +33,7 @@ export default function MarketingSettings() {
         className="grid gap-4 lg:grid-cols-2"
         onSubmit={(e) => {
           e.preventDefault();
-          saveSettings({
+          store.saveSettings({
             ...form,
             suppression: suppressionText.split('\n').map((line) => line.trim()).filter(Boolean),
           });

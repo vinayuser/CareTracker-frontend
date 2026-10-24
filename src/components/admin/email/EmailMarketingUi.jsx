@@ -1,20 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ROUTES } from '../../../routes/routes';
-import { getSettings, getTemplate } from '../../../services/emailMarketingStore';
-
-const LINKS = [
-  { to: ROUTES.ADMIN_EMAIL_CAMPAIGNS, label: 'Email Campaigns' },
-  { to: ROUTES.ADMIN_EMAIL_TEMPLATES, label: 'Email Templates' },
-  { to: ROUTES.ADMIN_EMAIL_LISTS, label: 'Lists & Segments' },
-  { to: ROUTES.ADMIN_EMAIL_IMPORT, label: 'Import Contacts' },
-  { to: ROUTES.ADMIN_EMAIL_SETTINGS, label: 'Settings' },
-];
+import { useMarketing } from '../../../services/marketingScope';
 
 export function MarketingTabs() {
   const { pathname } = useLocation();
+  const { links } = useMarketing();
   return (
     <div className="flex gap-1 overflow-x-auto rounded-lg border border-gray-200 bg-white p-1 shadow-sm">
-      {LINKS.map((link) => {
+      {links.map((link) => {
         const active = pathname === link.to || pathname.startsWith(`${link.to}/`);
         return (
           <Link
@@ -70,8 +62,9 @@ export function StatusPill({ status }) {
 }
 
 export function EmailPreview({ templateId, subject, previewText, blocks: blockOverride, backgroundColor }) {
-  const template = templateId ? getTemplate(templateId) : null;
-  const settings = getSettings();
+  const { store } = useMarketing();
+  const template = templateId ? store.getTemplate(templateId) : null;
+  const settings = store.getSettings();
   const blocks = blockOverride || template?.blocks || [];
   const canvas = backgroundColor || template?.backgroundColor || '#ffffff';
   return (

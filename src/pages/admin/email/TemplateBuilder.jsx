@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { ROUTES } from '../../../routes/routes';
 import EmailDesigner from '../../../components/admin/email/EmailDesigner';
 import { StatusPill, fieldClass, labelClass } from '../../../components/admin/email/EmailMarketingUi';
-import { getTemplate, saveTemplate } from '../../../services/emailMarketingStore';
+import { useMarketing } from '../../../services/marketingScope';
 
 const SAMPLE = {
   name: 'April product update',
@@ -25,7 +24,8 @@ export default function TemplateBuilder() {
 
 function TemplateBuilderForm({ templateId }) {
   const navigate = useNavigate();
-  const [form, setForm] = useState(() => getTemplate(templateId) || {
+  const { store, routes } = useMarketing();
+  const [form, setForm] = useState(() => store.getTemplate(templateId) || {
     name: '',
     category: 'Product',
     subject: '',
@@ -43,10 +43,10 @@ function TemplateBuilderForm({ templateId }) {
       return;
     }
     try {
-      const saved = saveTemplate(form, status);
+      const saved = store.saveTemplate(form, status);
       setForm(saved);
       toast.success(status === 'Draft' ? 'Draft saved' : 'Template published');
-      const nextPath = ROUTES.ADMIN_EMAIL_TEMPLATE_EDIT.replace(':id', saved.id);
+      const nextPath = routes.templateEdit.replace(':id', saved.id);
       if (templateId !== saved.id) navigate(nextPath, { replace: true });
     } catch (err) {
       toast.error(err?.message || 'Could not save the template. Try a smaller image.');
@@ -55,7 +55,7 @@ function TemplateBuilderForm({ templateId }) {
 
   return (
     <div className="space-y-5">
-      <Link to={ROUTES.ADMIN_EMAIL_TEMPLATES} className="text-sm font-medium text-primary">Back to templates</Link>
+      <Link to={routes.templates} className="text-sm font-medium text-primary">Back to templates</Link>
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold text-gray-900">{templateId ? 'Edit template' : 'Create template'}</h1>
         <StatusPill status={form.status || 'Draft'} />

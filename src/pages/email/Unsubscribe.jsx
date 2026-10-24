@@ -9,6 +9,7 @@ import { ROUTES } from '../../routes/routes';
 export default function Unsubscribe() {
   const [params] = useSearchParams();
   const fromLink = String(params.get('email') || '').trim();
+  const agencyId = String(params.get('agencyId') || params.get('scope') || '').trim();
   const [email, setEmail] = useState(fromLink);
   const [done, setDone] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -17,13 +18,23 @@ export default function Unsubscribe() {
 
   const canSubmit = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()), [email]);
 
+  const prefsHref = useMemo(() => {
+    const qs = new URLSearchParams();
+    if (email.trim()) qs.set('email', email.trim());
+    if (agencyId) qs.set('agencyId', agencyId);
+    const query = qs.toString();
+    return query ? `${ROUTES.EMAIL_PREFERENCES}?${query}` : ROUTES.EMAIL_PREFERENCES;
+  }, [email, agencyId]);
+
   const submit = async (event) => {
     event.preventDefault();
     if (!canSubmit) return;
     setSaving(true);
     setError('');
     try {
-      await axiosInstance.post(API_ROUTES.EMAIL.UNSUBSCRIBE, { email: email.trim() }, { skipErrorToast: true });
+      const payload = { email: email.trim() };
+      if (agencyId) payload.agencyId = agencyId;
+      await axiosInstance.post(API_ROUTES.EMAIL.UNSUBSCRIBE, payload, { skipErrorToast: true });
       setDone(true);
     } catch (err) {
       setError(err.response?.data?.message || 'Could not unsubscribe. Please try again.');
@@ -43,7 +54,7 @@ export default function Unsubscribe() {
             <p className="text-sm text-slate-600">
               {email} will no longer receive CareTracker marketing emails.
             </p>
-            <Link to={ROUTES.EMAIL_PREFERENCES + `?email=${encodeURIComponent(email)}`} className="text-sm font-semibold text-primary hover:underline">
+            <Link to={prefsHref} className="text-sm font-semibold text-primary hover:underline">
               Change email preferences instead
             </Link>
           </div>
@@ -72,7 +83,7 @@ export default function Unsubscribe() {
             >
               {saving ? 'Saving…' : 'Unsubscribe'}
             </button>
-            <Link to={`${ROUTES.EMAIL_PREFERENCES}?email=${encodeURIComponent(email)}`} className="block text-center text-sm font-medium text-primary hover:underline">
+            <Link to={prefsHref} className="block text-center text-sm font-medium text-primary hover:underline">
               Manage preferences
             </Link>
           </form>

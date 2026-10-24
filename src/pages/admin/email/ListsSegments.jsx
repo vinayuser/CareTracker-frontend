@@ -2,20 +2,8 @@ import { useEffect, useState } from 'react';
 import { Trash2, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { MarketingTabs, PageHeader, fieldClass, labelClass } from '../../../components/admin/email/EmailMarketingUi';
+import { useMarketing } from '../../../services/marketingScope';
 import { confirmAlert } from '../../../utils/swal';
-import {
-  addTag,
-  deleteList,
-  deleteSegment,
-  deleteTag,
-  contactsInList,
-  contactsInSegment,
-  deleteContact,
-  listLists,
-  listSegments,
-  listTags,
-  saveSegment,
-} from '../../../services/emailMarketingStore';
 
 const TABS = ['Contact Lists', 'Segments', 'Tags'];
 const RULE_FIELDS = [
@@ -26,18 +14,20 @@ const RULE_FIELDS = [
 ];
 
 export default function ListsSegments() {
+  const { store } = useMarketing();
   const [tab, setTab] = useState('Contact Lists');
   const [version, setVersion] = useState(0);
   const [name, setName] = useState('');
+  const [listName, setListName] = useState('');
   const [emailPopup, setEmailPopup] = useState(null);
   const [rules, setRules] = useState([
     { field: 'leadStatus', value: 'Qualified' },
     { field: 'consentStatus', value: 'Consented' },
     { field: 'source', value: 'Website' },
   ]);
-  const lists = listLists();
-  const segments = listSegments();
-  const tags = listTags();
+  const lists = store.listLists();
+  const segments = store.listSegments();
+  const tags = store.listTags();
   void version;
 
   const refresh = () => setVersion((n) => n + 1);
@@ -50,7 +40,7 @@ export default function ListsSegments() {
       danger: true,
     });
     if (!confirmed) return;
-    deleteList(list.id);
+    store.deleteList(list.id);
     toast.success('List deleted');
     refresh();
   };
@@ -63,7 +53,7 @@ export default function ListsSegments() {
       danger: true,
     });
     if (!confirmed) return;
-    deleteSegment(segment.id);
+    store.deleteSegment(segment.id);
     toast.success('Segment deleted');
     refresh();
   };
@@ -76,7 +66,7 @@ export default function ListsSegments() {
       danger: true,
     });
     if (!confirmed) return;
-    deleteTag(tagName);
+    store.deleteTag(tagName);
     toast.success('Tag deleted');
     refresh();
   };
@@ -94,34 +84,55 @@ export default function ListsSegments() {
       </div>
 
       {tab === 'Contact Lists' ? (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Contact Count</th>
-                <th className="px-4 py-3">Consented</th>
-                <th className="px-4 py-3">Unsubscribed</th>
-                <th className="px-4 py-3">Updated</th>
-                <th className="px-4 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {lists.map((list) => (
-                <tr key={list.id}>
-                  <td className="px-4 py-3 font-medium text-gray-900">{list.name}</td>
-                  <td className="px-4 py-3">{list.contactCount}</td>
-                  <td className="px-4 py-3">{list.consented}</td>
-                  <td className="px-4 py-3">{list.unsubscribed}</td>
-                  <td className="px-4 py-3 text-gray-600">{list.updatedAt}</td>
-                  <td className="px-4 py-3">
-                    <button type="button" className="mr-3 text-sm font-semibold text-primary" onClick={() => setEmailPopup({ title: list.name, people: contactsInList(list.id) })}>View emails</button>
-                    <button type="button" className="text-sm font-semibold text-rose-600" onClick={() => removeList(list)}>Delete</button>
-                  </td>
+        <div className="grid gap-4 lg:grid-cols-[1fr_0.7fr]">
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Contact Count</th>
+                  <th className="px-4 py-3">Consented</th>
+                  <th className="px-4 py-3">Unsubscribed</th>
+                  <th className="px-4 py-3">Updated</th>
+                  <th className="px-4 py-3">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {lists.map((list) => (
+                  <tr key={list.id}>
+                    <td className="px-4 py-3 font-medium text-gray-900">{list.name}</td>
+                    <td className="px-4 py-3">{list.contactCount}</td>
+                    <td className="px-4 py-3">{list.consented}</td>
+                    <td className="px-4 py-3">{list.unsubscribed}</td>
+                    <td className="px-4 py-3 text-gray-600">{list.updatedAt}</td>
+                    <td className="px-4 py-3">
+                      <button type="button" className="mr-3 text-sm font-semibold text-primary" onClick={() => setEmailPopup({ title: list.name, people: store.contactsInList(list.id) })}>View emails</button>
+                      <button type="button" className="text-sm font-semibold text-rose-600" onClick={() => removeList(list)}>Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <form
+            className="space-y-3 rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!listName.trim()) return;
+              store.saveList({ name: listName });
+              setListName('');
+              toast.success('List created');
+              refresh();
+            }}
+          >
+            <h3 className="text-sm font-semibold text-gray-900">New list</h3>
+            <label className="block">
+              <span className={labelClass}>Name</span>
+              <input className={fieldClass} value={listName} onChange={(e) => setListName(e.target.value)} placeholder="Agency contacts" />
+            </label>
+            <p className="text-xs text-gray-500">Lists hold imported leads for this workspace only.</p>
+            <button type="submit" className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white">Create list</button>
+          </form>
         </div>
       ) : null}
 
@@ -146,7 +157,7 @@ export default function ListsSegments() {
                     <td className="px-4 py-3">{seg.contactCount}</td>
                     <td className="px-4 py-3 text-gray-600">{seg.updatedAt}</td>
                     <td className="px-4 py-3">
-                      <button type="button" className="mr-3 text-sm font-semibold text-primary" onClick={() => setEmailPopup({ title: seg.name, people: contactsInSegment(seg.id) })}>View emails</button>
+                      <button type="button" className="mr-3 text-sm font-semibold text-primary" onClick={() => setEmailPopup({ title: seg.name, people: store.contactsInSegment(seg.id) })}>View emails</button>
                       <button type="button" className="text-sm font-semibold text-rose-600" onClick={() => removeSegment(seg)}>Delete</button>
                     </td>
                   </tr>
@@ -159,7 +170,7 @@ export default function ListsSegments() {
             onSubmit={(e) => {
               e.preventDefault();
               if (!name.trim()) return;
-              saveSegment({ name, rules });
+              store.saveSegment({ name, rules });
               setName('');
               toast.success('Segment saved');
               refresh();
@@ -205,7 +216,7 @@ export default function ListsSegments() {
               </li>
             ))}
           </ul>
-          <form className="mt-4 flex gap-2" onSubmit={(e) => { e.preventDefault(); addTag(name); setName(''); toast.success('Tag added'); refresh(); }}>
+          <form className="mt-4 flex gap-2" onSubmit={(e) => { e.preventDefault(); store.addTag(name); setName(''); toast.success('Tag added'); refresh(); }}>
             <input className={fieldClass} placeholder="New tag" value={name} onChange={(e) => setName(e.target.value)} />
             <button type="submit" className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white">Add</button>
           </form>
@@ -224,6 +235,7 @@ export default function ListsSegments() {
 }
 
 function ContactEmailsModal({ popup, onClose, onDeleted }) {
+  const { store } = useMarketing();
   useEffect(() => {
     if (!popup) return undefined;
     const onKey = (event) => {
@@ -268,7 +280,7 @@ function ContactEmailsModal({ popup, onClose, onDeleted }) {
                         danger: true,
                       });
                       if (!confirmed) return;
-                      deleteContact(person.id);
+                      store.deleteContact(person.id);
                       toast.success('Contact deleted');
                       onDeleted?.(person.id);
                     }}

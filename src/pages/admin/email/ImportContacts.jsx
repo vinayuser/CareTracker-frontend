@@ -3,15 +3,16 @@ import { Download, Search, Trash2, Upload } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { MarketingTabs, PageHeader, StatusPill, fieldClass, labelClass } from '../../../components/admin/email/EmailMarketingUi';
 import { confirmAlert } from '../../../utils/swal';
-import { deleteContact, importContacts, listContacts, listLists, validateImportRows } from '../../../services/emailMarketingStore';
+import { useMarketing } from '../../../services/marketingScope';
 import { CSV_SCHEMA, IMPORT_FIELDS, applyMapping, guessMapping, readTabularFile, sampleCsv } from '../../../services/spreadsheetImport';
 
 const STEPS = ['Upload', 'Map Columns', 'Validate', 'Import'];
 
 export default function ImportContacts() {
+  const { store } = useMarketing();
   const [version, setVersion] = useState(0);
-  const lists = listLists();
-  const contacts = listContacts();
+  const lists = store.listLists();
+  const contacts = store.listContacts();
   void version;
   const [contactQuery, setContactQuery] = useState('');
   const [step, setStep] = useState(0);
@@ -55,7 +56,7 @@ export default function ImportContacts() {
       danger: true,
     });
     if (!confirmed) return;
-    deleteContact(contact.id);
+    store.deleteContact(contact.id);
     setVersion((n) => n + 1);
     toast.success('Contact deleted');
   };
@@ -157,7 +158,7 @@ export default function ImportContacts() {
               </label>
             ))}
           </div>
-          <button type="button" className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white" onClick={() => { setValidated(validateImportRows(applyMapping(rawRows, mapping))); setStep(2); }}>
+          <button type="button" className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white" onClick={() => { setValidated(store.validateImportRows(applyMapping(rawRows, mapping))); setStep(2); }}>
             Validate
           </button>
         </div>
@@ -211,7 +212,7 @@ export default function ImportContacts() {
               type="button"
               className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white"
               onClick={() => {
-                const imported = importContacts({ rows: validated.filter((row) => row.eligible || (duplicateMode === 'update' && row.duplicate && row.consentStatus === 'Consented')), listId, duplicateMode });
+                const imported = store.importContacts({ rows: validated.filter((row) => row.eligible || (duplicateMode === 'update' && row.duplicate && row.consentStatus === 'Consented')), listId, duplicateMode });
                 setResult(imported);
                 setStep(3);
                 setVersion((n) => n + 1);
