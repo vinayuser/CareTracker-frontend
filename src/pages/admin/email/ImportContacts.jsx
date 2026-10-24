@@ -139,7 +139,15 @@ export default function ImportContacts() {
             </span>
             <span className="mt-3 text-sm font-semibold text-emerald-950">Import contacts</span>
             <span className="mt-1 text-xs text-emerald-800">Upload a CSV or XLSX. The first row must match the schema. Excel uses the first sheet.</span>
-            <input type="file" accept=".csv,.txt,.xlsx" className="mt-4 text-sm" onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} />
+            <span className="mt-4 inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white">
+              Choose file
+            </span>
+            <input
+              type="file"
+              accept=".csv,.txt,.xlsx"
+              className="sr-only"
+              onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
+            />
             {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
           </label>
         </div>
