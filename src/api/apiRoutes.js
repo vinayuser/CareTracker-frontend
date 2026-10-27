@@ -7,7 +7,10 @@ const API_ROUTES = {
     PREFERENCES: '/email/preferences',
   },
   LEGAL: {
+    LIST: '/legal',
     PUBLIC: (slug) => `/legal/${slug}`,
+    PRIVACY: '/privacy-policy',
+    TERMS: '/terms-and-conditions',
   },
   ME: '/auth/me',
   UPDATE_PROFILE: '/auth/me',
