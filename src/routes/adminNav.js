@@ -52,6 +52,7 @@ export const ADMIN_NAV_GROUPS = [
       { key: 'ADMIN_TIME_CARD', label: 'Time Card', icon: 'Clock' },
       { key: 'ADMIN_REPORTS', label: 'Reports', icon: 'BarChart3' },
       { key: 'ADMIN_AUDIT_LOGS', label: 'Audit Logs', icon: 'FileText' },
+      { key: 'ADMIN_LEGAL', label: 'Legal Pages', icon: 'FileText' },
       { key: 'ADMIN_SETTINGS', label: 'Settings', icon: 'Settings' },
     ],
   },
@@ -129,5 +130,9 @@ export const ADMIN_MODULE_META = {
   'content': {
     title: 'Content',
     description: 'Help articles, announcements, and platform content.',
+  },
+  'legal': {
+    title: 'Legal Pages',
+    description: 'Edit public Privacy Policy and Terms & Conditions.',
   },
 };

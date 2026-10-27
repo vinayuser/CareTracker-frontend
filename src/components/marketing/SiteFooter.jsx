@@ -176,7 +176,13 @@ const PILLARS = [
   { label: 'Built for Enterprise', Icon: Cloud, color: 'text-[#0055d4]' },
 ];
 
-const LEGAL = ['Terms of Service', 'Privacy Policy', 'Security', 'Accessibility', 'Sitemap'];
+const LEGAL = [
+  { label: 'Terms & Conditions', to: ROUTES.TERMS },
+  { label: 'Privacy Policy', to: ROUTES.PRIVACY },
+  { label: 'Security', to: ROUTES.LANDING },
+  { label: 'Accessibility', to: ROUTES.LANDING },
+  { label: 'Sitemap', to: ROUTES.LANDING },
+];
 
 function FooterLogoMark() {
   return (
@@ -460,11 +466,11 @@ export default function SiteFooter() {
 
           <div className="flex shrink-0 flex-col items-start gap-1.5 lg:items-end">
             <nav className="flex flex-wrap items-center gap-x-1.5 text-[11px] text-white/70">
-              {LEGAL.map((label, i) => (
-                <span key={label} className="inline-flex items-center gap-1.5">
+              {LEGAL.map((item, i) => (
+                <span key={item.label} className="inline-flex items-center gap-1.5">
                   {i > 0 && <span className="text-white/35">|</span>}
-                  <Link to={ROUTES.LANDING} className="hover:text-white">
-                    {label}
+                  <Link to={item.to} className="hover:text-white">
+                    {item.label}
                   </Link>
                 </span>
               ))}

@@ -9,6 +9,8 @@ export const ROUTES = {
   MARKETING_BILLING: '/billing',
   MARKETING_INTEGRATIONS: '/integrations',
   MARKETING_PORTALS: '/portals',
+  PRIVACY: '/privacy-policy',
+  TERMS: '/terms-and-conditions',
   LOGIN: '/login',
   FORGOT_PASSWORD: '/forgot-password',
   RESET_PASSWORD: '/reset-password',
@@ -60,6 +62,7 @@ export const ROUTES = {
   ADMIN_INTEGRATIONS: '/admin/integrations',
   ADMIN_SUPPORT: '/admin/support',
   ADMIN_CONTENT: '/admin/content',
+  ADMIN_LEGAL: '/admin/legal',
   ADMIN_SETTINGS: '/admin/settings',
   ADMIN_PROFILE: '/admin/profile',
 

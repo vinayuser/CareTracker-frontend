@@ -6,6 +6,9 @@ const API_ROUTES = {
     UNSUBSCRIBE: '/email/unsubscribe',
     PREFERENCES: '/email/preferences',
   },
+  LEGAL: {
+    PUBLIC: (slug) => `/legal/${slug}`,
+  },
   ME: '/auth/me',
   UPDATE_PROFILE: '/auth/me',
   CHECK_LOGIN_ID: '/auth/check-login-id',
@@ -111,6 +114,10 @@ const API_ROUTES = {
       STATS: '/admin/finance/stats',
       LIST: '/admin/finance',
       DETAIL: (id) => `/admin/finance/${id}`,
+    },
+    LEGAL: {
+      LIST: '/admin/legal',
+      DETAIL: (slug) => `/admin/legal/${slug}`,
     },
     EMAIL_MARKETING: {
       STATE: '/admin/marketing/state',

@@ -123,7 +123,9 @@ import HrPage from './pages/marketing/HrPage';
 import BillingPage from './pages/marketing/BillingPage';
 import IntegrationsPage from './pages/marketing/IntegrationsPage';
 import PortalsPage from './pages/marketing/PortalsPage';
+import LegalDocument from './pages/marketing/LegalDocument';
 import MarketingLayout from './components/marketing/MarketingLayout';
+import LegalPages from './pages/admin/LegalPages';
 import { getHomeRouteForRole } from './utils/auth';
 
 function HomeRedirect() {
@@ -165,6 +167,8 @@ export default function App() {
           <Route path={ROUTES.MARKETING_BILLING} element={<BillingPage />} />
           <Route path={ROUTES.MARKETING_INTEGRATIONS} element={<IntegrationsPage />} />
           <Route path={ROUTES.MARKETING_PORTALS} element={<PortalsPage />} />
+          <Route path={ROUTES.PRIVACY} element={<LegalDocument />} />
+          <Route path={ROUTES.TERMS} element={<LegalDocument />} />
         </Route>
 
         <Route
@@ -249,6 +253,7 @@ export default function App() {
               <Route path={ROUTES.ADMIN_INTEGRATIONS} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_SUPPORT} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_CONTENT} element={<AdminModulePage />} />
+              <Route path={ROUTES.ADMIN_LEGAL} element={<LegalPages />} />
               <Route path={ROUTES.ADMIN_SETTINGS} element={<Settings />} />
               <Route path={ROUTES.ADMIN_PROFILE} element={<Profile />} />
             </Route>
