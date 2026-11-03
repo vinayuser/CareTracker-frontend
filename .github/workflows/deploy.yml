@@ -42,7 +42,7 @@ jobs:
             docker rmi caretracker-frontend caretracker-admin:latest || true
             docker system prune -af
             docker build --no-cache \
-              --build-arg VITE_API_BASE_URL="${VITE_API_BASE_URL:-https://caretraker.com/api/api}" \
+              --build-arg VITE_API_BASE_URL="${VITE_API_BASE_URL:-}" \
               -t caretracker-frontend .
             docker run -d \
               --name caretracker-frontend \

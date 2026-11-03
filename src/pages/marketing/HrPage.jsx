@@ -9,6 +9,7 @@ import {
   UserRound,
   Users,
 } from 'lucide-react';
+import { RequestDemoButton } from '../../components/marketing/DemoRequestContext';
 
 function Avatar({ name, tone }) {
   const initials = name
@@ -572,12 +573,9 @@ export default function HrPage() {
                 Streamline HR operations and support your team with the tools they need to succeed.
               </p>
             </div>
-            <a
-              href="mailto:sales@caretraker.com?subject=HR%20%26%20Workforce%20Demo%20Request"
-              className="inline-flex shrink-0 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_rgba(0,85,212,0.7)] hover:bg-primary-hover"
-            >
+            <RequestDemoButton className="inline-flex shrink-0 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_rgba(0,85,212,0.7)] hover:bg-primary-hover">
               Request a Demo
-            </a>
+            </RequestDemoButton>
           </div>
         </div>
       </section>

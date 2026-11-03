@@ -12,6 +12,7 @@ const API_ROUTES = {
     PRIVACY: '/privacy-policy',
     TERMS: '/terms-and-conditions',
   },
+  DEMO_REQUESTS: '/demo-requests',
   ME: '/auth/me',
   UPDATE_PROFILE: '/auth/me',
   CHECK_LOGIN_ID: '/auth/check-login-id',
@@ -121,6 +122,10 @@ const API_ROUTES = {
     LEGAL: {
       LIST: '/admin/legal',
       DETAIL: (slug) => `/admin/legal/${slug}`,
+    },
+    ENQUIRIES: {
+      LIST: '/admin/enquiries',
+      DETAIL: (id) => `/admin/enquiries/${id}`,
     },
     EMAIL_MARKETING: {
       STATE: '/admin/marketing/state',

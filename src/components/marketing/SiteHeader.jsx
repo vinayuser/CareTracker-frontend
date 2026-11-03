@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import CareTrackerLogo from '../brand/CareTrackerLogo';
 import { ROUTES } from '../../routes/routes';
+import { RequestDemoButton } from './DemoRequestContext';
 
 const NAV_LINKS = [
   { label: 'Platform', to: ROUTES.MARKETING_PRODUCT },
@@ -35,12 +36,9 @@ export default function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
-          <a
-            href="#demo"
-            className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-primary/25 hover:bg-primary-hover"
-          >
+          <RequestDemoButton className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-primary/25 hover:bg-primary-hover">
             Request a Demo
-          </a>
+          </RequestDemoButton>
           <Link
             to={ROUTES.LOGIN}
             className="rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-semibold text-slate-700 hover:border-slate-300"
@@ -72,13 +70,12 @@ export default function SiteHeader() {
                 {link.label}
               </Link>
             ))}
-            <a
-              href="#demo"
+            <RequestDemoButton
               className="mt-1 rounded-full bg-primary px-4 py-2.5 text-center text-sm font-semibold text-white"
               onClick={() => setOpen(false)}
             >
               Request a Demo
-            </a>
+            </RequestDemoButton>
             <Link
               to={ROUTES.LOGIN}
               className="rounded-full border border-slate-200 px-4 py-2.5 text-center text-sm font-semibold text-slate-700"

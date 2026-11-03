@@ -16,6 +16,7 @@ import {
 import { getImageUploadError, MAX_IMAGE_UPLOAD_LABEL } from '../../../utils/imageUploadValidation';
 import useSubmitLock from '../../../hooks/useSubmitLock';
 import SelectFormsToSendModal from './SelectFormsToSendModal';
+import CandidateResumeActions from './CandidateResumeActions';
 
 const EMPTY = {
   firstName: '',
@@ -454,14 +455,19 @@ export default function AddCandidateDrawer({
             hint={`JPG, JPEG, or PNG — max ${MAX_IMAGE_UPLOAD_LABEL}`}
             error={errors.profilePic}
           />
-          <FileField
-            label="Upload Resume"
-            accept=".pdf"
-            file={form.resume}
-            onChange={setFile('resume')}
-            hint="PDF only — max 10 MB"
-            error={errors.resume}
-          />
+          <div>
+            <FileField
+              label="Upload Resume"
+              accept=".pdf"
+              file={form.resume}
+              onChange={setFile('resume')}
+              hint="PDF only — max 10 MB"
+              error={errors.resume}
+            />
+            {editing && !form.resume && (
+              <CandidateResumeActions candidate={application?.candidate} variant="link" emptyLabel="No resume uploaded yet" />
+            )}
+          </div>
         </div>
         </>
         )}

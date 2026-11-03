@@ -15,7 +15,7 @@ export default function ScrollToHash() {
     }
 
     const id = decodeURIComponent(hash.replace(/^#/, ''));
-    if (!id) return;
+    if (!id || id === 'demo') return;
 
     let cancelled = false;
     let attempts = 0;

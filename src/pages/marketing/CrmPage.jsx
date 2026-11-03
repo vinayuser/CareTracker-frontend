@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import {
   Award,
   Bell,
@@ -7,7 +6,7 @@ import {
   Search,
   SmilePlus,
 } from 'lucide-react';
-import { ROUTES } from '../../routes/routes';
+import { RequestDemoButton } from '../../components/marketing/DemoRequestContext';
 
 function SectionBadge({ n }) {
   return (
@@ -718,12 +717,9 @@ export default function CrmPage() {
                 </p>
               </div>
             </div>
-            <Link
-              to={ROUTES.MARKETING_EVV}
-              className="inline-flex shrink-0 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover"
-            >
+            <RequestDemoButton className="inline-flex shrink-0 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover">
               Request a Demo
-            </Link>
+            </RequestDemoButton>
           </div>
         </div>
       </section>

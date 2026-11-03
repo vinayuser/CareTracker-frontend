@@ -126,6 +126,7 @@ import PortalsPage from './pages/marketing/PortalsPage';
 import LegalDocument from './pages/marketing/LegalDocument';
 import MarketingLayout from './components/marketing/MarketingLayout';
 import LegalPages from './pages/admin/LegalPages';
+import Enquiries from './pages/admin/Enquiries';
 import { getHomeRouteForRole } from './utils/auth';
 
 function HomeRedirect() {
@@ -254,6 +255,7 @@ export default function App() {
               <Route path={ROUTES.ADMIN_SUPPORT} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_CONTENT} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_LEGAL} element={<LegalPages />} />
+              <Route path={ROUTES.ADMIN_ENQUIRIES} element={<Enquiries />} />
               <Route path={ROUTES.ADMIN_SETTINGS} element={<Settings />} />
               <Route path={ROUTES.ADMIN_PROFILE} element={<Profile />} />
             </Route>

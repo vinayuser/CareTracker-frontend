@@ -63,6 +63,7 @@ export const ROUTES = {
   ADMIN_SUPPORT: '/admin/support',
   ADMIN_CONTENT: '/admin/content',
   ADMIN_LEGAL: '/admin/legal',
+  ADMIN_ENQUIRIES: '/admin/enquiries',
   ADMIN_SETTINGS: '/admin/settings',
   ADMIN_PROFILE: '/admin/profile',
 

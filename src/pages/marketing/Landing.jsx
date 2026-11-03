@@ -21,6 +21,7 @@ import {
   BedDouble,
 } from 'lucide-react';
 import ProductShot from '../../components/marketing/ProductShot';
+import { RequestDemoButton } from '../../components/marketing/DemoRequestContext';
 import { ROUTES } from '../../routes/routes';
 
 const SHOTS = {
@@ -219,12 +220,9 @@ export default function Landing() {
               secure system.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <a
-                href="#demo"
-                className="inline-flex rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/25 hover:bg-primary-hover"
-              >
+              <RequestDemoButton className="inline-flex rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/25 hover:bg-primary-hover">
                 Request a Demo
-              </a>
+              </RequestDemoButton>
               <Link
                 to={ROUTES.MARKETING_EVV}
                 className="inline-flex rounded-lg border border-[#c9daf8] bg-white px-5 py-2.5 text-sm font-semibold text-primary hover:bg-primary/5"
@@ -415,12 +413,9 @@ export default function Landing() {
             in one platform built for home care success.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <a
-              href="mailto:sales@caretraker.com?subject=Demo%20Request"
-              className="rounded-lg border-2 border-white bg-transparent px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
-            >
+            <RequestDemoButton className="rounded-lg border-2 border-white bg-transparent px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10">
               Request a Demo
-            </a>
+            </RequestDemoButton>
             <a
               href="mailto:sales@caretraker.com?subject=Talk%20to%20CareTraker%20Team"
               className="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-primary hover:bg-slate-50"

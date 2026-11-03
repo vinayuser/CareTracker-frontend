@@ -19,6 +19,7 @@ import {
   Users,
 } from 'lucide-react';
 import { ROUTES } from '../../routes/routes';
+import { RequestDemoButton } from './DemoRequestContext';
 
 const COLUMNS = [
   {
@@ -32,7 +33,7 @@ const COLUMNS = [
       { label: "What's New", to: `${ROUTES.MARKETING_PRODUCT}#whats-new` },
       { label: 'Roadmap', to: `${ROUTES.MARKETING_PRODUCT}#roadmap` },
       { label: 'Case Studies', to: `${ROUTES.MARKETING_PRODUCT}#case-studies` },
-      { label: 'Request a Demo', to: `${ROUTES.MARKETING_PRODUCT}#demo` },
+      { label: 'Request a Demo', action: 'openDemo' },
     ],
   },
   {
@@ -353,12 +354,18 @@ export default function SiteFooter() {
                 <ul className="space-y-1.5">
                   {links.map((link) => (
                     <li key={link.label}>
-                      <Link
-                        to={link.to}
-                        className="text-[11px] leading-snug text-sky-100/70 transition hover:text-white"
-                      >
-                        {link.label}
-                      </Link>
+                      {link.action === 'openDemo' ? (
+                        <RequestDemoButton className="text-left text-[11px] leading-snug text-sky-100/70 transition hover:text-white">
+                          {link.label}
+                        </RequestDemoButton>
+                      ) : (
+                        <Link
+                          to={link.to}
+                          className="text-[11px] leading-snug text-sky-100/70 transition hover:text-white"
+                        >
+                          {link.label}
+                        </Link>
+                      )}
                     </li>
                   ))}
                 </ul>

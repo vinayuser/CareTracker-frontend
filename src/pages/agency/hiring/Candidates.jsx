@@ -5,6 +5,7 @@ import AddCandidateDrawer from '../../../components/agency/hiring/AddCandidateDr
 import CandidateFormsPanel from '../../../components/agency/hiring/CandidateFormsPanel';
 import CandidateFeedbackViewPanel from '../../../components/agency/hiring/CandidateFeedbackViewPanel';
 import SendCandidateEmailDrawer from '../../../components/agency/hiring/SendCandidateEmailDrawer';
+import CandidateResumeActions from '../../../components/agency/hiring/CandidateResumeActions';
 import ActionIconButton from '../../../components/ui/ActionIconButton';
 import { fetchJobs } from '../../../redux/slices/jobsSlice';
 import { deleteCandidate, fetchApplications, setCandidateAvailability } from '../../../redux/slices/candidatesSlice';
@@ -90,17 +91,18 @@ export default function Candidates() {
                 <th className="px-5 py-3">Availability</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3">Applied</th>
+                <th className="px-5 py-3">Resume</th>
                 <th className="px-5 py-3">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {loading ? (
                 <tr>
-                  <td colSpan={10} className="px-5 py-10 text-center text-gray-500">Loading...</td>
+                  <td colSpan={11} className="px-5 py-10 text-center text-gray-500">Loading...</td>
                 </tr>
               ) : applications.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-5 py-10 text-center text-gray-500">
+                  <td colSpan={11} className="px-5 py-10 text-center text-gray-500">
                     No candidates yet. Add a candidate to a job to get started.
                   </td>
                 </tr>
@@ -151,6 +153,9 @@ export default function Candidates() {
                     </td>
                     <td className="px-5 py-3.5 text-gray-600">
                       {app.appliedAt ? new Date(app.appliedAt).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : '—'}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <CandidateResumeActions candidate={app.candidate} />
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-0.5">

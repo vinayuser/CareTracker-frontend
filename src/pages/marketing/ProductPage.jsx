@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   UserPlus,
 } from 'lucide-react';
+import { RequestDemoButton } from '../../components/marketing/DemoRequestContext';
 
 const OVERVIEW_STATS = [
   { label: 'Agencies', value: '128', trend: '+16% this month' },
@@ -253,12 +254,9 @@ export default function ProductPage() {
               platform—helping agencies deliver better care, stay compliant, and grow with confidence.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <a
-                href="#demo"
-                className="inline-flex rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_rgba(37,99,235,0.7)] hover:bg-primary-hover"
-              >
+              <RequestDemoButton className="inline-flex rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_rgba(37,99,235,0.7)] hover:bg-primary-hover">
                 Request a Demo
-              </a>
+              </RequestDemoButton>
               <a
                 href="#features"
                 className="inline-flex rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
@@ -375,8 +373,7 @@ export default function ProductPage() {
                       </li>
                     ))}
                   </ul>
-                  <a
-                    href="#demo"
+                  <RequestDemoButton
                     className={`mt-6 inline-flex w-full items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold ${
                       plan.popular
                         ? 'bg-primary text-white shadow-sm shadow-primary/30 hover:bg-primary-hover'
@@ -384,7 +381,7 @@ export default function ProductPage() {
                     }`}
                   >
                     {plan.cta}
-                  </a>
+                  </RequestDemoButton>
                 </div>
               </div>
             ))}
@@ -529,12 +526,9 @@ export default function ProductPage() {
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap gap-3">
-              <a
-                href={`mailto:support@caretraker.com?subject=${encodeURIComponent('Request a Demo')}`}
-                className="inline-flex rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-primary hover:bg-slate-50"
-              >
+              <RequestDemoButton className="inline-flex rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-primary hover:bg-slate-50">
                 Request a Demo
-              </a>
+              </RequestDemoButton>
               <a
                 href="mailto:info@caretraker.com"
                 className="inline-flex rounded-lg border border-white/70 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10"

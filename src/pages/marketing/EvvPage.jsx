@@ -12,6 +12,7 @@ import {
 import ProductShot from '../../components/marketing/ProductShot';
 import ProductMock from '../../components/marketing/ProductMock';
 import { ROUTES } from '../../routes/routes';
+import { RequestDemoButton } from '../../components/marketing/DemoRequestContext';
 
 const SHOTS = {
   dashboard: '/marketing/agency-dashboard.png',
@@ -93,12 +94,9 @@ export default function EvvPage() {
               documentation—so compliance stays clean and care stays on track.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
-              <a
-                href="mailto:sales@caretraker.com?subject=EVV%20Demo%20Request"
-                className="inline-flex items-center rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover"
-              >
+              <RequestDemoButton className="inline-flex items-center rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover">
                 Book a Demo
-              </a>
+              </RequestDemoButton>
               <Link
                 to={ROUTES.LOGIN}
                 className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary-hover"
@@ -200,12 +198,9 @@ export default function EvvPage() {
             >
               Free Register
             </Link>
-            <a
-              href="mailto:sales@caretraker.com?subject=EVV%20Demo%20Request"
-              className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover"
-            >
+            <RequestDemoButton className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover">
               Request a Demo
-            </a>
+            </RequestDemoButton>
           </div>
         </div>
       </SectionShell>

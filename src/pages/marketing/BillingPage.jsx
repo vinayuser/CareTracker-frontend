@@ -11,6 +11,7 @@ import {
   Square,
 } from 'lucide-react';
 import { ROUTES } from '../../routes/routes';
+import { RequestDemoButton } from '../../components/marketing/DemoRequestContext';
 
 function StatusPill({ label, tone }) {
   return (
@@ -741,12 +742,9 @@ export default function BillingPage() {
                 Optimize your billing process and get paid faster with CareTraker.
               </p>
             </div>
-            <a
-              href="mailto:sales@caretraker.com?subject=Billing%20%26%20Revenue%20Demo%20Request"
-              className="inline-flex shrink-0 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_rgba(0,85,212,0.7)] hover:bg-primary-hover"
-            >
+            <RequestDemoButton className="inline-flex shrink-0 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_rgba(0,85,212,0.7)] hover:bg-primary-hover">
               Request a Demo
-            </a>
+            </RequestDemoButton>
           </div>
         </div>
       </section>

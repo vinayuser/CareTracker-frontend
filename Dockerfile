@@ -9,12 +9,12 @@
 #   docker build -t caretracker-admin \
 #     --build-arg VITE_API_BASE_URL=https://your-api.com/api .
 
-FROM node:20-alpine AS build
+FROM node:24-alpine AS build
 
 WORKDIR /app
 
-# Vite bakes this into the JS bundle at build time
-ARG VITE_API_BASE_URL=https://caretraker.com/api/api
+# Empty = use window.location.origin + /api/api (works on IP or domain)
+ARG VITE_API_BASE_URL=
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 COPY package.json package-lock.json ./

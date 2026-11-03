@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { X, ArrowRight, ArrowLeft, UserCheck, Ban, Loader2, RotateCcw, FileText, ClipboardCheck, Trash2 } from 'lucide-react';
+import CandidateResumeActions from './CandidateResumeActions';
 import {
   fetchStageCandidates,
   moveToNextStage,
@@ -67,6 +68,7 @@ function CandidateRow({ application, onAction, loadingId, viewType, onOpenForms,
           )}
         </div>
         <div className="flex flex-wrap gap-2">
+          <CandidateResumeActions candidate={candidate} variant="button" />
           {(viewType === 'stage' || viewType === 'hired' || viewType === 'rejected') && (
             <button
               type="button"

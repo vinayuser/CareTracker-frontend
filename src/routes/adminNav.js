@@ -33,6 +33,7 @@ export const ADMIN_NAV_GROUPS = [
   {
     title: 'Growth',
     items: [
+      { key: 'ADMIN_ENQUIRIES', label: 'Enquiries', icon: 'Inbox' },
       {
         key: 'ADMIN_MARKETING',
         label: 'Marketing',
