@@ -119,7 +119,7 @@ const RequestForReferenceSection = ({ formData, errors = {}, onInputChange, onCh
             onChange={(e) => onInputChange('I', e.target.value)}
             className={`flex-1 mx-2 border-b px-2 py-1 focus:outline-none ${errors.I ? 'border-red-400' : 'border-gray-300 focus:border-blue-500'}`}
           />
-          <span>, hereby give my permission for the release of information to CareTraker regarding my employment and earnings.</span>
+          <span>, hereby give my permission for the release of information to Caretraqer regarding my employment and earnings.</span>
         </div>
         <FieldError message={errors.I} />
       </div>

@@ -20,7 +20,7 @@ export default function InterviewFeedbackPrintLayout({ data }) {
   const skills = data?.options?.skills || Object.keys(form.skillRatings || {});
   const rounds = data?.pipeline_rounds || [];
   const stageName = data?.stage?.name || form.stageName || 'Stage';
-  const agencyName = data?.agency_name || 'CareTraker';
+  const agencyName = data?.agency_name || 'Caretraqer';
 
   return (
     <div className="if-print-root">

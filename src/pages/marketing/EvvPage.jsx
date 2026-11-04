@@ -90,7 +90,7 @@ export default function EvvPage() {
               EVV Made Simple. Accurate Visits. Better Compliance. Stronger Care.
             </h1>
             <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-slate-600">
-              CareTraker EVV helps agencies verify caregiver visits with GPS, time stamps, and digital
+              Caretraqer EVV helps agencies verify caregiver visits with GPS, time stamps, and digital
               documentation—so compliance stays clean and care stays on track.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -105,7 +105,7 @@ export default function EvvPage() {
               </Link>
             </div>
           </div>
-          <ProductShot src={SHOTS.evv} alt="CareTraker EVV dashboard" className="login-fade-in" />
+          <ProductShot src={SHOTS.evv} alt="Caretraqer EVV dashboard" className="login-fade-in" />
         </div>
 
         <div className="mt-12 grid gap-3 rounded-2xl border border-slate-200 bg-[#f5f7fb] p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">

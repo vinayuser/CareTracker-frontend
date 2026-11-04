@@ -215,7 +215,7 @@ export default function Landing() {
               Empowering better care, one agency at a time.
             </h1>
             <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-slate-500">
-              CareTraker gives home care organizations a powerful platform to manage clients,
+              Caretraqer gives home care organizations a powerful platform to manage clients,
               caregivers, compliance, billing, onboarding, and day-to-day operations—all from one
               secure system.
             </p>
@@ -233,7 +233,7 @@ export default function Landing() {
           </div>
           <ProductShot
             src={SHOTS.dashboard}
-            alt="CareTraker agency dashboard"
+            alt="Caretraqer agency dashboard"
             className="shadow-[0_25px_60px_-20px_rgba(15,23,42,0.4)]"
           />
         </div>
@@ -275,7 +275,7 @@ export default function Landing() {
           One Platform. Every Part of Your Care Operation.
         </h2>
         <p className="mx-auto mt-3 max-w-2xl text-center text-[15px] leading-relaxed text-slate-500">
-          CareTraker brings your most important home care workflows together, helping administrators
+          Caretraqer brings your most important home care workflows together, helping administrators
           spend less time managing paperwork and more time improving care.
         </p>
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -387,7 +387,7 @@ export default function Landing() {
           Stay Accurate. Stay Compliant. Stay in Control.
         </h2>
         <p className="mx-auto mt-3 max-w-2xl text-center text-[15px] leading-relaxed text-slate-500">
-          CareTraker helps agencies maintain accurate service records while giving administrators
+          Caretraqer helps agencies maintain accurate service records while giving administrators
           better visibility into caregiver visits and client services.
         </p>
         <div className="mt-12 grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-6">
@@ -417,7 +417,7 @@ export default function Landing() {
               Request a Demo
             </RequestDemoButton>
             <a
-              href="mailto:sales@caretraker.com?subject=Talk%20to%20CareTraker%20Team"
+              href="mailto:sales@caretraker.com?subject=Talk%20to%20Caretraqer%20Team"
               className="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-primary hover:bg-slate-50"
             >
               Talk to Our Team

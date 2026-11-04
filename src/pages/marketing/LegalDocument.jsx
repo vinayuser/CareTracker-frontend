@@ -22,15 +22,15 @@ const SLUG_META = {
     icon: ShieldCheck,
     kicker: 'Your information',
     summary:
-      'How CareTraker collects, uses, and protects information across the website, agency portal, and mobile apps.',
+      'How Caretraqer collects, uses, and protects information across the website, agency portal, and mobile apps.',
   },
   terms: {
     fallbackTitle: 'Terms & Conditions',
     path: ROUTES.TERMS,
     icon: Scale,
-    kicker: 'Using CareTraker',
+    kicker: 'Using Caretraqer',
     summary:
-      'The agreement that governs access to CareTraker for agencies, caregivers, clients, and visitors.',
+      'The agreement that governs access to Caretraqer for agencies, caregivers, clients, and visitors.',
   },
 };
 
@@ -165,7 +165,7 @@ export default function LegalDocument() {
 
   useEffect(() => {
     const previous = document.title;
-    document.title = `${title} | CareTraker`;
+    document.title = `${title} | Caretraqer`;
     return () => { document.title = previous; };
   }, [title]);
 
@@ -178,7 +178,7 @@ export default function LegalDocument() {
           to={ROUTES.HOME}
           className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary-hover"
         >
-          Back to CareTraker <ArrowRight size={16} />
+          Back to Caretraqer <ArrowRight size={16} />
         </Link>
       </div>
     );
@@ -342,7 +342,7 @@ export default function LegalDocument() {
 
             <div className="legal-chrome mt-12 flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 pt-6">
               <p className="text-sm text-slate-500">
-                CareTraker may update this document. Continued use means you accept the current version.
+                Caretraqer may update this document. Continued use means you accept the current version.
               </p>
               <Link
                 to={slug === 'privacy' ? ROUTES.TERMS : ROUTES.PRIVACY}

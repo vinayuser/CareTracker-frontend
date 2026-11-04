@@ -362,7 +362,7 @@ const INTEGRATIONS = [
     id: 'and-more',
     n: '8',
     title: 'And More...',
-    text: 'Extend CareTraker with calendars, storage, identity, and custom API connectors.',
+    text: 'Extend Caretraqer with calendars, storage, identity, and custom API connectors.',
     features: ['Google Calendar', 'Microsoft 365', 'Custom webhooks & APIs'],
     systems: [
       { name: 'Google Workspace', status: 'Connected' },
@@ -386,7 +386,7 @@ export default function IntegrationsPage() {
               Integrations
             </h1>
             <p className="mt-5 max-w-md text-[15px] leading-relaxed text-slate-500">
-              Connect CareTraker with the tools you use every day. Streamline workflows, reduce manual
+              Connect Caretraqer with the tools you use every day. Streamline workflows, reduce manual
               work, and improve efficiency.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
@@ -427,7 +427,7 @@ export default function IntegrationsPage() {
                 Connect. Sync. Simplify.
               </h3>
               <p className="mt-1.5 max-w-xl text-sm text-slate-500">
-                Integrate CareTraker with your favorite tools and automate your workflows.
+                Integrate Caretraqer with your favorite tools and automate your workflows.
               </p>
             </div>
             <RequestDemoButton className="inline-flex shrink-0 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_rgba(0,85,212,0.7)] hover:bg-primary-hover">

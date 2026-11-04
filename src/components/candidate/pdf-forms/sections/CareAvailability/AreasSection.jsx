@@ -71,7 +71,7 @@ const AreasSection = ({ formData, onInputChange }) => {
       {/* Footer Note */}
       <div className="mt-6 p-3 border-t border-gray-200">
         <p className="text-xs text-gray-500">
-          1204/MC-Rev.0120 ©CareTraker All Rights Reserved
+          1204/MC-Rev.0120 ©Caretraqer All Rights Reserved
         </p>
       </div>
     </div>

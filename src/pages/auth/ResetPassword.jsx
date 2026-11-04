@@ -71,7 +71,7 @@ export default function ResetPassword() {
             <div className="mb-8">
               <h1 className="text-3xl font-bold tracking-tight text-slate-900">Reset password</h1>
               <p className="mt-2 text-sm text-slate-500">
-                Choose a new password for your CareTraker account.
+                Choose a new password for your Caretraqer account.
               </p>
             </div>
 

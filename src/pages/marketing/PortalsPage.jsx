@@ -730,7 +730,7 @@ const SECTIONS = [
     id: 'mobile-apps',
     n: '06',
     title: 'Mobile Apps',
-    text: 'CareTraker mobile apps help caregivers and staff stay connected and productive anywhere.',
+    text: 'Caretraqer mobile apps help caregivers and staff stay connected and productive anywhere.',
     items: [
       'Caregiver mobile app',
       'EVV with geolocation',
@@ -787,7 +787,7 @@ export default function PortalsPage() {
               Every User.
             </h1>
             <p className="mt-5 max-w-md text-[15px] leading-relaxed text-slate-500">
-              CareTraker connects caregivers, clients, families, payers, auditors and administrators in one
+              Caretraqer connects caregivers, clients, families, payers, auditors and administrators in one
               seamless, secure ecosystem.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">

@@ -32,11 +32,11 @@ const IssuanceSection = ({
     return (
       <div className="text-sm text-gray-700 space-y-3">
         <p>
-          I, <span className="font-semibold text-blue-600">{name}</span>, agree to accept this I.D. badge which is provided to me by CareTraker.
+          I, <span className="font-semibold text-blue-600">{name}</span>, agree to accept this I.D. badge which is provided to me by Caretraqer.
           I agree to maintain my I.D. badge in a well-kept condition.
         </p>
         <p>
-          I also agree, that in the event that I leave my employment with CareTraker within 30 days,
+          I also agree, that in the event that I leave my employment with Caretraqer within 30 days,
           I will return my I.D. badge within one (1) week after my last day of employment.
         </p>
         <p>

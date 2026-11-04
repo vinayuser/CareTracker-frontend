@@ -17,7 +17,7 @@ const CompanySection = ({
       <div className="mb-6 p-4 border border-blue-300 rounded bg-blue-50">
         <h4 className="text-md font-semibold text-blue-800 mb-2">Instructions:</h4>
         <p className="text-sm text-blue-700 mb-2">
-          This section is for the Company's authorized representative to sign on behalf of CareTraker Homecare, Inc.
+          This section is for the Company's authorized representative to sign on behalf of Caretraqer Homecare, Inc.
         </p>
         <p className="text-sm text-blue-700">
           The Company representative should fill in their information and sign below.

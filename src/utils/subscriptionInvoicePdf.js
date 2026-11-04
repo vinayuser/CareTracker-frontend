@@ -33,7 +33,7 @@ function agencyAddressLines(invoice = {}) {
 
 async function loadLogoDataUrl() {
   try {
-    const response = await fetch(`${import.meta.env.BASE_URL}caretracker-logo.png`);
+    const response = await fetch(`${import.meta.env.BASE_URL}caretraqer-logo.png`);
     if (!response.ok) return null;
     const blob = await response.blob();
     return await new Promise((resolve) => {
@@ -48,7 +48,7 @@ async function loadLogoDataUrl() {
 }
 
 /**
- * Build and download a CareTracker subscription invoice PDF (with platform logo).
+ * Build and download a Caretraqer subscription invoice PDF (with platform logo).
  * @param {object} invoice - subscription invoice payload
  */
 export async function downloadSubscriptionInvoicePdf(invoice) {
@@ -68,13 +68,13 @@ export async function downloadSubscriptionInvoicePdf(invoice) {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(18);
       doc.setTextColor(0, 85, 212);
-      doc.text('CareTraker', margin, y + 18);
+      doc.text('Caretraqer', margin, y + 18);
     }
   } else {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(18);
     doc.setTextColor(0, 85, 212);
-    doc.text('CareTraker', margin, y + 18);
+    doc.text('Caretraqer', margin, y + 18);
   }
 
   doc.setFont('helvetica', 'bold');
@@ -192,7 +192,7 @@ export async function downloadSubscriptionInvoicePdf(invoice) {
   doc.setFontSize(9);
   doc.setTextColor(148, 163, 184);
   doc.text(
-    'CareTraker · Home Care Platform · hello@caretraker.com',
+    'Caretraqer · Home Care Platform · hello@caretraker.com',
     pageWidth / 2,
     y,
     { align: 'center' },

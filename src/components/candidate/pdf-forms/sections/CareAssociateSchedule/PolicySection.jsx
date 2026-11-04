@@ -88,7 +88,7 @@ const PolicySection = ({ formData, errors = {}, onInputChange }) => {
         
         <div className="mt-4 p-3 bg-white border border-blue-100 rounded">
           <p className="text-sm text-gray-600">
-            This statement will be signed in the next section along with the CareTraker representative signature.
+            This statement will be signed in the next section along with the Caretraqer representative signature.
           </p>
         </div>
       </div>

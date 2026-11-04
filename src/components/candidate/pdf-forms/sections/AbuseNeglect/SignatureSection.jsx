@@ -35,7 +35,7 @@ const SignatureSection = ({
       </div>
 
       <div className="mt-6 border-t border-gray-200 p-3">
-        <p className="text-center text-xs text-gray-500">1220/MC-Rev.0320 ©CareTraker All Rights Reserved</p>
+        <p className="text-center text-xs text-gray-500">1220/MC-Rev.0320 ©Caretraqer All Rights Reserved</p>
       </div>
     </div>
   );

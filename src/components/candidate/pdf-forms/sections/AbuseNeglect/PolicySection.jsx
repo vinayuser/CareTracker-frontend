@@ -15,7 +15,7 @@ const PolicySection = ({ formData, errors = {}, onInputChange }) => {
       <div className="mb-6 p-4 border border-gray-300 rounded bg-gray-50">
         <h4 className="text-md font-semibold text-gray-800 mb-2">Policy:</h4>
         <p className="text-sm text-gray-700">
-          It is the policy of CareTraker to ensure that service will be free of physical, psychological, sexual, financial abuse and neglect. Persons serviced by CareTraker, will be treated with respect and dignity. Any form of abuse or neglect is strictly prohibited.
+          It is the policy of Caretraqer to ensure that service will be free of physical, psychological, sexual, financial abuse and neglect. Persons serviced by Caretraqer, will be treated with respect and dignity. Any form of abuse or neglect is strictly prohibited.
         </p>
       </div>
 
@@ -96,7 +96,7 @@ const PolicySection = ({ formData, errors = {}, onInputChange }) => {
               <span className="text-blue-600 text-xs">3</span>
             </div>
             <p className="text-sm text-gray-700">
-              CareTraker will not hire individuals with a conviction or prior employment history of child, elderly or any abuse, neglect or mistreatment. Reference of past employment will be checked as per report; investigation procedures are to be followed.
+              Caretraqer will not hire individuals with a conviction or prior employment history of child, elderly or any abuse, neglect or mistreatment. Reference of past employment will be checked as per report; investigation procedures are to be followed.
             </p>
           </div>
           

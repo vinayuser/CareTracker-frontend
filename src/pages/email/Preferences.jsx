@@ -91,7 +91,7 @@ export default function Preferences() {
         ) : (
           <form onSubmit={(event) => submit(event, false)} className="mt-6 space-y-4">
             <h1 className="text-xl font-bold text-slate-900">Email preferences</h1>
-            <p className="text-sm text-slate-600">Choose the CareTracker emails you want to receive.</p>
+            <p className="text-sm text-slate-600">Choose the Caretraqer emails you want to receive.</p>
             {error ? <p className="text-sm text-red-600">{error}</p> : null}
             <label className="block text-sm font-medium text-slate-700">
               Email
@@ -124,7 +124,7 @@ export default function Preferences() {
             <button type="button" disabled={saving} onClick={(event) => submit(event, true)} className="w-full text-sm font-semibold text-rose-600 hover:underline">
               Unsubscribe from all marketing emails
             </button>
-            <Link to={ROUTES.HOME} className="block text-center text-sm text-slate-500 hover:text-primary">Back to CareTracker</Link>
+            <Link to={ROUTES.HOME} className="block text-center text-sm text-slate-500 hover:text-primary">Back to Caretraqer</Link>
           </form>
         )}
       </div>

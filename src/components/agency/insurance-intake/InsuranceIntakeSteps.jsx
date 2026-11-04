@@ -601,7 +601,7 @@ export function InsuranceIntakeStepTwo({
 
         <Section n="8" title="Assignment & Authorization">
           <p className="text-sm leading-relaxed text-gray-600">
-            I authorize CareTraker to verify my insurance benefits, submit claims, communicate with my insurance company, and release information as necessary to process payment for services.
+            I authorize Caretraqer to verify my insurance benefits, submit claims, communicate with my insurance company, and release information as necessary to process payment for services.
           </p>
           <Field label="Print Name" required error={errors.authPrintName}>
             <input

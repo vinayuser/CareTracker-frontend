@@ -52,7 +52,7 @@ export default function Unsubscribe() {
             <CheckCircle2 className="text-emerald-600" size={28} />
             <h1 className="text-xl font-bold text-slate-900">You are unsubscribed</h1>
             <p className="text-sm text-slate-600">
-              {email} will no longer receive CareTracker marketing emails.
+              {email} will no longer receive Caretraqer marketing emails.
             </p>
             <Link to={prefsHref} className="text-sm font-semibold text-primary hover:underline">
               Change email preferences instead
@@ -62,7 +62,7 @@ export default function Unsubscribe() {
           <form onSubmit={submit} className="mt-6 space-y-4">
             <h1 className="text-xl font-bold text-slate-900">Unsubscribe</h1>
             <p className="text-sm text-slate-600">
-              Stop marketing emails from CareTracker. Transactional messages about your account may still be sent.
+              Stop marketing emails from Caretraqer. Transactional messages about your account may still be sent.
             </p>
             {error ? <p className="text-sm text-red-600">{error}</p> : null}
             <label className="block text-sm font-medium text-slate-700">

@@ -15,16 +15,16 @@ const AcknowledgementSection = ({ formData, errors = {}, onInputChange }) => {
       <div className="mb-6 max-h-80 overflow-y-auto rounded border border-gray-300 bg-gray-50 p-4">
         <div className="space-y-3 text-sm text-gray-700">
           <p>
-            I acknowledge that I have received a copy of the CareTraker Homecare Employee Handbook. I
+            I acknowledge that I have received a copy of the Caretraqer Homecare Employee Handbook. I
             have read and understood the policies in the Employee Handbook, and I understand that my
-            failure to comply with any of the rules, policies, or procedures of CareTraker Homecare, Inc.
+            failure to comply with any of the rules, policies, or procedures of Caretraqer Homecare, Inc.
             may result in disciplinary action, up to and including dismissal. I further understand and
             acknowledge that:
           </p>
           <ul className="list-disc space-y-2 pl-5">
             <li>It is my responsibility to adhere to the policies contained in the Employee Handbook.</li>
             <li>
-              The Employee Handbook may be changed or superseded by CareTraker Homecare at any time,
+              The Employee Handbook may be changed or superseded by Caretraqer Homecare at any time,
               with or without prior notice.
             </li>
             <li>

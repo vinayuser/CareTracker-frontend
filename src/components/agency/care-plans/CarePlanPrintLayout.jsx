@@ -440,7 +440,7 @@ export default function CarePlanPrintLayout({
               <path d="M24 10 L34 18 V30 C34 34 24 38 24 38 C24 38 14 34 14 30 V18 Z" fill="none" stroke="#fff" strokeWidth="2" />
               <path d="M20 24 C20 21.5 21.8 20 24 20 C26.2 20 28 21.5 28 24 C28 27 24 31 24 31 C24 31 20 27 20 24 Z" fill="#fff" />
             </svg>
-            <strong>CareTraker</strong>
+            <strong>Caretraqer</strong>
           </div>
         </div>
       </footer>

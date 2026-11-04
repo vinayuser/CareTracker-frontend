@@ -14,7 +14,7 @@ import { stripSignedSignaturePlaceholders } from './pdfSignatureUtils';
 
 const EMPTY_2900 = {
   'by CareTraker I agree to maintain my ID badge in a wellkept condition I also agree that in the event':
-    'I, [Employee Name], agree to accept this I.D. badge which is provided to me by CareTraker. I agree to maintain my I.D. badge in a well-kept condition. I also agree, that in the event that I leave my employment with CareTraker within 30 days, I will return my I.D. badge within one (1) week after my last day of employment. In the event I do not return my I.D. badge, I understand that the cost of the I.D. badge is $5.00, which if I have not returned, will be deducted from my final paycheck.',
+    'I, [Employee Name], agree to accept this I.D. badge which is provided to me by Caretraqer. I agree to maintain my I.D. badge in a well-kept condition. I also agree, that in the event that I leave my employment with Caretraqer within 30 days, I will return my I.D. badge within one (1) week after my last day of employment. In the event I do not return my I.D. badge, I understand that the cost of the I.D. badge is $5.00, which if I have not returned, will be deducted from my final paycheck.',
   EmployeeNameBlank: '',
   'Date IssuedID Badge': '',
   'Quantity IssuedID Badge': '1',

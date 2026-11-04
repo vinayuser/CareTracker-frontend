@@ -8,12 +8,12 @@ import { useMarketing } from '../../../services/marketingScope';
 const SAMPLE = {
   name: 'April product update',
   category: 'Product',
-  subject: 'What is new in CareTracker',
+  subject: 'What is new in Caretraqer',
   backgroundColor: '#f8fafc',
   blocks: [
     { id: 's1', type: 'heading', text: 'A simpler week for your agency', color: '#0f172a', align: 'left' },
     { id: 's2', type: 'text', text: 'Scheduling and billing updates in one place.', color: '#334155', align: 'left' },
-    { id: 's3', type: 'button', text: 'Open CareTracker', url: 'https://caretraker.com', buttonColor: '#2563eb', color: '#ffffff', align: 'left' },
+    { id: 's3', type: 'button', text: 'Open Caretraqer', url: 'https://caretraker.com', buttonColor: '#2563eb', color: '#ffffff', align: 'left' },
   ],
 };
 

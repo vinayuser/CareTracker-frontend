@@ -155,7 +155,7 @@ export default function Payments() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Payments</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Subscription invoices, next due dates, and downloadable PDF invoices with CareTraker branding.
+            Subscription invoices, next due dates, and downloadable PDF invoices with Caretraqer branding.
           </p>
         </div>
         <button

@@ -181,7 +181,7 @@ const ReturnsSection = ({
       {/* Footer Note
       <div className="mt-6 p-3 border-t border-gray-200">
         <p className="text-xs text-gray-500 text-center">
-          2900/MC-Rev.0619 ©CareTraker All Rights Reserved
+          2900/MC-Rev.0619 ©Caretraqer All Rights Reserved
         </p>
       </div> */}
     </div>

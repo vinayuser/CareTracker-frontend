@@ -93,7 +93,7 @@ export default function CaregiverSidebar() {
 
       <div className="border-t border-gray-100 p-3">
         <div className="mb-3 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-3">
-          <p className="text-xs font-semibold text-gray-900">CareTraker Caregiver App</p>
+          <p className="text-xs font-semibold text-gray-900">Caretraqer Caregiver App</p>
           <p className="mt-1 text-[10px] leading-relaxed text-gray-500">Clock in, view schedules, and verify visits on the go.</p>
           <div className="mt-3 flex h-16 items-center justify-center rounded-lg bg-white text-[10px] text-gray-400 ring-1 ring-gray-100">
             QR Code

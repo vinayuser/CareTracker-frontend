@@ -1,7 +1,7 @@
 /** Framed product screenshot for marketing pages */
 export default function ProductShot({
   src,
-  alt = 'CareTraker product screenshot',
+  alt = 'Caretraqer product screenshot',
   className = '',
   aspect = 'aspect-[16/10]',
 }) {

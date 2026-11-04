@@ -69,7 +69,7 @@ export default function InvoiceDetailView({ invoice }) {
           <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[invoice.status] || statusStyles.Draft}`}>
             {invoice.status}
           </span>
-          <p className="mt-2 text-sm font-medium text-gray-900">{invoice.agencyName || 'CareTraker Agency'}</p>
+          <p className="mt-2 text-sm font-medium text-gray-900">{invoice.agencyName || 'Caretraqer Agency'}</p>
           {invoice.agencyAddress ? <p className="text-xs text-gray-500">{invoice.agencyAddress}</p> : null}
           {invoice.agencyPhone ? <p className="text-xs text-gray-500">{invoice.agencyPhone}</p> : null}
           {invoice.agencyEmail ? <p className="text-xs text-gray-500">{invoice.agencyEmail}</p> : null}

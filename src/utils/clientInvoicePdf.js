@@ -16,7 +16,7 @@ function formatLongDate(value) {
 
 async function loadLogoDataUrl() {
   try {
-    const response = await fetch(`${import.meta.env.BASE_URL}caretracker-logo.png`);
+    const response = await fetch(`${import.meta.env.BASE_URL}caretraqer-logo.png`);
     if (!response.ok) return null;
     const blob = await response.blob();
     return await new Promise((resolve) => {
@@ -45,13 +45,13 @@ export async function downloadClientInvoicePdf(invoice) {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(16);
       doc.setTextColor(0, 85, 212);
-      doc.text('CareTraker', margin, y + 18);
+      doc.text('Caretraqer', margin, y + 18);
     }
   } else {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.setTextColor(0, 85, 212);
-    doc.text('CareTraker', margin, y + 18);
+    doc.text('Caretraqer', margin, y + 18);
   }
 
   doc.setFont('helvetica', 'bold');

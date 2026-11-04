@@ -32,11 +32,11 @@ const ConsentSection = ({
         <div className="text-sm text-gray-700 space-y-3">
           <p>
             I hereby consent to submit to a drug or alcohol test and to furnish a sample of my urine,
-            mouth swab, breath, and/or blood for analysis, as shall be determined by <strong>CareTraker</strong>,
+            mouth swab, breath, and/or blood for analysis, as shall be determined by <strong>Caretraqer</strong>,
             in order to meet with their policy regarding the selection of applicants for employment.
           </p>
           <p>
-            I further authorize and give full permission to have <strong>CareTraker</strong> and/or its authorized
+            I further authorize and give full permission to have <strong>Caretraqer</strong> and/or its authorized
             agents and physicians to send the specimen or specimens so collected to a laboratory for a screening
             test for the presence of any prohibited substances under the policy, and for the laboratory or other
             testing facility to release any and all documentation relating to such test to the Company.
@@ -44,12 +44,12 @@ const ConsentSection = ({
           </p>
           <p>
             I understand that it is the current use of illegal drugs that would prohibit me from being
-            employed at CareTraker.
+            employed at Caretraqer.
           </p>
           <p>
-            I further agree to hold harmless <strong>CareTraker</strong>, and its agents and physicians from any
+            I further agree to hold harmless <strong>Caretraqer</strong>, and its agents and physicians from any
             liability arising in whole or part, out of the collection of specimens, testing, and use of the
-            information from said testing in connection with <strong>CareTraker</strong>, consideration of my
+            information from said testing in connection with <strong>Caretraqer</strong>, consideration of my
             application of employment.
           </p>
           <p>

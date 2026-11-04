@@ -185,22 +185,6 @@ const LEGAL = [
   { label: 'Sitemap', to: ROUTES.LANDING },
 ];
 
-function FooterLogoMark() {
-  return (
-    <svg viewBox="0 0 48 48" width={42} height={42} className="shrink-0" aria-hidden>
-      <rect width="48" height="48" rx="11" fill="#0055d4" />
-      <circle cx="24" cy="24" r="13.5" fill="#ffffff" />
-      <path
-        d="M12 24.5 H17 L19.5 16 L22.5 33 L25.5 21 L28 24.5 H36"
-        stroke="#0055d4"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-    </svg>
-  );
-}
 
 function HipaaBadge() {
   return (
@@ -253,9 +237,8 @@ function FooterBrandBanner() {
       />
       <div className="relative z-10 mx-auto flex max-w-[1280px] flex-col gap-8 px-5 py-8 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-8 lg:pb-10 lg:pt-7">
         <div className="w-full shrink-0 lg:w-[200px]">
-          <div className="flex items-center gap-2.5">
-            <FooterLogoMark />
-            <span className="text-[20px] font-bold tracking-tight text-[#0b3d91]">CareTraker</span>
+          <div className="flex items-center">
+            <img src="/caretraqer-logo.png" alt="Caretraqer" className="h-8 w-auto max-w-[180px] object-contain object-left" />
           </div>
           <p className="mt-2 max-w-[200px] text-[11px] font-medium leading-snug text-[#3b82f6]">
             Smarter Homecare. Healthier Lives.
@@ -302,13 +285,13 @@ function FooterBrandBanner() {
               Scan Me
             </a>
             <a href="https://caretraker.com" className="mt-1 text-[9px] font-medium text-[#0d9488] hover:underline">
-              Visit CareTraker.com
+              Visit Caretraqer.com
             </a>
           </div>
 
           <div className="min-w-0 pt-0.5">
             <p className="text-[13px] font-bold leading-snug text-[#0b3d91]">
-              Take Care Further with CareTraker
+              Take Care Further with Caretraqer
               <span className="ml-0.5 inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 align-middle" />
             </p>
             <p className="mt-0.5 text-[11px] text-slate-500">Anytime. Anywhere.</p>
@@ -319,7 +302,7 @@ function FooterBrandBanner() {
             />
             <p className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-bold text-[#0b3d91]">
               <Search size={14} strokeWidth={2.5} />
-              Search CareTraker
+              Search Caretraqer
             </p>
           </div>
         </div>
@@ -482,7 +465,7 @@ export default function SiteFooter() {
                 </span>
               ))}
             </nav>
-            <p className="text-[11px] text-white/45">© 2026 CareTraker.com. All rights reserved.</p>
+            <p className="text-[11px] text-white/45">© 2026 Caretraqer.com. All rights reserved.</p>
           </div>
         </div>
       </div>

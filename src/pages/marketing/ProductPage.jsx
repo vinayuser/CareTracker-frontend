@@ -250,7 +250,7 @@ export default function ProductPage() {
               <span className="text-primary">Designed for Impact.</span>
             </h1>
             <p className="mt-5 max-w-md text-[15px] leading-relaxed text-slate-500">
-              CareTraker brings every part of your home care operation together in one powerful
+              Caretraqer brings every part of your home care operation together in one powerful
               platform—helping agencies deliver better care, stay compliant, and grow with confidence.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
@@ -309,7 +309,7 @@ export default function ProductPage() {
             n="01"
             title="Features"
             subtitle="Everything you need. All in one place."
-            text="CareTraker offers a complete suite of tools to manage your agency efficiently and deliver exceptional care."
+            text="Caretraqer offers a complete suite of tools to manage your agency efficiently and deliver exceptional care."
             link="View All Features"
             href="#features"
           />
@@ -397,7 +397,7 @@ export default function ProductPage() {
             n="03"
             title="What's New"
             subtitle="Latest updates and enhancements."
-            text="We're always working to make CareTraker better and more powerful for your agency."
+            text="We're always working to make Caretraqer better and more powerful for your agency."
             link="View All Updates"
             href="#whats-new"
           />
@@ -477,7 +477,7 @@ export default function ProductPage() {
             n="05"
             title="Case Studies"
             subtitle="Real stories. Real impact."
-            text="See how agencies are using CareTraker to transform their operations, grow and deliver better care."
+            text="See how agencies are using Caretraqer to transform their operations, grow and deliver better care."
             link="View All Case Studies"
             href="#case-studies"
           />
@@ -522,7 +522,7 @@ export default function ProductPage() {
             <div className="max-w-xl">
               <h2 className="text-[1.65rem] font-bold tracking-tight text-white">Ready to Transform Your Agency?</h2>
               <p className="mt-2 text-sm leading-relaxed text-white/90">
-                Let our team show you how CareTraker can simplify your operations and improve care outcomes.
+                Let our team show you how Caretraqer can simplify your operations and improve care outcomes.
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap gap-3">

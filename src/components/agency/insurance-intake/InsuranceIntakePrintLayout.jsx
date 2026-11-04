@@ -56,7 +56,7 @@ export default function InsuranceIntakePrintLayout({ form }) {
         <div className="ii-brand">
           <div className="ii-logo">♥</div>
           <div>
-            <div className="ii-brand-name">CareTraker</div>
+            <div className="ii-brand-name">Caretraqer</div>
             <div className="ii-brand-tag">Home Care Management</div>
           </div>
         </div>
@@ -177,7 +177,7 @@ export default function InsuranceIntakePrintLayout({ form }) {
             <Field label="Insurance Company:" value={add.ltcCompany} className="w100" />
           </Section>
           <Section n="8" title="ASSIGNMENT & AUTHORIZATION">
-            <p className="ii-auth-text">I authorize CareTraker to verify my insurance benefits, submit claims, communicate with my insurance company, and release information as necessary to process payment for services.</p>
+            <p className="ii-auth-text">I authorize Caretraqer to verify my insurance benefits, submit claims, communicate with my insurance company, and release information as necessary to process payment for services.</p>
             <Field label="Print Name:" value={auth.printName} className="w100" />
             {auth.signature?.startsWith?.('data:image') ? (
               <div className="ii-sig-img"><img src={auth.signature} alt="signature" /></div>
@@ -232,8 +232,8 @@ export default function InsuranceIntakePrintLayout({ form }) {
 
       <footer className="ii-footer">
         <div className="ii-footer-brand">
-          <strong>CareTraker</strong>
-          <div>Thank you for choosing CareTraker. We are committed to your care and comfort.</div>
+          <strong>Caretraqer</strong>
+          <div>Thank you for choosing Caretraqer. We are committed to your care and comfort.</div>
         </div>
         <div className="ii-footer-contact">
           <div>Phone: (888) 123-4567</div>

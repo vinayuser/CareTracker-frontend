@@ -92,7 +92,7 @@ export default function CandidateDocumentForm() {
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white">♥</div>
             <div className="text-right">
-              <p className="text-sm font-semibold text-gray-900">CareTraker</p>
+              <p className="text-sm font-semibold text-gray-900">Caretraqer</p>
               <p className="text-xs text-gray-500">Hiring forms</p>
             </div>
           </div>

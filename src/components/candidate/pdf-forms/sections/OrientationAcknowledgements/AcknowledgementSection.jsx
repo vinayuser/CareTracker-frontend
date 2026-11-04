@@ -17,7 +17,7 @@ const AcknowledgementSection = ({ formData, errors = {}, onInputChange }) => {
           <p>
             I acknowledge my obligation to fulfill the duties and responsibilities as set forth by the Employee
             Handbook and through our Orientation. I agree to comply with the terms as it relates to my employment
-            with CareTraker. I further understand that violations of the information that is provided to me in the
+            with Caretraqer. I further understand that violations of the information that is provided to me in the
             Employee Handbook will be grounds for disciplinary action, and may include termination of my employment.
           </p>
           <p>

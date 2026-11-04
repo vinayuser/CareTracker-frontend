@@ -381,14 +381,14 @@ function EmailSmsCard() {
         <div>
           <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Message Preview</p>
           <div className="mt-2 rounded-xl border border-slate-200 p-4">
-            <p className="text-[12px] text-slate-500">Subject: Welcome to CareTraker Home Care</p>
+            <p className="text-[12px] text-slate-500">Subject: Welcome to Caretraqer Home Care</p>
             <p className="mt-3 text-[12px] leading-relaxed text-slate-600">
               Hi {'{{First Name}}'},
               <br />
               <br />
-              Thank you for your interest in CareTraker Home Care. We&apos;re here to help you get started.
+              Thank you for your interest in Caretraqer Home Care. We&apos;re here to help you get started.
               <br />
-              <br />- CareTraker Team
+              <br />- Caretraqer Team
             </p>
             <button type="button" className="mt-4 w-full rounded-lg bg-primary py-2 text-[12px] font-semibold text-white">
               Next Step
@@ -540,7 +540,7 @@ export default function CrmPage() {
               <span className="text-primary">Grow Your Agency.</span>
             </h1>
             <p className="mt-5 max-w-md text-[15px] leading-relaxed text-slate-500">
-              CareTraker CRM helps home care agencies attract, engage, and convert leads while building
+              Caretraqer CRM helps home care agencies attract, engage, and convert leads while building
               lasting relationships with clients and referral partners.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
@@ -712,7 +712,7 @@ export default function CrmPage() {
               <div>
                 <h3 className="text-[1.15rem] font-bold text-slate-900">Stay Compliant. Deliver Better Care.</h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  <span className="font-semibold text-slate-700">CareTraker EVV</span> ensures accurate visit
+                  <span className="font-semibold text-slate-700">Caretraqer EVV</span> ensures accurate visit
                   verification, reduces missed visits, and keeps your agency audit-ready.
                 </p>
               </div>

@@ -52,7 +52,7 @@ const PersonalInfoSection = ({ formData, errors = {}, onInputChange }) => {
 
       <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
         <p className="text-sm text-gray-600 mb-3">
-          <strong>Important:</strong> Each employee or volunteer to be screened must sign this authorization/waiver/indemnity form, giving approval for CareTraker Homecare, Inc. to perform an investigative background check.
+          <strong>Important:</strong> Each employee or volunteer to be screened must sign this authorization/waiver/indemnity form, giving approval for Caretraqer Homecare, Inc. to perform an investigative background check.
         </p>
       </div>
 

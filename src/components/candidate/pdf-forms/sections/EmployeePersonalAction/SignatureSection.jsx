@@ -134,7 +134,7 @@ const SignatureSection = ({
 
       <div className="mt-6 p-3 border-t border-gray-200">
         <p className="text-xs text-gray-500 text-center">
-          ©CareTraker All Rights Reserved
+          ©Caretraqer All Rights Reserved
         </p>
       </div>
     </div>

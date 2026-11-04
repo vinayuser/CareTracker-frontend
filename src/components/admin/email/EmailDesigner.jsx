@@ -8,7 +8,7 @@ const PALETTE = [
   { type: 'heading', label: 'Title', text: 'Your headline' },
   { type: 'text', label: 'Paragraph', text: 'Write the message here.' },
   { type: 'image', label: 'Image' },
-  { type: 'button', label: 'Button', text: 'Open CareTracker', url: 'https://caretraker.com', buttonColor: '#2563eb', color: '#ffffff' },
+  { type: 'button', label: 'Button', text: 'Open Caretraqer', url: 'https://caretraker.com', buttonColor: '#2563eb', color: '#ffffff' },
   { type: 'divider', label: 'Divider' },
   { type: 'footer', label: 'Note', text: 'A short closing line.' },
 ];

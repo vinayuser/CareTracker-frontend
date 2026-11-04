@@ -12,7 +12,7 @@ const ReferralSourceSection = ({ formData, onInputChange, onCheckboxChange }) =>
     { key: "Relative-Friend", label: "Relative / Friend", hasSpecify: false },
     { key: "TV-Radio", label: "TV / Radio", hasSpecify: false },
     { key: "Flier", label: "Flier", hasSpecify: false },
-    { key: "Mastercare Website", label: "CareTraker Website", hasSpecify: false },
+    { key: "Mastercare Website", label: "Caretraqer Website", hasSpecify: false },
     { key: "Unsolicited Resume", label: "Unsolicited Resume", hasSpecify: false }
   ];
 

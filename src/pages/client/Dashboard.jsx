@@ -401,7 +401,7 @@ export default function ClientDashboard() {
           <div>
             <p className="font-semibold text-gray-900">Get the Caregiver App</p>
             <p className="mt-0.5 text-sm text-gray-600">
-              Your care team uses CareTraker to clock visits and keep EVV records accurate.
+              Your care team uses Caretraqer to clock visits and keep EVV records accurate.
             </p>
           </div>
         </div>

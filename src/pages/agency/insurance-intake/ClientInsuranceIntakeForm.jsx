@@ -362,7 +362,7 @@ export default function ClientInsuranceIntakeForm() {
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><Shield size={22} /></div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{isEdit ? 'Edit Insurance Intake' : 'New Insurance Intake'}</h1>
-            <p className="text-sm text-gray-500">Client insurance intake form matching the official CareTraker PDF</p>
+            <p className="text-sm text-gray-500">Client insurance intake form matching the official Caretraqer PDF</p>
           </div>
         </div>
         <button type="button" onClick={handlePrint} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:border-primary/30 hover:bg-blue-50 hover:text-primary">

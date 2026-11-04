@@ -57,7 +57,7 @@ export default function CandidateFormPortal() {
           <div className="mb-4 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-lg font-bold text-white">♥</div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">CareTraker</p>
+              <p className="text-sm font-semibold text-gray-900">Caretraqer</p>
               <p className="text-xs text-gray-500">Home Care Management</p>
             </div>
           </div>

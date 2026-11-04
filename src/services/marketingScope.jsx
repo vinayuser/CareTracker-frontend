@@ -30,7 +30,7 @@ const adminValue = {
   ],
   labels: {
     userAudienceTitle: 'Platform Users',
-    userAudienceText: 'People with a CareTracker login. Example: tell agency owners about a new billing screen. Do not use this for a sales list.',
+    userAudienceText: 'People with a Caretraqer login. Example: tell agency owners about a new billing screen. Do not use this for a sales list.',
     userFilter: 'Platform Users',
     userSummaryTitle: 'Platform users',
     deleteHint: 'This deletes the campaign for every admin on the platform.',
