@@ -1,3 +1,4 @@
+import { useSelector } from 'react-redux';
 import Drawer from '../../ui/Drawer';
 
 function Row({ label, value }) {
@@ -10,9 +11,12 @@ function Row({ label, value }) {
 }
 
 export default function ViewCaregiverDrawer({ open, onClose, caregiver }) {
+  const authUser = useSelector((state) => state.auth.user);
   if (!caregiver) {
     return <Drawer open={open} onClose={onClose} title="Caregiver details" width="md" />;
   }
+
+  const agencyName = caregiver.agencyName || authUser?.agencyName || '';
 
   return (
     <Drawer open={open} onClose={onClose} title="Caregiver details" width="md">
@@ -38,7 +42,7 @@ export default function ViewCaregiverDrawer({ open, onClose, caregiver }) {
           <Row label="Login ID" value={caregiver.userId} />
           <Row label="Phone" value={caregiver.phone} />
           <Row label="Employee ID" value={caregiver.employeeId} />
-          <Row label="Agency" value={caregiver.agencyName} />
+          <Row label="Agency" value={agencyName} />
           <Row label="Date of birth" value={caregiver.dateOfBirth} />
           <Row label="Status" value={caregiver.status} />
           <Row label="Hired for job" value={caregiver.source_job_title} />
