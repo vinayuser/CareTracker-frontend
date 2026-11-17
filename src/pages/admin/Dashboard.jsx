@@ -225,7 +225,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5">
-      <div className="-mx-6 -mt-6 border-b border-gray-200 bg-white px-6">
+      <div className="-mx-4 -mt-4 border-b border-gray-200 bg-white px-4 lg:-mx-6 lg:-mt-6 lg:px-6">
         <div className="flex gap-1 overflow-x-auto">
           {TABS.map(({ name, icon: Icon }) => {
             const active = tab === name;

@@ -180,17 +180,17 @@ export default function AgencyHeader({ onToggleSidebar, title = 'Dashboard' }) {
   );
 
   return (
-    <header className="flex h-[60px] shrink-0 items-center gap-4 border-b border-gray-200 bg-white px-5">
+    <header className="flex h-[60px] shrink-0 items-center gap-2 border-b border-gray-200 bg-white px-3 lg:gap-4 lg:px-5">
       <button
         type="button"
         onClick={onToggleSidebar}
-        className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+        className="shrink-0 rounded-lg p-2 text-gray-500 hover:bg-gray-100"
         aria-label="Toggle menu"
       >
         <Menu size={20} />
       </button>
 
-      <h1 className="text-base font-semibold text-gray-900">{title}</h1>
+      <h1 className="min-w-0 truncate text-base font-semibold text-gray-900">{title}</h1>
 
       <div ref={searchRef} className="relative mx-4 hidden max-w-2xl flex-1 lg:block">
         <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-gray-400" />

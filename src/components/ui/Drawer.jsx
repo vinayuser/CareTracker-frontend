@@ -36,21 +36,21 @@ export default function Drawer({ open, onClose, title, children, footer, width =
         onClick={onClose}
       />
       <aside className={`drawer-panel relative flex h-full w-full ${widthClass} flex-col bg-white shadow-2xl`}>
-        <div className="flex shrink-0 items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 lg:px-6 lg:py-4">
+          <h2 className="min-w-0 truncate text-lg font-semibold text-gray-900">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="shrink-0 rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
           >
             <X size={20} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">{children}</div>
+        <div className="flex-1 overflow-y-auto px-4 py-4 lg:px-6 lg:py-5">{children}</div>
 
         {footer && (
-          <div className="shrink-0 border-t border-gray-200 px-6 py-4">{footer}</div>
+          <div className="shrink-0 border-t border-gray-200 px-4 py-3 lg:px-6 lg:py-4">{footer}</div>
         )}
       </aside>
     </div>

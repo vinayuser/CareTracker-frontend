@@ -235,7 +235,7 @@ export default function Assessments() {
 
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="flex flex-wrap gap-3 border-b border-gray-100 px-5 py-4">
-          <div className="relative min-w-[200px] flex-1 max-w-md">
+          <div className="relative min-w-0 w-full flex-1 max-w-md">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search assessments..." className="w-full rounded-lg border border-gray-200 py-2 pl-9 pr-3 text-sm" />
           </div>

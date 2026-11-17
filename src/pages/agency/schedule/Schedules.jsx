@@ -234,7 +234,7 @@ export default function Schedules() {
               setCaregiverFilter(e.target.value);
               setSelectedVisit(null);
             }}
-            className="min-w-[220px] rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-800 outline-none focus:border-primary"
+            className="w-full min-w-0 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-800 outline-none focus:border-primary sm:w-auto sm:min-w-[220px]"
           >
             <option value="">
               {caregiverOptions.length > 5 ? 'Select a caregiver' : 'All caregivers'}

@@ -57,3 +57,39 @@ body {
 .login-fade-in {
   animation: login-fade-in 0.5s ease-out;
 }
+
+/* Mobile: keep desktop layout, make tables and toolbars usable on small screens. */
+@media (max-width: 1023px) {
+  html,
+  body,
+  #root {
+    max-width: 100%;
+  }
+
+  .app-main-scroll,
+  main {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .overflow-x-auto,
+  .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    max-width: 100%;
+  }
+
+  main :has(> table) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+
+  table {
+    min-width: max(100%, 36rem);
+  }
+
+  .overflow-x-auto table,
+  .overflow-auto table {
+    min-width: max(100%, 40rem);
+  }
+}

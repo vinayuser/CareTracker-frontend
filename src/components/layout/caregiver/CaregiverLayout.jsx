@@ -29,6 +29,7 @@ export default function CaregiverLayout() {
 
   useEffect(() => {
     scrollAppToTop('auto');
+    setMobileNav(false);
   }, [pathname]);
 
   return (

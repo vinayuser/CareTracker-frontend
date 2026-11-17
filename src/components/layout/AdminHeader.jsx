@@ -5,6 +5,7 @@ import {
   Building2,
   ChevronDown,
   LayoutGrid,
+  Menu,
   PanelLeft,
   Plus,
   Search,
@@ -83,19 +84,28 @@ export default function AdminHeader({ collapsed, onToggleSidebar }) {
   const hasResults = agencyResults.length > 0 || pageResults.length > 0;
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-4 border-b border-gray-200 bg-white px-5">
+    <header className="flex h-16 shrink-0 items-center gap-2 border-b border-gray-200 bg-white px-3 lg:gap-4 lg:px-5">
+      <button
+        type="button"
+        onClick={onToggleSidebar}
+        className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 lg:hidden"
+        title="Open menu"
+        aria-label="Open menu"
+      >
+        <Menu size={20} />
+      </button>
       {collapsed && (
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+          className="hidden rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 lg:inline-flex"
           title="Expand sidebar"
         >
           <PanelLeft size={20} />
         </button>
       )}
 
-      <div className="hidden min-w-0 items-center gap-2 sm:flex">
+      <div className="hidden min-w-0 items-center gap-2 lg:flex">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
           <Shield size={16} />
         </div>
@@ -105,7 +115,7 @@ export default function AdminHeader({ collapsed, onToggleSidebar }) {
         </div>
       </div>
 
-      <div ref={searchRef} className="relative mx-auto w-full max-w-xl">
+      <div ref={searchRef} className="relative mx-auto min-w-0 w-full max-w-xl">
         <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         <input
           ref={inputRef}

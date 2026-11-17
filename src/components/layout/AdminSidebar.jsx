@@ -152,7 +152,7 @@ function NavItem({ item, collapsed }) {
   );
 }
 
-export default function AdminSidebar({ collapsed, onToggle }) {
+export default function AdminSidebar({ collapsed, onToggle, showCollapse = true }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const navGroups = filterAdminNavGroups(getUserRole());
@@ -165,7 +165,7 @@ export default function AdminSidebar({ collapsed, onToggle }) {
 
   return (
     <aside
-      className={`flex shrink-0 flex-col border-r border-gray-200 bg-white transition-[width] duration-300 ${
+      className={`flex h-full shrink-0 flex-col border-r border-gray-200 bg-white transition-[width] duration-300 ${
         collapsed ? 'w-[72px]' : 'w-[260px]'
       }`}
     >
@@ -213,17 +213,19 @@ export default function AdminSidebar({ collapsed, onToggle }) {
         ) : (
           <div className="mx-auto mb-2 h-2 w-2 rounded-full bg-emerald-500" title="All systems operational" />
         )}
-        <button
-          type="button"
-          onClick={onToggle}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className={`flex w-full items-center rounded-lg text-[13px] font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 ${
-            collapsed ? 'justify-center py-2' : 'gap-2.5 px-3 py-2'
-          }`}
-        >
-          {collapsed ? <ChevronRight size={17} /> : <ChevronLeft size={17} />}
-          {!collapsed && <span>Collapse</span>}
-        </button>
+        {showCollapse ? (
+          <button
+            type="button"
+            onClick={onToggle}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className={`flex w-full items-center rounded-lg text-[13px] font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 ${
+              collapsed ? 'justify-center py-2' : 'gap-2.5 px-3 py-2'
+            }`}
+          >
+            {collapsed ? <ChevronRight size={17} /> : <ChevronLeft size={17} />}
+            {!collapsed && <span>Collapse</span>}
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={handleLogout}

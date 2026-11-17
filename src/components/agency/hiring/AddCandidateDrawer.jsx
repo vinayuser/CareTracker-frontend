@@ -465,7 +465,7 @@ export default function AddCandidateDrawer({
               error={errors.resume}
             />
             {editing && !form.resume && (
-              <CandidateResumeActions candidate={application?.candidate} variant="link" emptyLabel="No resume uploaded yet" />
+              <CandidateResumeActions candidate={application?.candidate} variant="link" />
             )}
           </div>
         </div>

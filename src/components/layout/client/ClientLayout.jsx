@@ -38,6 +38,7 @@ export default function ClientLayout() {
 
   useEffect(() => {
     scrollAppToTop('auto');
+    setMobileNav(false);
   }, [pathname]);
 
   return (

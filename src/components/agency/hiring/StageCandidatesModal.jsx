@@ -330,11 +330,11 @@ export default function StageCandidatesModal({
   const pickCandidate = formPick?.application?.candidate || {};
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-0 md:items-center md:p-4">
       <button type="button" aria-label="Close" className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+      <div className="relative flex h-[100dvh] w-full max-w-2xl flex-col overflow-hidden rounded-none bg-white shadow-2xl md:h-auto md:max-h-[85vh] md:rounded-2xl">
+        <div className="flex items-center justify-between gap-3 border-b border-gray-200 px-4 py-4 md:px-5">
+          <h2 className="min-w-0 truncate text-lg font-semibold text-gray-900">{title}</h2>
           <button type="button" onClick={onClose} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100">
             <X size={20} />
           </button>

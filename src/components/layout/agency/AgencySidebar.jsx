@@ -208,7 +208,7 @@ export default function AgencySidebar({ collapsed }) {
 
   return (
     <aside
-      className={`flex min-h-0 shrink-0 flex-col border-r border-gray-200 bg-white transition-[width] duration-300 ${
+      className={`flex h-full min-h-0 shrink-0 flex-col border-r border-gray-200 bg-white transition-[width] duration-300 ${
         collapsed ? 'w-[68px]' : 'w-[240px]'
       }`}
     >

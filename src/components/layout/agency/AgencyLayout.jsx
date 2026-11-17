@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import AgencySidebar from './AgencySidebar';
 import AgencyHeader from './AgencyHeader';
+import MobileSidebarOverlay from '../MobileSidebarOverlay';
+import useMobileNav from '../../../hooks/useMobileNav';
 import { scrollAppToTop } from '../../../utils/scrollAppToTop';
 
 const SIDEBAR_KEY = 'caretracker_agency_sidebar_collapsed';
@@ -70,6 +72,7 @@ function getPageTitle(pathname) {
 
 export default function AgencyLayout() {
   const { pathname } = useLocation();
+  const { open: mobileOpen, setOpen: setMobileOpen, toggleForViewport } = useMobileNav();
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return localStorage.getItem(SIDEBAR_KEY) === 'true';
@@ -100,15 +103,22 @@ export default function AgencyLayout() {
     };
   }, []);
 
+  const toggleDesktopCollapse = () => setCollapsed((p) => !p);
+
   return (
-    <div className="fixed inset-0 flex overflow-hidden bg-[#f0f4f8]">
-      <AgencySidebar collapsed={collapsed} onToggle={() => setCollapsed((p) => !p)} />
+    <div className="fixed inset-0 flex max-w-[100vw] overflow-hidden bg-[#f0f4f8]">
+      <div className="hidden lg:flex">
+        <AgencySidebar collapsed={collapsed} onToggle={toggleDesktopCollapse} />
+      </div>
+      <MobileSidebarOverlay open={mobileOpen} onClose={() => setMobileOpen(false)}>
+        <AgencySidebar collapsed={false} />
+      </MobileSidebarOverlay>
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <AgencyHeader
-          onToggleSidebar={() => setCollapsed((p) => !p)}
+          onToggleSidebar={() => toggleForViewport(toggleDesktopCollapse)}
           title={getPageTitle(pathname)}
         />
-        <main className="app-main-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#f0f4f8] p-5">
+        <main className="app-main-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#f0f4f8] p-3 sm:p-4 lg:p-5">
           <Outlet />
         </main>
       </div>
