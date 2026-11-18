@@ -9,8 +9,31 @@ export const ROUTES = {
   MARKETING_BILLING: '/billing',
   MARKETING_INTEGRATIONS: '/integrations',
   MARKETING_PORTALS: '/portals',
+
+  // Product footer children (Overview stays on /product)
+  PRODUCT_FEATURES: '/product/features',
+  PRODUCT_PRICING: '/product/pricing',
+  PRODUCT_REQUEST_DEMO: '/product/request-demo',
+
+  // CRM footer children (Lead Management stays on /crm)
+  CRM_CLIENT_INTAKE: '/crm/client-intake',
+  CRM_MARKETING_TOOLS: '/crm/marketing-tools',
+  CRM_EMAIL_SMS: '/crm/email-sms',
+  CRM_PATIENT_ENGAGEMENT: '/crm/patient-engagement',
+  CRM_ANALYTICS_REPORTS: '/crm/analytics-reports',
+
+  // EVV footer children (Mobile Check-In/Out stays on /evv)
+  EVV_VISIT_VERIFICATION: '/evv/visit-verification',
+  EVV_CARE_NOTES: '/evv/care-notes',
+  EVV_MISSED_VISIT_ALERTS: '/evv/missed-visit-alerts',
+  EVV_COMPLIANCE: '/evv/compliance',
+  EVV_REAL_TIME_MONITORING: '/evv/real-time-monitoring',
+
   PRIVACY: '/privacy-policy',
   TERMS: '/terms-and-conditions',
+  SECURITY: '/security',
+  ACCESSIBILITY: '/accessibility',
+  SITEMAP: '/sitemap',
   LOGIN: '/login',
   FORGOT_PASSWORD: '/forgot-password',
   RESET_PASSWORD: '/reset-password',

@@ -124,6 +124,11 @@ import BillingPage from './pages/marketing/BillingPage';
 import IntegrationsPage from './pages/marketing/IntegrationsPage';
 import PortalsPage from './pages/marketing/PortalsPage';
 import LegalDocument from './pages/marketing/LegalDocument';
+import MarketingInfoDocument from './pages/marketing/MarketingInfoDocument';
+import FooterTopicPage from './pages/marketing/FooterTopicPage';
+import { FOOTER_TOPIC_PAGES } from './pages/marketing/footerTopicPages';
+import { FOOTER_GUIDE_PAGES } from './pages/marketing/footerGuidePages';
+import FooterGuidePage from './pages/marketing/FooterGuidePage';
 import MarketingLayout from './components/marketing/MarketingLayout';
 import LegalPages from './pages/admin/LegalPages';
 import Enquiries from './pages/admin/Enquiries';
@@ -168,8 +173,17 @@ export default function App() {
           <Route path={ROUTES.MARKETING_BILLING} element={<BillingPage />} />
           <Route path={ROUTES.MARKETING_INTEGRATIONS} element={<IntegrationsPage />} />
           <Route path={ROUTES.MARKETING_PORTALS} element={<PortalsPage />} />
+          {FOOTER_TOPIC_PAGES.map((page) => (
+            <Route key={page.path} path={page.path} element={<FooterTopicPage />} />
+          ))}
+          {FOOTER_GUIDE_PAGES.map((page) => (
+            <Route key={page.path} path={page.path} element={<FooterGuidePage />} />
+          ))}
           <Route path={ROUTES.PRIVACY} element={<LegalDocument />} />
           <Route path={ROUTES.TERMS} element={<LegalDocument />} />
+          <Route path={ROUTES.SECURITY} element={<MarketingInfoDocument />} />
+          <Route path={ROUTES.ACCESSIBILITY} element={<MarketingInfoDocument />} />
+          <Route path={ROUTES.SITEMAP} element={<MarketingInfoDocument />} />
         </Route>
 
         <Route
