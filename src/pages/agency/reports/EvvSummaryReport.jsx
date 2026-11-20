@@ -20,6 +20,7 @@ import axiosInstance from '../../../api/axiosInstance';
 import API_ROUTES from '../../../api/apiRoutes';
 import Drawer from '../../../components/ui/Drawer';
 import ReportRowActionsMenu, { openReportRowMenu } from '../../../components/reports/ReportRowActionsMenu';
+import DownloadReportsModal from '../../../components/reports/DownloadReportsModal';
 
 const PAGE_SIZE = 5;
 
@@ -122,6 +123,7 @@ export default function EvvSummaryReport() {
   const [loading, setLoading] = useState(true);
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [downloadReportsOpen, setDownloadReportsOpen] = useState(false);
   const [menu, setMenu] = useState(null);
   const [detail, setDetail] = useState(null);
   const [remindingKey, setRemindingKey] = useState('');
@@ -272,17 +274,27 @@ export default function EvvSummaryReport() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <p className="mb-1 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-          <BarChart3 size={14} />
-          Reports
-        </p>
-        <h1 className="text-[26px] font-bold tracking-tight text-slate-900">
-          Caregiver &amp; EVV Summary Report
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          View and export caregiver, schedule, and EVV status for your agency.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="mb-1 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+            <BarChart3 size={14} />
+            Reports
+          </p>
+          <h1 className="text-[26px] font-bold tracking-tight text-slate-900">
+            Caregiver &amp; EVV Summary Report
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            View and export caregiver, schedule, and EVV status for your agency.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setDownloadReportsOpen(true)}
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover"
+        >
+          <Download size={16} />
+          Download Reports
+        </button>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -580,6 +592,8 @@ export default function EvvSummaryReport() {
           </div>
         ) : null}
       </Drawer>
+
+      <DownloadReportsModal open={downloadReportsOpen} onClose={() => setDownloadReportsOpen(false)} />
     </div>
   );
 }
