@@ -96,6 +96,20 @@ function WeeklyBarChart({ weeklyHours = [], weeklySummary = {}, weekRange = null
         <span className="text-gray-600">
           Worked: <strong className="text-gray-900">{weeklySummary.total_hours || '00h 00m'}</strong>
         </span>
+        <span className="text-gray-600">
+          Regular: <strong className="text-gray-900">{Number(weeklySummary.regular_hours || 0).toFixed(2)}h</strong>
+        </span>
+        <span className="text-gray-600">
+          OT:{' '}
+          <strong className={(Number(weeklySummary.overtime_hours) || 0) > 0 ? 'text-amber-600' : 'text-gray-900'}>
+            {Number(weeklySummary.overtime_hours || 0).toFixed(2)}h
+          </strong>
+          {(Number(weeklySummary.overtime_extra_pay) || 0) > 0 ? (
+            <span className="ml-1 text-xs text-amber-600">
+              (+${Number(weeklySummary.overtime_extra_pay).toFixed(2)})
+            </span>
+          ) : null}
+        </span>
         {weeklySummary.scheduled_hours ? (
           <span className="text-gray-600">
             Scheduled: <strong className="text-gray-900">{weeklySummary.scheduled_hours}</strong>
@@ -214,7 +228,17 @@ export default function CaregiverDashboard() {
             <div className="h-full rounded-full bg-primary" style={{ width: `${kpis?.hours_this_week?.percent ?? 0}%` }} />
           </div>
           <p className="mt-1 text-xs text-gray-500">
-            {kpis?.hours_this_week?.percent ?? 0}% worked · Goal: {kpis?.hours_this_week?.goal || '40h'}
+            {kpis?.hours_this_week?.percent ?? 0}% worked · Limit: {kpis?.hours_this_week?.goal || '40h'}
+          </p>
+          <p className="mt-0.5 text-xs text-gray-600">
+            Reg {Number(kpis?.hours_this_week?.regular_hours || 0).toFixed(2)}h
+            {(Number(kpis?.hours_this_week?.overtime_hours) || 0) > 0 ? (
+              <span className="font-semibold text-amber-600">
+                {' '}· OT {Number(kpis.hours_this_week.overtime_hours).toFixed(2)}h
+              </span>
+            ) : (
+              <span className="text-gray-400"> · OT 0h</span>
+            )}
           </p>
           {kpis?.hours_this_week?.scheduled ? (
             <p className="mt-0.5 text-xs text-gray-400">
@@ -226,6 +250,11 @@ export default function CaregiverDashboard() {
         <KpiCard label="Upcoming Pay (est.)" icon={Wallet} iconBg="bg-emerald-100 text-emerald-600">
           <p className="text-3xl font-bold text-gray-900">{kpis?.upcoming_pay?.amount || '$0.00'}</p>
           <p className="mt-1 text-xs text-gray-500">{kpis?.upcoming_pay?.note || kpis?.upcoming_pay?.pay_date}</p>
+          {(Number(kpis?.upcoming_pay?.overtime_extra_pay) || 0) > 0 ? (
+            <p className="mt-0.5 text-xs font-medium text-amber-600">
+              OT extra ${Number(kpis.upcoming_pay.overtime_extra_pay).toFixed(2)}
+            </p>
+          ) : null}
         </KpiCard>
 
         <KpiCard label="EVV Compliance" icon={ShieldCheck} iconBg="bg-teal-100 text-teal-600">

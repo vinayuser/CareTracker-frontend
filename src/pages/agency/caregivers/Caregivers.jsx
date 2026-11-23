@@ -26,6 +26,8 @@ import {
   setCaregiverStatus,
 } from '../../../redux/slices/caregiversSlice';
 import { ROUTES } from '../../../routes/routes';
+import axiosInstance from '../../../api/axiosInstance';
+import API_ROUTES from '../../../api/apiRoutes';
 
 function StatusBadge({ status }) {
   const styles = {
@@ -99,9 +101,18 @@ export default function Caregivers() {
     });
   }, [list, search, statusFilter]);
 
-  const openAction = (caregiver, action) => {
+  const openAction = async (caregiver, action) => {
     setSelectedCaregiver(caregiver);
-    if (action === 'view') setViewOpen(true);
+    if (action === 'view') {
+      setViewOpen(true);
+      try {
+        const res = await axiosInstance.get(`${API_ROUTES.AGENCY.CAREGIVERS.LIST}/${caregiver.id}`);
+        if (res.data?.data) setSelectedCaregiver(res.data.data);
+      } catch {
+        /* keep list row details */
+      }
+      return;
+    }
     if (action === 'edit') setEditOpen(true);
     if (action === 'password') setPasswordOpen(true);
     if (action === 'email') setEmailOpen(true);

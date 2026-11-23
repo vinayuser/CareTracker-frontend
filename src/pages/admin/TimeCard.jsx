@@ -275,7 +275,7 @@ export default function TimeCard() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard label="Total Caregivers" value={summary.totalCaregivers} icon={Users} tone="bg-sky-50 text-sky-600" />
         <KpiCard label="Total Hours" value={`${formatHours(summary.totalHours)} hrs`} icon={Clock} tone="bg-amber-50 text-amber-500" />
-        <KpiCard label="Total Pay (Week)" value={formatMoney(summary.totalPay)} icon={DollarSign} tone="bg-emerald-50 text-emerald-600" />
+        <KpiCard label="Payroll (Approved)" value={formatMoney(summary.totalPay)} icon={DollarSign} tone="bg-emerald-50 text-emerald-600" />
         <KpiCard label="Agency" value={summary.agencyName || 'All Agencies'} icon={Building2} tone="bg-indigo-50 text-indigo-500" />
       </div>
 
@@ -287,7 +287,7 @@ export default function TimeCard() {
                 <th className="px-3 py-3 text-center">#</th>
                 <th className="min-w-[200px] px-3 py-3">Caregiver Name</th>
                 <th className="min-w-[140px] px-3 py-3">Location</th>
-                <th className="min-w-[150px] px-3 py-3">In / Out Time</th>
+                <th className="min-w-[150px] px-3 py-3">Clock In / Out</th>
                 {days.map((day) => (
                   <th key={day.key} className="min-w-[92px] px-2 py-3 text-center">
                     <div className="text-[12px] font-semibold text-slate-700">{day.weekday}</div>
@@ -324,6 +324,11 @@ export default function TimeCard() {
                       <div className="min-w-0">
                         <p className="truncate font-semibold text-slate-900">{row.caregiverName}</p>
                         <p className="text-[11px] font-medium text-slate-400">{row.caregiverCode}</p>
+                        {row.approvalStatus === 'Approved' ? (
+                          <span className="mt-1 inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                            EVV approved
+                          </span>
+                        ) : null}
                       </div>
                     </div>
                   </td>
@@ -334,8 +339,8 @@ export default function TimeCard() {
                     ) : null}
                   </td>
                   <td className="px-3 py-3 text-[12px] leading-5 text-slate-600">
-                    <p><span className="text-slate-400">In</span> {row.shiftIn || '—'}</p>
-                    <p><span className="text-slate-400">Out</span> {row.shiftOut || '—'}</p>
+                    <p><span className="text-slate-400">Clock in</span> {row.shiftIn || '—'}</p>
+                    <p><span className="text-slate-400">Clock out</span> {row.shiftOut || '—'}</p>
                   </td>
                   {days.map((day) => {
                     const slot = row.days?.[day.key] || {};
@@ -343,12 +348,21 @@ export default function TimeCard() {
                       <td key={day.key} className="px-2 py-3 text-center text-[12px] leading-5 text-slate-600">
                         <p>{slot.in || '—'}</p>
                         <p>{slot.out || '—'}</p>
+                        {slot.hours ? (
+                          <p className="mt-0.5 text-[10px] font-medium text-slate-400">{formatHours(slot.hours)}h</p>
+                        ) : null}
                       </td>
                     );
                   })}
                   <td className="px-3 py-3 text-center">
                     <p className="font-semibold text-slate-900">{formatHours(row.totalHours)} hrs</p>
+                    <p className="text-[11px] text-slate-500">
+                      Reg {formatHours(row.regularHours)} · OT {formatHours(row.overtimeHours)}
+                    </p>
                     <p className="text-[12px] font-semibold text-emerald-600">{formatMoney(row.totalAmount)}</p>
+                    {Number(row.overtimeExtraPay) > 0 ? (
+                      <p className="text-[10px] text-amber-600">OT extra {formatMoney(row.overtimeExtraPay)}</p>
+                    ) : null}
                   </td>
                   <td className="px-3 py-3 text-center">
                     <button
@@ -445,14 +459,27 @@ export default function TimeCard() {
                   </p>
                 </div>
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <div className="rounded-lg bg-slate-50 px-3 py-2">
                   <p className="text-[11px] font-medium text-slate-500">Hours</p>
                   <p className="text-lg font-bold text-slate-900">{formatHours(detail.totalHours)}</p>
                 </div>
+                <div className="rounded-lg bg-slate-50 px-3 py-2">
+                  <p className="text-[11px] font-medium text-slate-500">Regular</p>
+                  <p className="text-lg font-bold text-slate-900">{formatHours(detail.regularHours)}</p>
+                </div>
+                <div className="rounded-lg bg-amber-50 px-3 py-2">
+                  <p className="text-[11px] font-medium text-amber-700">Overtime</p>
+                  <p className="text-lg font-bold text-amber-700">{formatHours(detail.overtimeHours)}</p>
+                  <p className="text-[10px] text-amber-600/80">
+                    Limit {formatHours(detail.regularWeeklyHours)}h/wk
+                    {Number(detail.overtimeExtraPerHour) > 0 ? ` · +${formatMoney(detail.overtimeExtraPerHour)}/hr` : ''}
+                  </p>
+                </div>
                 <div className="rounded-lg bg-emerald-50 px-3 py-2">
-                  <p className="text-[11px] font-medium text-emerald-700">Pay</p>
-                  <p className="text-lg font-bold text-emerald-700">{formatMoney(detail.totalAmount)}</p>
+                  <p className="text-[11px] font-medium text-emerald-700">OT pay</p>
+                  <p className="text-lg font-bold text-emerald-700">{formatMoney(detail.overtimePay)}</p>
+                  <p className="text-[10px] text-emerald-700/80">Extra {formatMoney(detail.overtimeExtraPay)}</p>
                 </div>
               </div>
             </div>

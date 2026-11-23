@@ -17,6 +17,9 @@ const EMPTY = {
   phone: '',
   employeeId: '',
   dateOfBirth: '',
+  regularWeeklyHours: '40',
+  hourlyPayRate: '0',
+  overtimeExtraPerHour: '0',
   status: 'Active',
   profilePic: '',
 };
@@ -37,6 +40,9 @@ export default function EditCaregiverDrawer({ open, onClose, caregiver, onSucces
       phone: caregiver.phone || '',
       employeeId: caregiver.employeeId || '',
       dateOfBirth: caregiver.dateOfBirth || '',
+      regularWeeklyHours: String(caregiver.regularWeeklyHours ?? 40),
+      hourlyPayRate: String(caregiver.hourlyPayRate ?? 0),
+      overtimeExtraPerHour: String(caregiver.overtimeExtraPerHour ?? 0),
       status: caregiver.status || 'Active',
       profilePic: caregiver.profilePic || caregiver.candidate?.profile_pic_url || '',
     });
@@ -53,6 +59,18 @@ export default function EditCaregiverDrawer({ open, onClose, caregiver, onSucces
     if (!form.fullName.trim()) next.fullName = 'Name is required';
     if (!form.email.trim()) next.email = 'Email is required';
     if (!form.userId.trim()) next.userId = 'Login ID is required';
+    const hours = Number(form.regularWeeklyHours);
+    if (!Number.isFinite(hours) || hours <= 0) {
+      next.regularWeeklyHours = 'Enter regular weekly hours greater than 0';
+    }
+    const pay = Number(form.hourlyPayRate);
+    if (!Number.isFinite(pay) || pay < 0) {
+      next.hourlyPayRate = 'Hourly pay cannot be negative';
+    }
+    const otExtra = Number(form.overtimeExtraPerHour);
+    if (!Number.isFinite(otExtra) || otExtra < 0) {
+      next.overtimeExtraPerHour = 'OT extra cannot be negative';
+    }
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -69,6 +87,9 @@ export default function EditCaregiverDrawer({ open, onClose, caregiver, onSucces
         phone: form.phone.trim(),
         employeeId: form.employeeId.trim(),
         dateOfBirth: form.dateOfBirth,
+        regularWeeklyHours: Number(form.regularWeeklyHours),
+        hourlyPayRate: Number(form.hourlyPayRate),
+        overtimeExtraPerHour: Number(form.overtimeExtraPerHour),
         status: form.status,
         profilePic: form.profilePic || '',
       };
@@ -149,6 +170,49 @@ export default function EditCaregiverDrawer({ open, onClose, caregiver, onSucces
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Employee ID</label>
           <input type="text" value={form.employeeId} onChange={set('employeeId')} className={inputClass} />
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">
+            Regular weekly hours <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="number"
+            min="1"
+            step="0.5"
+            value={form.regularWeeklyHours}
+            onChange={set('regularWeeklyHours')}
+            className={inputClass}
+          />
+          <p className="mt-1 text-xs text-gray-500">Hours before overtime starts each week (Mon–Sun).</p>
+          {errors.regularWeeklyHours && <p className="mt-1 text-xs text-red-500">{errors.regularWeeklyHours}</p>}
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Hourly pay rate ($)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.hourlyPayRate}
+              onChange={set('hourlyPayRate')}
+              className={inputClass}
+            />
+            <p className="mt-1 text-xs text-gray-500">Base caregiver pay per hour.</p>
+            {errors.hourlyPayRate && <p className="mt-1 text-xs text-red-500">{errors.hourlyPayRate}</p>}
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">OT extra ($/hr)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.overtimeExtraPerHour}
+              onChange={set('overtimeExtraPerHour')}
+              className={inputClass}
+            />
+            <p className="mt-1 text-xs text-gray-500">Added on top of hourly pay for OT hours (e.g. 5).</p>
+            {errors.overtimeExtraPerHour && <p className="mt-1 text-xs text-red-500">{errors.overtimeExtraPerHour}</p>}
+          </div>
         </div>
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Date of birth</label>

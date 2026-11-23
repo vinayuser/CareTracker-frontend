@@ -43,6 +43,46 @@ export default function ViewCaregiverDrawer({ open, onClose, caregiver }) {
           <Row label="Phone" value={caregiver.phone} />
           <Row label="Employee ID" value={caregiver.employeeId} />
           <Row label="Agency" value={agencyName} />
+          <Row
+            label="Regular weekly hours"
+            value={
+              caregiver.regularWeeklyHours != null
+                ? `${caregiver.regularWeeklyHours} hrs / week`
+                : ''
+            }
+          />
+          <Row
+            label="Hourly pay"
+            value={
+              caregiver.hourlyPayRate != null && Number(caregiver.hourlyPayRate) > 0
+                ? `$${Number(caregiver.hourlyPayRate).toFixed(2)} / hr`
+                : ''
+            }
+          />
+          <Row
+            label="OT extra"
+            value={
+              caregiver.overtimeExtraPerHour != null
+                ? `$${Number(caregiver.overtimeExtraPerHour || 0).toFixed(2)} / OT hr`
+                : ''
+            }
+          />
+          <Row
+            label="This week hours"
+            value={
+              caregiver.weekHours
+                ? `${caregiver.weekHours.totalHours ?? 0} total · ${caregiver.weekHours.regularHours ?? 0} regular · ${caregiver.weekHours.overtimeHours ?? 0} OT`
+                : ''
+            }
+          />
+          <Row
+            label="This week OT pay"
+            value={
+              caregiver.weekHours && Number(caregiver.weekHours.overtimeHours) > 0
+                ? `Extra $${Number(caregiver.weekHours.overtimeExtraPay || 0).toFixed(2)} · Total $${Number(caregiver.weekHours.overtimePay || 0).toFixed(2)}`
+                : ''
+            }
+          />
           <Row label="Date of birth" value={caregiver.dateOfBirth} />
           <Row label="Status" value={caregiver.status} />
           <Row label="Hired for job" value={caregiver.source_job_title} />
