@@ -3,6 +3,7 @@ import SiteHeader from './SiteHeader';
 import SiteFooter from './SiteFooter';
 import ScrollToHash from './ScrollToHash';
 import { DemoRequestProvider } from './DemoRequestContext';
+import { MarketingScrollEffects } from './ScrollReveal';
 
 export default function MarketingLayout() {
   return (
@@ -11,7 +12,9 @@ export default function MarketingLayout() {
         <ScrollToHash />
         <SiteHeader />
         <main className="flex-1">
-          <Outlet />
+          <MarketingScrollEffects>
+            <Outlet />
+          </MarketingScrollEffects>
         </main>
         <SiteFooter />
       </div>

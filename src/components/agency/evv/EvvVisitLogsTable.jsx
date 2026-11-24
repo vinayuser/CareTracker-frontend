@@ -13,6 +13,8 @@ import { fetchClientVisits } from '../../../redux/slices/clientPortalSlice';
 import EditVisitLogModal from './EditVisitLogModal';
 
 import {
+  EVV_ALERT_ROW_CLASS,
+  EVV_ALERT_TEXT_CLASS,
   filterVisitLogs,
   mapVisitToEvvLog,
   summarizeEvvLogs,
@@ -27,7 +29,7 @@ const statusStyles = {
   'Pending Approval': 'bg-amber-100 text-amber-800',
   'Pending (Late)': 'bg-orange-100 text-orange-800',
   Rejected: 'bg-red-100 text-red-800',
-  Exception: 'bg-red-100 text-red-700',
+  Exception: 'bg-amber-100 text-amber-800',
   Missed: 'bg-red-100 text-red-800',
   Unverified: 'bg-pink-100 text-pink-700',
   Scheduled: 'bg-blue-100 text-blue-700',
@@ -302,7 +304,7 @@ export default function EvvVisitLogsTable({
   return (
     <div className="space-y-4">
       {showSummary && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <div className="rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Visits</p>
             <p className="mt-1 text-2xl font-semibold text-gray-900">{summary.total}</p>
@@ -315,10 +317,14 @@ export default function EvvVisitLogsTable({
             <p className="text-xs font-medium uppercase tracking-wide text-amber-700">Pending approval</p>
             <p className="mt-1 text-2xl font-semibold text-amber-800">{summary.pending}</p>
           </div>
+          <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 shadow-sm">
+            <p className="text-xs font-medium uppercase tracking-wide text-orange-800">Late check-ins</p>
+            <p className="mt-1 text-2xl font-semibold text-orange-900">{summary.exceptions}</p>
+          </div>
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 shadow-sm">
-            <p className="text-xs font-medium uppercase tracking-wide text-red-700">Late / missed / rejected</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-red-700">Missed / rejected</p>
             <p className="mt-1 text-2xl font-semibold text-red-800">
-              {summary.exceptions + summary.missed + summary.rejected}
+              {summary.missed + summary.rejected}
             </p>
           </div>
         </div>
@@ -451,40 +457,43 @@ export default function EvvVisitLogsTable({
                   </td>
                 </tr>
               ) : (
-                filtered.map((row) => (
+                filtered.map((row) => {
+                  const tone = row.alertTone;
+                  const toneText = tone ? EVV_ALERT_TEXT_CLASS[tone] : null;
+                  return (
                   <tr
                     key={row.visitId || row.id}
-                    className={row.alert
-                      ? 'bg-red-50 hover:bg-red-100/70'
+                    className={tone
+                      ? EVV_ALERT_ROW_CLASS[tone]
                       : row.canApprove
                         ? 'bg-amber-50/40 hover:bg-amber-50'
                         : 'hover:bg-gray-50'}
                   >
-                    <td className={`px-5 py-4 font-medium ${row.alert ? 'text-red-700' : 'text-primary'}`}>
+                    <td className={`px-5 py-4 font-medium ${toneText ? toneText.medium : 'text-primary'}`}>
                       {row.id}
                     </td>
                     <td className="px-5 py-4">
-                      <div className={`font-medium ${row.alert ? 'text-red-900' : 'text-gray-900'}`}>{row.date}</div>
-                      <div className={`text-xs ${row.alert ? 'text-red-600' : 'text-gray-500'}`}>{row.timeRange}</div>
+                      <div className={`font-medium ${toneText ? toneText.strong : 'text-gray-900'}`}>{row.date}</div>
+                      <div className={`text-xs ${toneText ? toneText.muted : 'text-gray-500'}`}>{row.timeRange}</div>
                     </td>
                     {!hideClientColumn && (
-                      <td className={`px-5 py-4 ${row.alert ? 'text-red-900' : 'text-gray-900'}`}>{row.client}</td>
+                      <td className={`px-5 py-4 ${toneText ? toneText.strong : 'text-gray-900'}`}>{row.client}</td>
                     )}
                     {!hideCaregiverColumn && (
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2">
                           <span className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ${
-                            row.alert ? 'bg-red-200 text-red-800' : 'bg-primary/10 text-primary'
+                            toneText ? toneText.chip : 'bg-primary/10 text-primary'
                           }`}>
                             {row.caregiverInitials}
                           </span>
-                          <span className={row.alert ? 'text-red-900' : 'text-gray-900'}>{row.caregiver}</span>
+                          <span className={toneText ? toneText.strong : 'text-gray-900'}>{row.caregiver}</span>
                         </div>
                       </td>
                     )}
-                    <td className={`px-5 py-4 ${row.alert ? 'text-red-800' : 'text-gray-700'}`}>{row.service}</td>
+                    <td className={`px-5 py-4 ${toneText ? toneText.medium : 'text-gray-700'}`}>{row.service}</td>
                     <td className="px-5 py-4">
-                      <div className={`font-medium ${row.lateCheckIn ? 'text-red-700' : 'text-gray-900'}`}>
+                      <div className={`font-medium ${row.lateCheckIn ? 'text-amber-800' : 'text-gray-900'}`}>
                         {row.checkIn.time}
                         {row.lateCheckIn ? ' · Late' : ''}
                       </div>
@@ -506,7 +515,7 @@ export default function EvvVisitLogsTable({
                           {row.status}
                         </span>
                         {row.alert && row.status !== 'Rejected' && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-red-700">
+                          <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${toneText?.badge || 'text-red-700'}`}>
                             <AlertTriangle size={11} />
                             {row.status === 'Missed'
                               ? 'No clock-in'
@@ -578,7 +587,8 @@ export default function EvvVisitLogsTable({
                       </td>
                     )}
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -634,10 +644,10 @@ export default function EvvVisitLogsTable({
               </span>
               <p className="text-xs text-gray-500">
                 {isClient
-                  ? 'Your visit verification history. Late check-ins and missed visits stay highlighted in red.'
+                  ? 'Late check-ins are amber; missed visits stay red.'
                   : isCaregiver
-                    ? 'Ended visits wait for agency approval. Late check-ins stay highlighted in red.'
-                    : 'Use Edit to correct Missed or completed times, then Approve. Late check-ins stay highlighted in red.'}
+                    ? 'Ended visits wait for agency approval. Late check-ins are amber; missed visits stay red.'
+                    : 'Use Edit to correct Missed or completed times, then Approve. Late check-ins are amber; missed visits stay red.'}
               </p>
             </>
           )}

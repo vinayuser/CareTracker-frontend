@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { Bell, CheckCheck, Loader2 } from 'lucide-react';
+import { Bell, CheckCheck, Loader2, X } from 'lucide-react';
 import {
   NOTIFICATIONS_PAGE_SIZE,
   fetchNotifications,
@@ -45,11 +46,32 @@ const resolveActionUrl = (url) => {
   return url.startsWith('/') ? url : `/${url}`;
 };
 
+function useIsMobile(breakpointPx = 640) {
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia(`(max-width: ${breakpointPx - 1}px)`).matches;
+  });
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpointPx - 1}px)`);
+    const onChange = () => setIsMobile(mq.matches);
+    onChange();
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, [breakpointPx]);
+
+  return isMobile;
+}
+
 export default function NotificationBell({ className = '' }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const panelId = useId();
+  const rootRef = useRef(null);
   const panelRef = useRef(null);
   const [open, setOpen] = useState(false);
+  const [desktopPos, setDesktopPos] = useState({ top: 0, right: 0 });
+  const isMobile = useIsMobile();
   const { items, unreadCount, loading, loadingMore, pagination } = useSelector(
     (state) => state.notifications,
   );
@@ -62,17 +84,52 @@ export default function NotificationBell({ className = '' }) {
     return () => clearInterval(timer);
   }, [dispatch]);
 
+  const updateDesktopPosition = useCallback(() => {
+    const trigger = rootRef.current;
+    if (!trigger) return;
+    const rect = trigger.getBoundingClientRect();
+    setDesktopPos({
+      top: rect.bottom + 8,
+      right: Math.max(8, window.innerWidth - rect.right),
+    });
+  }, []);
+
   useEffect(() => {
     if (!open) return undefined;
     dispatch(fetchNotifications({ page: 1, limit: NOTIFICATIONS_PAGE_SIZE, append: false }));
+    updateDesktopPosition();
+
     const onPointer = (event) => {
-      if (panelRef.current && !panelRef.current.contains(event.target)) {
-        setOpen(false);
-      }
+      const target = event.target;
+      if (rootRef.current?.contains(target)) return;
+      if (panelRef.current?.contains(target)) return;
+      setOpen(false);
     };
+    const onKey = (event) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    const onResize = () => {
+      if (!isMobile) updateDesktopPosition();
+    };
+
     document.addEventListener('mousedown', onPointer);
-    return () => document.removeEventListener('mousedown', onPointer);
-  }, [open, dispatch]);
+    document.addEventListener('touchstart', onPointer, { passive: true });
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('resize', onResize);
+    window.addEventListener('scroll', onResize, true);
+
+    const prevOverflow = document.body.style.overflow;
+    if (isMobile) document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('mousedown', onPointer);
+      document.removeEventListener('touchstart', onPointer);
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('scroll', onResize, true);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open, dispatch, isMobile, updateDesktopPosition]);
 
   const loadNextPage = useCallback(() => {
     if (!hasMore || loading || loadingMore) return;
@@ -108,47 +165,73 @@ export default function NotificationBell({ className = '' }) {
 
   const badge = unreadCount > 99 ? '99+' : String(unreadCount);
 
-  return (
-    <div ref={panelRef} className={`relative ${className}`}>
-      <button
-        type="button"
-        onClick={handleOpen}
-        className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
-        title="Notifications"
-        aria-expanded={open}
-        aria-haspopup="true"
-      >
-        <Bell size={18} />
-        {unreadCount > 0 && (
-          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
-            {badge}
-          </span>
-        )}
-      </button>
+  const panel = open
+    ? createPortal(
+      <>
+        {isMobile ? (
+          <button
+            type="button"
+            aria-label="Close notifications"
+            className="fixed inset-0 z-[60] bg-black/40"
+            onClick={() => setOpen(false)}
+          />
+        ) : null}
 
-      {open && (
-        <div className="absolute right-0 z-40 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl">
-          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-            <div>
+        <div
+          ref={panelRef}
+          id={panelId}
+          role="dialog"
+          aria-label="Notifications"
+          className={
+            isMobile
+              ? 'fixed inset-x-0 bottom-0 z-[70] flex max-h-[min(85dvh,36rem)] flex-col overflow-hidden rounded-t-2xl border border-gray-200 bg-white shadow-2xl'
+              : 'fixed z-[70] flex max-h-[min(28rem,calc(100dvh-5rem))] w-[min(22rem,calc(100vw-1rem))] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl'
+          }
+          style={
+            isMobile
+              ? { paddingBottom: 'env(safe-area-inset-bottom)' }
+              : { top: desktopPos.top, right: desktopPos.right }
+          }
+        >
+          {isMobile ? (
+            <div className="flex justify-center pb-1 pt-2.5">
+              <span className="h-1 w-10 rounded-full bg-gray-300" />
+            </div>
+          ) : null}
+
+          <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-4 py-3">
+            <div className="min-w-0">
               <p className="text-sm font-semibold text-gray-900">Notifications</p>
               <p className="text-xs text-gray-500">
                 {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
               </p>
             </div>
-            {unreadCount > 0 && (
-              <button
-                type="button"
-                onClick={handleMarkAll}
-                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary hover:bg-primary/5"
-              >
-                <CheckCheck size={14} />
-                Mark all read
-              </button>
-            )}
+            <div className="flex shrink-0 items-center gap-1">
+              {unreadCount > 0 && (
+                <button
+                  type="button"
+                  onClick={handleMarkAll}
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-primary hover:bg-primary/5"
+                >
+                  <CheckCheck size={14} />
+                  Mark all
+                </button>
+              )}
+              {isMobile ? (
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+              ) : null}
+            </div>
           </div>
 
           <div
-            className="max-h-96 overflow-y-auto"
+            className={`min-h-0 flex-1 overflow-y-auto overscroll-contain ${isMobile ? '' : 'max-h-96'}`}
             onScroll={handleListScroll}
           >
             {loading && items.length === 0 ? (
@@ -165,13 +248,15 @@ export default function NotificationBell({ className = '' }) {
                     key={item.id}
                     type="button"
                     onClick={() => handleItemClick(item)}
-                    className={`flex w-full gap-3 border-b border-gray-50 px-4 py-3 text-left transition hover:bg-gray-50 ${item.read ? 'opacity-75' : 'bg-primary/[0.03]'}`}
+                    className={`flex w-full gap-3 border-b border-gray-50 px-4 py-3.5 text-left transition hover:bg-gray-50 active:bg-gray-100 ${item.read ? 'opacity-75' : 'bg-primary/[0.03]'}`}
                   >
                     <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${TONE_DOT[item.tone] || TONE_DOT.info}`} />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-gray-900">{item.title}</span>
+                      <span className="block text-sm font-medium text-gray-900 break-words">{item.title}</span>
                       {item.body ? (
-                        <span className="mt-0.5 block line-clamp-2 text-xs text-gray-600">{item.body}</span>
+                        <span className="mt-0.5 block text-xs text-gray-600 break-words line-clamp-3 sm:line-clamp-2">
+                          {item.body}
+                        </span>
                       ) : null}
                       <span className="mt-1 block text-[11px] text-gray-400">{formatWhen(item.createdAt)}</span>
                     </span>
@@ -193,7 +278,30 @@ export default function NotificationBell({ className = '' }) {
             )}
           </div>
         </div>
-      )}
+      </>,
+      document.body,
+    )
+    : null;
+
+  return (
+    <div ref={rootRef} className={`relative ${className}`}>
+      <button
+        type="button"
+        onClick={handleOpen}
+        className="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+        title="Notifications"
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        aria-controls={open ? panelId : undefined}
+      >
+        <Bell size={18} />
+        {unreadCount > 0 && (
+          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+            {badge}
+          </span>
+        )}
+      </button>
+      {panel}
     </div>
   );
 }

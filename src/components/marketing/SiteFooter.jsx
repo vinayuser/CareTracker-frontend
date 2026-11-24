@@ -169,6 +169,7 @@ const COLUMNS = [
     tone: 'text-emerald-400',
     links: [
       { label: 'Help Center', to: '/resources/help-center' },
+      { label: 'FAQ', to: ROUTES.FAQ },
       { label: 'User Guides', to: '/resources/user-guides' },
       { label: 'Video Tutorials', to: '/resources/video-tutorials' },
       { label: 'Webinars', to: '/resources/webinars' },
@@ -189,6 +190,8 @@ const PILLARS = [
 ];
 
 const LEGAL = [
+  { label: 'About Us', to: ROUTES.ABOUT },
+  { label: 'FAQ', to: ROUTES.FAQ },
   { label: 'Terms & Conditions', to: ROUTES.TERMS },
   { label: 'Privacy Policy', to: ROUTES.PRIVACY },
   { label: 'Security', to: ROUTES.SECURITY },

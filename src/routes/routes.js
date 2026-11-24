@@ -29,6 +29,8 @@ export const ROUTES = {
   EVV_COMPLIANCE: '/evv/compliance',
   EVV_REAL_TIME_MONITORING: '/evv/real-time-monitoring',
 
+  ABOUT: '/about',
+  FAQ: '/faq',
   PRIVACY: '/privacy-policy',
   TERMS: '/terms-and-conditions',
   SECURITY: '/security',

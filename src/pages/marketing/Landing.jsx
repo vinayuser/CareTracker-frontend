@@ -207,7 +207,7 @@ export default function Landing() {
       {/* Hero */}
       <Section id="platform" className="bg-[#fbfcfe] pb-8 pt-12 lg:pt-14">
         <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-12">
-          <div>
+          <div data-reveal="left" data-reveal-delay="0">
             <p className="text-[13px] font-semibold tracking-wide text-primary">
               Home Care Management Platform
             </p>
@@ -231,11 +231,13 @@ export default function Landing() {
               </Link>
             </div>
           </div>
-          <ProductShot
-            src={SHOTS.dashboard}
-            alt="Caretraqer agency dashboard"
-            className="shadow-[0_25px_60px_-20px_rgba(15,23,42,0.4)]"
-          />
+          <div data-reveal="right" data-reveal-delay="120">
+            <ProductShot
+              src={SHOTS.dashboard}
+              alt="Caretraqer agency dashboard"
+              className="shadow-[0_25px_60px_-20px_rgba(15,23,42,0.4)]"
+            />
+          </div>
         </div>
 
         <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -319,12 +321,14 @@ export default function Landing() {
       {/* Caregiver */}
       <Section id="caregivers" className="border-t border-slate-100 bg-[#f7f8fa] py-16">
         <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
-          <ProductShot
-            src={SHOTS.assessments}
-            alt="Caregiver onboarding and assessments"
-            className="shadow-[0_25px_60px_-20px_rgba(15,23,42,0.35)]"
-          />
-          <div>
+          <div data-reveal="left" data-reveal-delay="0">
+            <ProductShot
+              src={SHOTS.assessments}
+              alt="Caregiver onboarding and assessments"
+              className="shadow-[0_25px_60px_-20px_rgba(15,23,42,0.35)]"
+            />
+          </div>
+          <div data-reveal="right" data-reveal-delay="100">
             <p className="text-sm font-semibold text-primary">Caregiver Management</p>
             <h2 className="mt-2 text-[1.85rem] font-bold leading-tight tracking-tight text-slate-900 sm:text-[2.05rem]">
               Simplify Caregiver Onboarding From Start to Finish.
@@ -346,7 +350,7 @@ export default function Landing() {
       {/* Client */}
       <Section id="clients" className="bg-white py-16">
         <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
-          <div>
+          <div data-reveal="left" data-reveal-delay="0">
             <p className="text-sm font-semibold uppercase tracking-wide text-primary">
               Client Management
             </p>
@@ -372,11 +376,13 @@ export default function Landing() {
               Explore Client Management
             </Link>
           </div>
-          <ProductShot
-            src={SHOTS.evv}
-            alt="Client and EVV overview"
-            className="shadow-[0_25px_60px_-20px_rgba(15,23,42,0.35)]"
-          />
+          <div data-reveal="right" data-reveal-delay="100">
+            <ProductShot
+              src={SHOTS.evv}
+              alt="Client and EVV overview"
+              className="shadow-[0_25px_60px_-20px_rgba(15,23,42,0.35)]"
+            />
+          </div>
         </div>
       </Section>
 
@@ -426,7 +432,6 @@ export default function Landing() {
         </div>
       </Section>
 
-      <div id="about" className="sr-only" aria-hidden />
       <div id="pricing" className="sr-only" aria-hidden />
     </div>
   );

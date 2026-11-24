@@ -37,7 +37,7 @@ const statusStyles = {
   Completed: 'bg-emerald-100 text-emerald-700',
   Missed: 'bg-red-100 text-red-700',
   Late: 'bg-orange-100 text-orange-700',
-  Exception: 'bg-red-100 text-red-800',
+  Exception: 'bg-amber-100 text-amber-800',
   Cancelled: 'bg-gray-100 text-gray-600',
   Leave: 'bg-violet-100 text-violet-700',
 };
@@ -317,23 +317,27 @@ export default function Schedules() {
               ) : (
                 dayVisits.map((visit) => {
                   const active = selectedVisit?.id === visit.id;
-                  const alert = Boolean(visit.lateCheckIn) || visit.status === 'Exception' || visit.status === 'Missed';
+                  const isMissed = visit.status === 'Missed';
+                  const isLate = Boolean(visit.lateCheckIn) || visit.status === 'Exception';
+                  const rowTone = isMissed
+                    ? 'border-red-300 bg-red-50'
+                    : isLate
+                      ? 'border-amber-300 bg-amber-50'
+                      : active
+                        ? 'border-primary/40 bg-primary/5'
+                        : 'border-gray-200 bg-white hover:border-primary/20';
+                  const titleTone = isMissed ? 'text-red-900' : isLate ? 'text-amber-900' : 'text-gray-900';
+                  const subTone = isMissed ? 'text-red-700' : isLate ? 'text-amber-800' : 'text-gray-500';
                   return (
                     <div
                       key={visit.id}
-                      className={`rounded-xl border p-3 transition ${
-                        alert
-                          ? 'border-red-300 bg-red-50'
-                          : active
-                            ? 'border-primary/40 bg-primary/5'
-                            : 'border-gray-200 bg-white hover:border-primary/20'
-                      }`}
+                      className={`rounded-xl border p-3 transition ${rowTone}`}
                     >
                       <button type="button" className="w-full text-left" onClick={() => setSelectedVisit(visit)}>
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <p className={`text-sm font-semibold ${alert ? 'text-red-900' : 'text-gray-900'}`}>{visit.clientName}</p>
-                            <p className={`mt-0.5 text-xs ${alert ? 'text-red-700' : 'text-gray-500'}`}>
+                            <p className={`text-sm font-semibold ${titleTone}`}>{visit.clientName}</p>
+                            <p className={`mt-0.5 text-xs ${subTone}`}>
                               {formatVisitTimeWithZone(visit.scheduledStartAt, visit.scheduledEndAt, visit.timezone)}
                             </p>
                           </div>
@@ -352,7 +356,7 @@ export default function Schedules() {
                             <MapPin size={12} /> {visit.address}
                           </p>
                         )}
-                        <p className={`mt-1 text-xs ${alert ? 'font-medium text-red-700' : 'text-gray-400'}`}>
+                        <p className={`mt-1 text-xs ${isMissed ? 'font-medium text-red-700' : isLate ? 'font-medium text-amber-800' : 'text-gray-400'}`}>
                           Grace: {visit.graceMinutes || 15} min
                           {visit.lateCheckIn ? ' · Checked in after grace' : ''}
                         </p>

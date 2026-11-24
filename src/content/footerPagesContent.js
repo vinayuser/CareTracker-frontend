@@ -32,6 +32,7 @@ export const FOOTER_PAGES = {
       `Explore Our Website Sections`,
       `Home: Learn about Caretraqer and its home care management solutions.`,
       `About Us: Discover our mission, vision, and commitment to improving home care management.`,
+      `FAQ: Find answers about the platform, EVV, billing, security, and getting started.`,
       `Features: Explore scheduling, caregiver management, electronic visit verification (EVV), care plans, and other platform capabilities.`,
       `Solutions: Understand how Caretraqer supports home care agencies, caregivers, and care recipients.`,
       `Mobile Application: Discover mobile features that help caregivers manage their daily responsibilities.`,

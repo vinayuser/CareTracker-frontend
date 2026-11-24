@@ -123,6 +123,8 @@ import HrPage from './pages/marketing/HrPage';
 import BillingPage from './pages/marketing/BillingPage';
 import IntegrationsPage from './pages/marketing/IntegrationsPage';
 import PortalsPage from './pages/marketing/PortalsPage';
+import AboutPage from './pages/marketing/AboutPage';
+import FaqPage from './pages/marketing/FaqPage';
 import LegalDocument from './pages/marketing/LegalDocument';
 import MarketingInfoDocument from './pages/marketing/MarketingInfoDocument';
 import FooterTopicPage from './pages/marketing/FooterTopicPage';
@@ -179,6 +181,8 @@ export default function App() {
           {FOOTER_GUIDE_PAGES.map((page) => (
             <Route key={page.path} path={page.path} element={<FooterGuidePage />} />
           ))}
+          <Route path={ROUTES.ABOUT} element={<AboutPage />} />
+          <Route path={ROUTES.FAQ} element={<FaqPage />} />
           <Route path={ROUTES.PRIVACY} element={<LegalDocument />} />
           <Route path={ROUTES.TERMS} element={<LegalDocument />} />
           <Route path={ROUTES.SECURITY} element={<MarketingInfoDocument />} />

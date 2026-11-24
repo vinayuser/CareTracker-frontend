@@ -58,6 +58,51 @@ body {
   animation: login-fade-in 0.5s ease-out;
 }
 
+/* Marketing scroll reveals — Caretap-style ease-in-out on scroll */
+.m-reveal {
+  --m-reveal-duration: 0.85s;
+  --m-reveal-delay: 0ms;
+  opacity: 0;
+  transition:
+    opacity var(--m-reveal-duration) ease-in-out var(--m-reveal-delay),
+    transform var(--m-reveal-duration) ease-in-out var(--m-reveal-delay);
+  will-change: opacity, transform;
+}
+
+.m-reveal-up {
+  transform: translate3d(0, 36px, 0);
+}
+
+.m-reveal-left {
+  transform: translate3d(-40px, 0, 0);
+}
+
+.m-reveal-right {
+  transform: translate3d(40px, 0, 0);
+}
+
+.m-reveal-fade {
+  transform: none;
+}
+
+.m-reveal-zoom {
+  transform: scale(0.94);
+}
+
+.m-reveal.is-inview {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .m-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+
 /* Mobile: keep desktop layout, make tables and toolbars usable on small screens. */
 @media (max-width: 1023px) {
   html,

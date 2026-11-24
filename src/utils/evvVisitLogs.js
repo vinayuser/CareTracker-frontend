@@ -85,9 +85,44 @@ export function isEvvAlertVisit(visit) {
   );
 }
 
+/**
+ * Visual tone for alert rows:
+ * - missed: no clock-in / rejected (red)
+ * - late: checked in after grace window (amber — distinct from missed)
+ */
+export function getEvvAlertTone(visit) {
+  if (!visit) return null;
+  if (visit.status === 'Missed' || visit.approvalStatus === 'Rejected') return 'missed';
+  if (visit.lateCheckIn || visit.status === 'Exception') return 'late';
+  return null;
+}
+
+export const EVV_ALERT_ROW_CLASS = {
+  missed: 'bg-red-50 hover:bg-red-100/70',
+  late: 'bg-amber-50 hover:bg-amber-100/70',
+};
+
+export const EVV_ALERT_TEXT_CLASS = {
+  missed: {
+    strong: 'text-red-900',
+    medium: 'text-red-700',
+    muted: 'text-red-600',
+    chip: 'bg-red-200 text-red-800',
+    badge: 'text-red-700',
+  },
+  late: {
+    strong: 'text-amber-900',
+    medium: 'text-amber-800',
+    muted: 'text-amber-700',
+    chip: 'bg-amber-200 text-amber-900',
+    badge: 'text-amber-800',
+  },
+};
+
 export function mapVisitToEvvLog(visit) {
   const status = getEvvVisitStatus(visit);
   const alert = isEvvAlertVisit(visit);
+  const alertTone = getEvvAlertTone(visit);
   const method = visit.checkInMethod || visit.checkOutMethod || (visit.checkInAt ? 'Mobile App' : '—');
   const approvalStatus = visit.checkOutAt
     ? (visit.approvalStatus && visit.approvalStatus !== 'None' ? visit.approvalStatus : 'Pending')
@@ -128,6 +163,7 @@ export function mapVisitToEvvLog(visit) {
     invoiced: Boolean(visit.invoiced),
     status,
     alert,
+    alertTone,
     lateCheckIn: Boolean(visit.lateCheckIn),
     graceMinutes: visit.graceMinutes || 15,
     exceptionReason: visit.exceptionReason || '',

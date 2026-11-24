@@ -25,7 +25,7 @@ const statusStyles = {
   Completed: 'bg-emerald-100 text-emerald-700',
   Missed: 'bg-red-100 text-red-700',
   Late: 'bg-orange-100 text-orange-700',
-  Exception: 'bg-red-100 text-red-800',
+  Exception: 'bg-amber-100 text-amber-800',
   Cancelled: 'bg-gray-100 text-gray-600',
 };
 
@@ -221,27 +221,31 @@ export default function ClientSchedule() {
               ) : (
                 dayVisits.map((visit) => {
                   const active = selectedVisit?.id === visit.id;
-                  const late = Boolean(visit.lateCheckIn) || visit.status === 'Exception' || visit.status === 'Missed';
+                  const isMissed = visit.status === 'Missed';
+                  const isLate = Boolean(visit.lateCheckIn) || visit.status === 'Exception';
+                  const rowTone = isMissed
+                    ? 'border-red-300 bg-red-50'
+                    : isLate
+                      ? 'border-amber-300 bg-amber-50'
+                      : active
+                        ? 'border-primary/40 bg-primary/5'
+                        : 'border-gray-200 bg-white hover:border-primary/20';
+                  const titleTone = isMissed ? 'text-red-900' : isLate ? 'text-amber-900' : 'text-gray-900';
+                  const subTone = isMissed ? 'text-red-700' : isLate ? 'text-amber-800' : 'text-gray-500';
                   return (
                     <button
                       key={visit.id}
                       type="button"
                       onClick={() => setSelectedVisit(visit)}
-                      className={`w-full rounded-xl border p-3 text-left transition ${
-                        late
-                          ? 'border-red-300 bg-red-50'
-                          : active
-                            ? 'border-primary/40 bg-primary/5'
-                            : 'border-gray-200 bg-white hover:border-primary/20'
-                      }`}
+                      className={`w-full rounded-xl border p-3 text-left transition ${rowTone}`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <p className={`flex items-center gap-1.5 text-sm font-semibold ${late ? 'text-red-900' : 'text-gray-900'}`}>
+                          <p className={`flex items-center gap-1.5 text-sm font-semibold ${titleTone}`}>
                             <UserRound size={14} className="shrink-0 opacity-70" />
                             {visit.caregiverName || 'Caregiver'}
                           </p>
-                          <p className={`mt-0.5 text-xs ${late ? 'text-red-700' : 'text-gray-500'}`}>
+                          <p className={`mt-0.5 text-xs ${subTone}`}>
                             {formatTime(visit.scheduledStartAt, visit.timezone)}
                             {' – '}
                             {formatTime(visit.scheduledEndAt, visit.timezone)}
@@ -269,7 +273,7 @@ export default function ClientSchedule() {
                         </p>
                       )}
                       {visit.lateCheckIn && (
-                        <p className="mt-2 rounded-lg bg-red-100 px-2 py-1.5 text-[11px] font-semibold text-red-800">
+                        <p className="mt-2 rounded-lg bg-amber-100 px-2 py-1.5 text-[11px] font-semibold text-amber-900">
                           Late check-in recorded{visit.exceptionReason ? `: ${visit.exceptionReason}` : ''}.
                         </p>
                       )}

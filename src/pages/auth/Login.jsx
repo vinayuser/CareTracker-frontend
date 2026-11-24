@@ -57,8 +57,8 @@ export default function Login() {
     <div className="flex min-h-screen bg-slate-50">
       <LoginHeroPanel />
 
-      <div className="relative flex flex-1 flex-col overflow-hidden">
-        <div className="relative h-44 overflow-hidden lg:hidden">
+      <div className="relative flex min-h-screen flex-1 flex-col overflow-hidden">
+        <div className="relative h-44 shrink-0 overflow-hidden lg:hidden">
           <LoginHeroBackground />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-50 via-sidebar/60 to-sidebar/80" />
           <div className="absolute bottom-4 left-6">
@@ -73,11 +73,9 @@ export default function Login() {
           <div className="absolute -bottom-32 right-0 h-72 w-72 rounded-full bg-blue-200/40 blur-3xl" />
         </div>
 
-        <div className="relative flex flex-1 items-center justify-center px-6 py-10 lg:justify-middle lg:px-12 xl:px-16">
+        <div className="relative flex flex-1 items-center justify-center px-6 py-12 sm:py-16 lg:px-12 xl:px-16">
           <div className="login-fade-in w-full max-w-md">
             <div className="mb-8">
-              <div className="mb-4 flex items-center gap-2">
-              </div>
               <h1 className="text-3xl font-bold tracking-tight text-slate-900">Welcome back</h1>
               <p className="mt-2 text-sm text-slate-500">
                 Sign in to manage your home care platform

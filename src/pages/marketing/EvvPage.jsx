@@ -85,7 +85,7 @@ export default function EvvPage() {
     <div className="bg-white">
       <SectionShell className="pb-10 pt-12 lg:pb-14 lg:pt-16">
         <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-12">
-          <div className="login-fade-in">
+          <div data-reveal="left" data-reveal-delay="0">
             <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-[2.6rem] sm:leading-tight">
               EVV Made Simple. Accurate Visits. Better Compliance. Stronger Care.
             </h1>
@@ -105,7 +105,9 @@ export default function EvvPage() {
               </Link>
             </div>
           </div>
-          <ProductShot src={SHOTS.evv} alt="Caretraqer EVV dashboard" className="login-fade-in" />
+          <div data-reveal="right" data-reveal-delay="120">
+            <ProductShot src={SHOTS.evv} alt="Caretraqer EVV dashboard" />
+          </div>
         </div>
 
         <div className="mt-12 grid gap-3 rounded-2xl border border-slate-200 bg-[#f5f7fb] p-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">

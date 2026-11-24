@@ -50,7 +50,8 @@ const SITEMAP_LINKS = [
   { label: 'Terms and Conditions', to: ROUTES.TERMS, match: /^Terms and Conditions:/i },
   { label: 'Security', to: ROUTES.SECURITY, match: /^Security and Accessibility:/i },
   { label: 'Accessibility', to: ROUTES.ACCESSIBILITY, match: /^Security and Accessibility:/i },
-  { label: 'About Us', to: ROUTES.HOME, match: /^About Us:/i },
+  { label: 'About Us', to: ROUTES.ABOUT, match: /^About Us:/i },
+  { label: 'FAQ', to: ROUTES.FAQ, match: /^FAQ:/i },
   { label: 'Blog', to: '/resources/blog', match: /^Blog:/i },
   { label: 'Contact Us', to: '/resources/contact', match: /^Contact Us:/i },
 ];

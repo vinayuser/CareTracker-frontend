@@ -6,7 +6,7 @@ export default function EvvExceptions() {
       <div>
         <h1 className="text-xl font-bold text-gray-900">Exceptions</h1>
         <p className="mt-1 text-sm text-gray-500">
-          Late check-ins (after grace) and missed visits that need agency review.
+          Late check-ins (after grace) show in amber; missed visits stay red for agency review.
         </p>
       </div>
       <EvvVisitLogsTable

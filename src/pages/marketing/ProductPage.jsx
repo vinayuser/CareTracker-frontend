@@ -242,7 +242,7 @@ export default function ProductPage() {
       {/* Hero */}
       <section id="overview" className="scroll-mt-24 bg-gradient-to-b from-[#f5f7fb] to-white">
         <div className="mx-auto grid max-w-[1120px] gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1fr_1.05fr] lg:items-center lg:gap-12 lg:px-8 lg:py-16">
-          <div>
+          <div data-reveal="left" data-reveal-delay="0">
             <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-primary">Product</p>
             <h1 className="mt-3 text-[2.55rem] font-bold leading-[1.12] tracking-tight text-slate-900 sm:text-[3rem]">
               Built for Home Care.
@@ -266,7 +266,11 @@ export default function ProductPage() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_24px_50px_-28px_rgba(15,23,42,0.35)]">
+          <div
+            className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_24px_50px_-28px_rgba(15,23,42,0.35)]"
+            data-reveal="right"
+            data-reveal-delay="120"
+          >
             <div className="flex">
               <div className="w-1.5 shrink-0 bg-primary" />
               <div className="flex-1 p-5 sm:p-6">

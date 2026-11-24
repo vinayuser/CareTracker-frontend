@@ -21,7 +21,7 @@ const STATUS_STYLES = {
   InProgress: 'bg-blue-100 text-blue-700',
   'Late / In Progress': 'bg-red-100 text-red-800',
   Scheduled: 'bg-orange-100 text-orange-700',
-  Exception: 'bg-red-100 text-red-800',
+  Exception: 'bg-amber-100 text-amber-800',
   Missed: 'bg-red-100 text-red-700',
   Late: 'bg-orange-100 text-orange-700',
   Cancelled: 'bg-gray-100 text-gray-600',
@@ -292,7 +292,13 @@ export default function CaregiverDashboard() {
               todaySchedule.map((visit) => (
                 <div
                   key={visit.id}
-                  className={`flex items-start gap-4 px-5 py-4 ${visit.late_check_in || visit.status === 'Missed' || visit.status === 'Exception' ? 'bg-red-50/60' : ''}`}
+                  className={`flex items-start gap-4 px-5 py-4 ${
+                    visit.status === 'Missed'
+                      ? 'bg-red-50/60'
+                      : (visit.late_check_in || visit.status === 'Exception')
+                        ? 'bg-amber-50/70'
+                        : ''
+                  }`}
                 >
                   <div className="min-w-[120px] text-sm font-medium text-gray-700">{visit.time}</div>
                   <div className="min-w-0 flex-1">

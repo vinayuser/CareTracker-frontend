@@ -29,7 +29,7 @@ const statusStyles = {
   Completed: 'bg-emerald-100 text-emerald-700',
   Missed: 'bg-red-100 text-red-700',
   Late: 'bg-orange-100 text-orange-700',
-  Exception: 'bg-red-100 text-red-800',
+  Exception: 'bg-amber-100 text-amber-800',
   Cancelled: 'bg-gray-100 text-gray-600',
   Leave: 'bg-violet-100 text-violet-700',
 };
@@ -59,7 +59,11 @@ function isTooEarly(visit) {
 }
 
 function isLateVisit(visit) {
-  return Boolean(visit?.lateCheckIn) || visit?.status === 'Exception' || visit?.status === 'Missed';
+  return Boolean(visit?.lateCheckIn) || visit?.status === 'Exception';
+}
+
+function isMissedVisit(visit) {
+  return visit?.status === 'Missed';
 }
 
 function toDateKey(date) {
@@ -303,6 +307,9 @@ export default function CaregiverJobs() {
                   const tooEarly = isTooEarly(visit);
                   const checkInClosed = isCheckInClosed(visit);
                   const late = isLateVisit(visit);
+                  const missed = isMissedVisit(visit) || (checkInClosed && !visit.checkInAt);
+                  const inLateWindow = pastGrace && !checkInClosed && !visit.checkInAt;
+                  const lateTone = late || inLateWindow;
                   const lateUntil = resolveLateUntil(visit);
                   const statusLabel = visit.checkOutAt
                     ? (visit.approvalStatus === 'Approved'
@@ -313,25 +320,28 @@ export default function CaregiverJobs() {
                     : visit.status === 'Leave'
                       ? (visit.leaveLabel || (visit.leaveSource === 'holiday' ? 'Holiday' : 'Leave'))
                       : (visit.lateCheckIn && visit.checkInAt ? 'Late / In Progress' : visit.status);
+                  const rowTone = missed
+                    ? 'border-red-300 bg-red-50'
+                    : lateTone
+                      ? 'border-amber-300 bg-amber-50'
+                      : active
+                        ? 'border-primary/40 bg-primary/5'
+                        : 'border-gray-200 bg-white hover:border-primary/20';
+                  const titleTone = missed ? 'text-red-900' : lateTone ? 'text-amber-900' : 'text-gray-900';
+                  const subTone = missed ? 'text-red-700' : lateTone ? 'text-amber-800' : 'text-gray-500';
 
                   return (
                     <div
                       key={visit.id}
-                      className={`rounded-xl border p-3 transition ${
-                        late || pastGrace
-                          ? 'border-red-300 bg-red-50'
-                          : active
-                            ? 'border-primary/40 bg-primary/5'
-                            : 'border-gray-200 bg-white hover:border-primary/20'
-                      }`}
+                      className={`rounded-xl border p-3 transition ${rowTone}`}
                     >
                       <button type="button" className="w-full text-left" onClick={() => setSelectedVisit(visit)}>
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <p className={`text-sm font-semibold ${late || pastGrace ? 'text-red-900' : 'text-gray-900'}`}>
+                            <p className={`text-sm font-semibold ${titleTone}`}>
                               {visit.clientName}
                             </p>
-                            <p className={`mt-0.5 text-xs ${late || pastGrace ? 'text-red-700' : 'text-gray-500'}`}>
+                            <p className={`mt-0.5 text-xs ${subTone}`}>
                               {formatTime(visit.scheduledStartAt, visit.timezone)} – {formatTime(visit.scheduledEndAt, visit.timezone)}
                               {formatTimezoneAbbr(visit.scheduledStartAt, visit.timezone)
                                 ? ` ${formatTimezoneAbbr(visit.scheduledStartAt, visit.timezone)}`
@@ -361,13 +371,13 @@ export default function CaregiverJobs() {
                           </p>
                         )}
                         {tooEarly && (
-                          <p className="mt-2 rounded-lg bg-amber-50 px-2 py-1.5 text-[11px] font-medium text-amber-800">
+                          <p className="mt-2 rounded-lg bg-sky-50 px-2 py-1.5 text-[11px] font-medium text-sky-800">
                             Too early to clock in. Window opens at {formatTime(visit.earliestCheckInAt, visit.timezone)}.
                           </p>
                         )}
-                        {pastGrace && !checkInClosed && canStart && (
-                          <p className="mt-2 rounded-lg bg-red-100 px-2 py-1.5 text-[11px] font-semibold text-red-800">
-                            Past grace. You can still clock in until {formatTime(lateUntil, visit.timezone)} — it will be marked late (red) for the agency.
+                        {inLateWindow && canStart && (
+                          <p className="mt-2 rounded-lg bg-amber-100 px-2 py-1.5 text-[11px] font-semibold text-amber-900">
+                            Past grace. You can still clock in until {formatTime(lateUntil, visit.timezone)} — it will be marked late (amber) for the agency.
                           </p>
                         )}
                         {checkInClosed && !visit.checkInAt && (
@@ -376,7 +386,7 @@ export default function CaregiverJobs() {
                           </p>
                         )}
                         {visit.lateCheckIn && (
-                          <p className="mt-2 rounded-lg bg-red-100 px-2 py-1.5 text-[11px] font-semibold text-red-800">
+                          <p className="mt-2 rounded-lg bg-amber-100 px-2 py-1.5 text-[11px] font-semibold text-amber-900">
                             Late check-in recorded{visit.exceptionReason ? `: ${visit.exceptionReason}` : ''}.
                           </p>
                         )}

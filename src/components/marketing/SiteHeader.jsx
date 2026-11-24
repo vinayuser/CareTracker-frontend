@@ -9,7 +9,7 @@ const NAV_LINKS = [
   { label: 'Platform', to: ROUTES.MARKETING_PRODUCT },
   { label: 'Solutions', to: `${ROUTES.LANDING}#solutions` },
   { label: 'Resources', to: `${ROUTES.LANDING}#resources` },
-  { label: 'About Us', to: `${ROUTES.LANDING}#about` },
+  { label: 'About Us', to: ROUTES.ABOUT },
   { label: 'Pricing', to: `${ROUTES.MARKETING_PRODUCT}#pricing` },
 ];
 
