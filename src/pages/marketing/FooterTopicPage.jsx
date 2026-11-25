@@ -23,6 +23,13 @@ import { findFooterTopicPage } from './footerTopicPages';
 
 const ICONS = [Users, CalendarDays, ShieldCheck, ClipboardList, Smartphone, Bell, HeartHandshake, FileText, MapPinned, Mail];
 
+const FEATURE_READ_MORE = {
+  'Client Management': ROUTES.MARKETING_CLIENT_MANAGEMENT,
+  'Care Plan Management': ROUTES.MARKETING_CLIENT_MANAGEMENT,
+  'Electronic Visit Verification (EVV)': ROUTES.MARKETING_EVV,
+  'Caregiver Management': ROUTES.MARKETING_HR,
+};
+
 const PRICING_PLANS = [
   {
     name: 'Starter',
@@ -156,13 +163,22 @@ function LayoutFeatureGrid({ topic, copy, theme }) {
           {copy.items.map((item, i) => {
             const { title, text } = splitItem(item);
             const Icon = ICONS[i % ICONS.length];
+            const moreTo = FEATURE_READ_MORE[title];
             return (
-              <div key={title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div key={title} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <Icon size={18} />
                 </span>
                 <h3 className="mt-4 text-sm font-bold text-slate-900">{title}</h3>
-                <p className="mt-2 text-[12px] leading-relaxed text-slate-500">{text}</p>
+                <p className="mt-2 flex-1 text-[12px] leading-relaxed text-slate-500">{text}</p>
+                {moreTo ? (
+                  <Link
+                    to={moreTo}
+                    className="mt-4 inline-flex text-sm font-semibold text-primary hover:text-primary-hover"
+                  >
+                    Read more
+                  </Link>
+                ) : null}
               </div>
             );
           })}

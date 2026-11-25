@@ -65,31 +65,37 @@ const FEATURES = [
     icon: UserRound,
     title: 'Client Management',
     text: 'Manage client profiles, care information, documents, and service history in one place.',
+    to: ROUTES.MARKETING_CLIENT_MANAGEMENT,
   },
   {
     icon: FileCheck2,
     title: 'Client Assessments',
     text: 'Create structured assessments, capture signatures, and maintain complete digital records.',
+    to: ROUTES.MARKETING_CLIENT_MANAGEMENT,
   },
   {
     icon: ShieldCheck,
     title: 'EVV',
     text: 'Track visits, caregiver activity, schedules, and service verification with streamlined EVV.',
+    to: ROUTES.MARKETING_EVV,
   },
   {
     icon: Umbrella,
     title: 'Insurance Intake',
     text: 'Collect insurance information and organize required intake documentation.',
+    to: ROUTES.CRM_CLIENT_INTAKE,
   },
   {
     icon: HandHeart,
     title: 'Caregiver Management',
     text: 'Manage caregiver profiles, credentials, assignments, and ongoing records with ease.',
+    to: ROUTES.MARKETING_HR,
   },
   {
     icon: BedDouble,
     title: 'Caregiver Onboarding',
     text: 'Simplify onboarding with digital forms, document collection, and e-signatures.',
+    to: ROUTES.MARKETING_HIRING,
   },
   {
     icon: FileText,
@@ -281,14 +287,22 @@ export default function Landing() {
           spend less time managing paperwork and more time improving care.
         </p>
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {FEATURES.map(({ icon: Icon, title, text }) => (
+          {FEATURES.map(({ icon: Icon, title, text, to }) => (
             <div
               key={title}
-              className="rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.35)]"
+              className="flex flex-col rounded-2xl border border-slate-100 bg-white p-5 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.35)]"
             >
               <IconTile icon={Icon} />
               <h3 className="mt-4 text-[15px] font-bold text-slate-900">{title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-500">{text}</p>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-500">{text}</p>
+              {to ? (
+                <Link
+                  to={to}
+                  className="mt-4 inline-flex text-sm font-semibold text-primary hover:text-primary-hover"
+                >
+                  Read more
+                </Link>
+              ) : null}
             </div>
           ))}
         </div>
@@ -370,7 +384,7 @@ export default function Landing() {
               ))}
             </div>
             <Link
-              to={ROUTES.LOGIN}
+              to={ROUTES.MARKETING_CLIENT_MANAGEMENT}
               className="mt-8 inline-flex rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/20 hover:bg-primary-hover"
             >
               Explore Client Management

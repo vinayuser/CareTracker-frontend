@@ -36,6 +36,7 @@ export const MODULE_GROUPS = [
     keys: [
       'ADMIN_TIME_CARD',
       'ADMIN_REPORTS',
+      'ADMIN_DOWNLOAD_REPORTS',
       'ADMIN_SETTINGS',
     ],
   },
@@ -62,7 +63,8 @@ export const MODULE_LABELS = {
   ADMIN_REFERRALS: 'Referrals',
   ADMIN_CRM: 'CRM',
   ADMIN_TIME_CARD: 'Time Card',
-  ADMIN_REPORTS: 'Reports',
+  ADMIN_REPORTS: 'EVV Summary Report',
+  ADMIN_DOWNLOAD_REPORTS: 'Download Reports',
   ADMIN_AUDIT_LOGS: 'Audit Logs',
   ADMIN_INTEGRATIONS: 'Integrations',
   ADMIN_SUPPORT: 'Support Tickets',

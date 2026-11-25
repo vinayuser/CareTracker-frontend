@@ -34,7 +34,7 @@ export const MODULE_GROUPS = [
   },
   {
     title: 'Reports',
-    keys: ['AGENCY_REPORTS', 'AGENCY_TIME_CARD'],
+    keys: ['AGENCY_REPORTS', 'AGENCY_DOWNLOAD_REPORTS', 'AGENCY_TIME_CARD'],
   },
   {
     title: 'Caregivers',
@@ -72,6 +72,7 @@ export const MODULE_LABELS = {
   AGENCY_EVV_SETTINGS: 'EVV Settings',
   AGENCY_BILLING: 'Invoices',
   AGENCY_REPORTS: 'EVV Summary Report',
+  AGENCY_DOWNLOAD_REPORTS: 'Download Reports',
   AGENCY_TIME_CARD: 'Time Card',
   AGENCY_CAREGIVERS: 'Caregivers',
   AGENCY_HOLIDAYS: 'Holiday Master',
@@ -94,6 +95,7 @@ export const DEFAULT_HR_MODULES = [
   'AGENCY_DASHBOARD',
   'AGENCY_BILLING',
   'AGENCY_REPORTS',
+  'AGENCY_DOWNLOAD_REPORTS',
   'AGENCY_TIME_CARD',
   'AGENCY_CAREGIVERS',
   'AGENCY_HOLIDAYS',

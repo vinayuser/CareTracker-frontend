@@ -48,9 +48,10 @@ export const AGENCY_NAV_GROUPS = [
         key: 'AGENCY_REPORTS_GROUP',
         label: 'Reports',
         icon: 'BarChart3',
-        moduleKeys: ['AGENCY_REPORTS', 'AGENCY_TIME_CARD'],
+        moduleKeys: ['AGENCY_REPORTS', 'AGENCY_DOWNLOAD_REPORTS', 'AGENCY_TIME_CARD'],
         children: [
           { key: 'AGENCY_REPORTS', label: 'EVV Summary' },
+          { key: 'AGENCY_DOWNLOAD_REPORTS', label: 'Download Reports' },
           { key: 'AGENCY_TIME_CARD', label: 'Time Card' },
         ],
       },

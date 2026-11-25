@@ -31,6 +31,7 @@ const COLUMNS = [
       { label: 'Overview', to: ROUTES.MARKETING_PRODUCT },
       // Links below open their own pages
       { label: 'Features', to: ROUTES.PRODUCT_FEATURES },
+      { label: 'Client Management', to: ROUTES.MARKETING_CLIENT_MANAGEMENT },
       { label: 'Pricing', to: ROUTES.PRODUCT_PRICING },
       { label: "What's New", to: '/product/whats-new' },
       { label: 'Roadmap', to: '/product/roadmap' },

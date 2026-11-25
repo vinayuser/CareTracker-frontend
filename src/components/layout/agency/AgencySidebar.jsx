@@ -75,12 +75,18 @@ const iconMap = {
 function canShowNavGroup(item, role) {
   if (isAgencyOwner(role)) return true;
   const allowed = new Set(getHrModuleAccess());
-  return (item.moduleKeys || item.children?.map((c) => c.key) || []).some((key) => allowed.has(key));
+  return (item.moduleKeys || item.children?.map((c) => c.key) || []).some((key) => (
+    allowed.has(key)
+    || (key === 'AGENCY_DOWNLOAD_REPORTS' && allowed.has('AGENCY_REPORTS'))
+  ));
 }
 
 function canShowChild(key, role) {
   if (isAgencyOwner(role)) return true;
-  return getHrModuleAccess().includes(key);
+  const allowed = getHrModuleAccess();
+  if (allowed.includes(key)) return true;
+  if (key === 'AGENCY_DOWNLOAD_REPORTS' && allowed.includes('AGENCY_REPORTS')) return true;
+  return false;
 }
 
 function NavItem({ item, collapsed }) {

@@ -20,7 +20,6 @@ import axiosInstance from '../../../api/axiosInstance';
 import API_ROUTES from '../../../api/apiRoutes';
 import Drawer from '../../../components/ui/Drawer';
 import ReportRowActionsMenu, { openReportRowMenu } from '../../../components/reports/ReportRowActionsMenu';
-import DownloadReportsModal from '../../../components/reports/DownloadReportsModal';
 
 const PAGE_SIZE = 5;
 
@@ -123,7 +122,6 @@ export default function EvvSummaryReport() {
   const [loading, setLoading] = useState(true);
   const [exportOpen, setExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [downloadReportsOpen, setDownloadReportsOpen] = useState(false);
   const [menu, setMenu] = useState(null);
   const [detail, setDetail] = useState(null);
   const [remindingKey, setRemindingKey] = useState('');
@@ -287,14 +285,6 @@ export default function EvvSummaryReport() {
             View and export caregiver, schedule, and EVV status for your agency.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setDownloadReportsOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover"
-        >
-          <Download size={16} />
-          Download Reports
-        </button>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -593,7 +583,6 @@ export default function EvvSummaryReport() {
         ) : null}
       </Drawer>
 
-      <DownloadReportsModal open={downloadReportsOpen} onClose={() => setDownloadReportsOpen(false)} />
     </div>
   );
 }

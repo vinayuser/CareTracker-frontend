@@ -51,7 +51,16 @@ export const ADMIN_NAV_GROUPS = [
     title: 'Platform',
     items: [
       { key: 'ADMIN_TIME_CARD', label: 'Time Card', icon: 'Clock' },
-      { key: 'ADMIN_REPORTS', label: 'Reports', icon: 'BarChart3' },
+      {
+        key: 'ADMIN_REPORTS_GROUP',
+        label: 'Reports',
+        icon: 'BarChart3',
+        moduleKeys: ['ADMIN_REPORTS', 'ADMIN_DOWNLOAD_REPORTS'],
+        children: [
+          { key: 'ADMIN_REPORTS', label: 'EVV Summary' },
+          { key: 'ADMIN_DOWNLOAD_REPORTS', label: 'Download Reports' },
+        ],
+      },
       { key: 'ADMIN_AUDIT_LOGS', label: 'Audit Logs', icon: 'FileText' },
       { key: 'ADMIN_LEGAL', label: 'Legal Pages', icon: 'FileText' },
       { key: 'ADMIN_SETTINGS', label: 'Settings', icon: 'Settings' },

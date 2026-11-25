@@ -86,7 +86,9 @@ import EvvUnverified from './pages/agency/evv/EvvUnverified';
 import EvvSettings from './pages/agency/evv/EvvSettings';
 import ClientInvoices from './pages/agency/billing/ClientInvoices';
 import AgencyEvvSummaryReport from './pages/agency/reports/EvvSummaryReport';
+import AgencyDownloadReports from './pages/agency/reports/DownloadReports';
 import AgencyTimeCard from './pages/agency/reports/TimeCard';
+import AdminDownloadReports from './pages/admin/DownloadReports';
 import CaregiverDashboard from './pages/caregiver/Dashboard';
 import CaregiverJobs from './pages/caregiver/Jobs';
 import CaregiverVisitLogs from './pages/caregiver/VisitLogs';
@@ -125,6 +127,7 @@ import IntegrationsPage from './pages/marketing/IntegrationsPage';
 import PortalsPage from './pages/marketing/PortalsPage';
 import AboutPage from './pages/marketing/AboutPage';
 import FaqPage from './pages/marketing/FaqPage';
+import ClientManagementPage from './pages/marketing/ClientManagementPage';
 import LegalDocument from './pages/marketing/LegalDocument';
 import MarketingInfoDocument from './pages/marketing/MarketingInfoDocument';
 import FooterTopicPage from './pages/marketing/FooterTopicPage';
@@ -183,6 +186,7 @@ export default function App() {
           ))}
           <Route path={ROUTES.ABOUT} element={<AboutPage />} />
           <Route path={ROUTES.FAQ} element={<FaqPage />} />
+          <Route path={ROUTES.MARKETING_CLIENT_MANAGEMENT} element={<ClientManagementPage />} />
           <Route path={ROUTES.PRIVACY} element={<LegalDocument />} />
           <Route path={ROUTES.TERMS} element={<LegalDocument />} />
           <Route path={ROUTES.SECURITY} element={<MarketingInfoDocument />} />
@@ -267,6 +271,7 @@ export default function App() {
               <Route path={ROUTES.ADMIN_REFERRALS} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_CRM} element={<AdminModulePage />} />
               <Route path={ROUTES.ADMIN_REPORTS} element={<Reports />} />
+              <Route path={ROUTES.ADMIN_DOWNLOAD_REPORTS} element={<AdminDownloadReports />} />
               <Route path={ROUTES.ADMIN_AUDIT_LOGS} element={<AuditLogs />} />
               <Route path={ROUTES.ADMIN_LOG_TRACKING} element={<AuditLogs />} />
               <Route path={ROUTES.ADMIN_INTEGRATIONS} element={<AdminModulePage />} />
@@ -335,6 +340,7 @@ export default function App() {
               <Route path={ROUTES.AGENCY_TASKS} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_INCIDENTS} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_REPORTS} element={<AgencyEvvSummaryReport />} />
+              <Route path={ROUTES.AGENCY_DOWNLOAD_REPORTS} element={<AgencyDownloadReports />} />
               <Route path={ROUTES.AGENCY_TIME_CARD} element={<AgencyTimeCard />} />
               <Route path={ROUTES.AGENCY_USERS} element={<AgencyModulePage />} />
               <Route path={ROUTES.AGENCY_ROLES} element={<AgencyModulePage />} />

@@ -44,6 +44,7 @@ const DOC_TABS = [
 const SITEMAP_LINKS = [
   { label: 'Home', to: ROUTES.HOME, match: /^Home:/i },
   { label: 'Features', to: ROUTES.PRODUCT_FEATURES, match: /^Features:/i },
+  { label: 'Client Management', to: ROUTES.MARKETING_CLIENT_MANAGEMENT, match: /^Client Management:/i },
   { label: 'Solutions', to: ROUTES.MARKETING_PRODUCT, match: /^Solutions:/i },
   { label: 'Mobile Application', to: '/portals/mobile-apps', match: /^Mobile Application:/i },
   { label: 'Privacy Policy', to: ROUTES.PRIVACY, match: /^Privacy Policy:/i },

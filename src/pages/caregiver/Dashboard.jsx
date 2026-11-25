@@ -1,13 +1,30 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   CalendarCheck, Clock, Wallet, ShieldCheck, CheckCircle2, MapPin, Coffee, LogOut,
-  AlertTriangle, Info, ChevronRight, FileCheck, ClipboardList,
+  AlertTriangle, Info, ChevronRight, FileCheck, ClipboardList, Loader2, Play,
 } from 'lucide-react';
 import { getAuthUser } from '../../utils/auth';
 import { ROUTES } from '../../routes/routes';
 import { fetchCaregiverDashboard } from '../../redux/slices/dashboardsSlice';
+import { checkInVisit, checkOutVisit } from '../../redux/slices/visitSchedulesSlice';
+
+async function readGeo() {
+  if (!navigator.geolocation) return {};
+  try {
+    const pos = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 8000,
+        maximumAge: 30000,
+      });
+    });
+    return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+  } catch {
+    return {};
+  }
+}
 
 const STATUS_STYLES = {
   Completed: 'bg-emerald-100 text-emerald-700',
@@ -159,6 +176,7 @@ export default function CaregiverDashboard() {
   const dispatch = useDispatch();
   const authUser = getAuthUser();
   const { caregiver, caregiverLoading } = useSelector((state) => state.dashboards);
+  const [clockBusy, setClockBusy] = useState(false);
 
   useEffect(() => {
     dispatch(fetchCaregiverDashboard());
@@ -175,8 +193,47 @@ export default function CaregiverDashboard() {
   const weeklySummary = data?.weekly_summary || {};
   const weekRange = data?.week || null;
   const enrollment = data?.enrollment || kpis?.enrollment || {};
+  const nextClockInVisitId = data?.next_clock_in_visit_id
+    || todaySchedule.find((v) => ['Scheduled', 'Late'].includes(v.status))?.id
+    || '';
 
   const greeting = useMemo(() => greetingForNow(), []);
+
+  const refreshDashboard = () => dispatch(fetchCaregiverDashboard());
+
+  const handleDashboardClockOut = async () => {
+    if (!clock?.visit_id || clockBusy) return;
+    setClockBusy(true);
+    try {
+      const geo = await readGeo();
+      await dispatch(checkOutVisit({
+        id: clock.visit_id,
+        payload: { method: 'Mobile App', ...geo },
+      })).unwrap();
+      await refreshDashboard();
+    } catch {
+      // toast in slice
+    } finally {
+      setClockBusy(false);
+    }
+  };
+
+  const handleDashboardClockIn = async () => {
+    if (!nextClockInVisitId || clockBusy) return;
+    setClockBusy(true);
+    try {
+      const geo = await readGeo();
+      await dispatch(checkInVisit({
+        id: nextClockInVisitId,
+        payload: { method: 'Mobile App', ...geo },
+      })).unwrap();
+      await refreshDashboard();
+    } catch {
+      // toast in slice
+    } finally {
+      setClockBusy(false);
+    }
+  };
 
   if (caregiverLoading && !data) {
     return (
@@ -332,11 +389,16 @@ export default function CaregiverDashboard() {
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="font-semibold text-gray-900">EVV Clock</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-semibold text-gray-900">EVV Clock</h2>
+            <Link to={ROUTES.CAREGIVER_CLOCK} className="text-xs font-medium text-primary hover:underline">
+              Open Clock
+            </Link>
+          </div>
           {clock.clocked_in ? (
             <>
-              <div className={`mt-3 flex items-center gap-2 text-sm font-medium ${clock.late ? 'text-red-600' : 'text-emerald-600'}`}>
-                <span className={`h-2 w-2 rounded-full ${clock.late ? 'bg-red-500' : 'bg-emerald-500'}`} />
+              <div className={`mt-3 flex items-center gap-2 text-sm font-medium ${clock.late ? 'text-amber-700' : 'text-emerald-600'}`}>
+                <span className={`h-2 w-2 rounded-full ${clock.late ? 'bg-amber-500' : 'bg-emerald-500'}`} />
                 {clock.late ? 'Clocked in late (exception)' : 'You are currently Clocked In'}
               </div>
               <dl className="mt-4 space-y-2 text-sm">
@@ -346,20 +408,49 @@ export default function CaregiverDashboard() {
                 <div className="flex justify-between gap-2"><dt className="text-gray-500">Duration</dt><dd className="font-medium text-gray-900">{clock.duration}</dd></div>
               </dl>
               <div className="mt-5 grid grid-cols-2 gap-3">
-                <Link to={ROUTES.CAREGIVER_CLOCK} className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-primary px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/5">
+                <Link
+                  to={ROUTES.CAREGIVER_CLOCK}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-primary px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/5"
+                >
                   <Coffee size={16} /> Take Break
                 </Link>
-                <Link to={ROUTES.CAREGIVER_JOBS} className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-500 px-4 py-3 text-sm font-semibold text-white hover:bg-red-600">
-                  <LogOut size={16} /> Clock Out
-                </Link>
+                <button
+                  type="button"
+                  disabled={clockBusy || !clock.visit_id}
+                  onClick={handleDashboardClockOut}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-500 px-4 py-3 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-50"
+                >
+                  {clockBusy ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
+                  {clockBusy ? 'Clocking out…' : 'Clock Out'}
+                </button>
               </div>
             </>
           ) : (
             <div className="mt-4">
               <p className="text-sm text-gray-500">You are not clocked in.</p>
-              <Link to={ROUTES.CAREGIVER_JOBS} className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white hover:bg-primary-hover">
-                Go to Schedule
-              </Link>
+              <div className="mt-4 grid gap-2">
+                {nextClockInVisitId ? (
+                  <button
+                    type="button"
+                    disabled={clockBusy}
+                    onClick={handleDashboardClockIn}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
+                  >
+                    {clockBusy ? <Loader2 size={16} className="animate-spin" /> : <Play size={16} />}
+                    {clockBusy ? 'Clocking in…' : 'Clock In'}
+                  </button>
+                ) : null}
+                <Link
+                  to={ROUTES.CAREGIVER_CLOCK}
+                  className={`inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold ${
+                    nextClockInVisitId
+                      ? 'border border-gray-200 text-gray-700 hover:bg-gray-50'
+                      : 'bg-primary text-white hover:bg-primary-hover'
+                  }`}
+                >
+                  {nextClockInVisitId ? 'Open Clock' : 'Go to Clock'}
+                </Link>
+              </div>
             </div>
           )}
         </div>

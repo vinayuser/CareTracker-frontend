@@ -30,6 +30,14 @@ export function getAllowedAdminModuleKeys(role = getUserRole(), user = getAuthUs
 }
 
 export function getModuleKeyForAdminPath(pathname) {
+  // Same permission as EVV Summary for existing admin roles
+  if (
+    pathname === ROUTES.ADMIN_DOWNLOAD_REPORTS
+    || pathname.startsWith(`${ROUTES.ADMIN_DOWNLOAD_REPORTS}/`)
+  ) {
+    return 'ADMIN_REPORTS';
+  }
+
   const entries = [...ADMIN_ASSIGNABLE_MODULES, ...OWNER_ONLY_MODULES]
     .map((key) => ({ key, path: ROUTES[key] }))
     .filter((entry) => typeof entry.path === 'string' && entry.path.startsWith('/admin'))
@@ -60,7 +68,22 @@ export function filterAdminNavGroups(role = getUserRole(), user = getAuthUser())
 
   return ADMIN_NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => allowed.has(item.key)),
+    items: group.items.filter((item) => {
+      if (item.children?.length) {
+        return (item.moduleKeys || item.children.map((c) => c.key))
+          .some((key) => allowed.has(key));
+      }
+      return allowed.has(item.key);
+    }).map((item) => {
+      if (!item.children?.length) return item;
+      return {
+        ...item,
+        children: item.children.filter((child) => (
+          allowed.has(child.key)
+          || (child.key === 'ADMIN_DOWNLOAD_REPORTS' && allowed.has('ADMIN_REPORTS'))
+        )),
+      };
+    }),
   })).filter((group) => group.items.length > 0);
 }
 

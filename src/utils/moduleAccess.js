@@ -36,6 +36,7 @@ const PATH_MODULE_PREFIXES = [
   { prefix: '/agency/marketing/settings', key: 'AGENCY_EMAIL_SETTINGS' },
   { prefix: '/agency/marketing', key: 'AGENCY_EMAIL_CAMPAIGNS' },
   { prefix: '/agency/billing', key: 'AGENCY_BILLING' },
+  { prefix: '/agency/download-reports', key: 'AGENCY_REPORTS' },
   { prefix: '/agency/reports', key: 'AGENCY_REPORTS' },
   { prefix: '/agency/time-card', key: 'AGENCY_TIME_CARD' },
   { prefix: '/agency/profile', key: null },
@@ -120,7 +121,10 @@ export function filterAgencyNavGroups(role = getUserRole(), user = getAuthUser()
       if (!item.children?.length) return item;
       return {
         ...item,
-        children: item.children.filter((child) => allowed.has(child.key)),
+        children: item.children.filter((child) => (
+          allowed.has(child.key)
+          || (child.key === 'AGENCY_DOWNLOAD_REPORTS' && allowed.has('AGENCY_REPORTS'))
+        )),
       };
     }),
   })).filter((group) => group.items.length > 0);

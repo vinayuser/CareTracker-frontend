@@ -34,6 +34,7 @@ const PAGE_TITLES = {
   tasks: 'Tasks',
   incidents: 'Incidents',
   reports: 'EVV Summary Report',
+  'download-reports': 'Download Reports',
   'time-card': 'Time Card',
   users: 'Users',
   roles: 'Roles & Permissions',

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import {
   CalendarDays,
   Check,
@@ -10,6 +11,7 @@ import {
   UserPlus,
 } from 'lucide-react';
 import { RequestDemoButton } from '../../components/marketing/DemoRequestContext';
+import { ROUTES } from '../../routes/routes';
 
 const OVERVIEW_STATS = [
   { label: 'Agencies', value: '128', trend: '+16% this month' },
@@ -25,21 +27,25 @@ const FEATURES = [
     icon: UserPlus,
     title: 'Client Management',
     text: 'Complete client profiles, care plans, and history in one place.',
+    to: ROUTES.MARKETING_CLIENT_MANAGEMENT,
   },
   {
     icon: FolderHeart,
     title: 'Caregiver Management',
     text: 'Credentials, assignments, and workforce records made simple.',
+    to: ROUTES.MARKETING_HR,
   },
   {
     icon: ShieldCheck,
     title: 'EVV & Compliance',
     text: 'Visit verification, alerts, and audit-ready documentation.',
+    to: ROUTES.MARKETING_EVV,
   },
   {
     icon: Cloud,
     title: 'CRM',
     text: 'Lead tracking, intake, and agency growth tools together.',
+    to: ROUTES.MARKETING_CRM,
   },
   {
     icon: FileText,
@@ -50,11 +56,13 @@ const FEATURES = [
     icon: CalendarDays,
     title: 'Scheduling',
     text: 'Visit calendars, shifts, and caregiver coordination.',
+    to: '/hr/scheduling',
   },
   {
     icon: Receipt,
     title: 'Billing & Invoicing',
     text: 'Claims, invoices, and revenue tracking that stay connected.',
+    to: ROUTES.MARKETING_BILLING,
   },
   {
     icon: Presentation,
@@ -318,19 +326,28 @@ export default function ProductPage() {
             href="#features"
           />
           <div className="grid flex-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {FEATURES.map(({ icon: Icon, title, text }) => (
+            {FEATURES.map(({ icon: Icon, title, text, to }) => (
               <div
                 key={title}
-                className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_8px_20px_-16px_rgba(15,23,42,0.35)]"
+                className="flex flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-[0_8px_20px_-16px_rgba(15,23,42,0.35)]"
               >
                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#eff6ff] text-primary">
                   <Icon size={18} strokeWidth={1.85} />
                 </span>
                 <h3 className="mt-3 text-[14px] font-bold text-slate-900">{title}</h3>
-                <p className="mt-1.5 text-[12px] leading-relaxed text-slate-500">{text}</p>
-                <a href="#features" className="mt-3 inline-block text-[12px] font-semibold text-primary hover:underline">
-                  Learn more →
-                </a>
+                <p className="mt-1.5 flex-1 text-[12px] leading-relaxed text-slate-500">{text}</p>
+                {to ? (
+                  <Link
+                    to={to}
+                    className="mt-3 inline-block text-[12px] font-semibold text-primary hover:underline"
+                  >
+                    Read more →
+                  </Link>
+                ) : (
+                  <a href="#features" className="mt-3 inline-block text-[12px] font-semibold text-primary hover:underline">
+                    Learn more →
+                  </a>
+                )}
               </div>
             ))}
           </div>
