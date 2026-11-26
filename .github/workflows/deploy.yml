@@ -37,7 +37,10 @@ jobs:
             echo "Deploying frontend branch: ${BRANCH}"
             cd /var/www/CareTracker-frontend/
             git fetch origin "${BRANCH}"
+            git reset --hard HEAD
+            git clean -fd
             git checkout -B "${BRANCH}" "origin/${BRANCH}"
+            git reset --hard "origin/${BRANCH}"
             # Stop either legacy compose name or Actions image name
             docker stop caretracker-frontend caretracker-admin || true
             docker rm caretracker-frontend caretracker-admin || true
