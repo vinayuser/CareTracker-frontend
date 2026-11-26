@@ -320,6 +320,8 @@ const API_ROUTES = {
     ACCOUNT: '/registration/account',
     SUBMIT: '/registration/submit',
     PAYMENT: '/registration/payment',
+    PAYMENT_INTENT: '/registration/payment/intent',
+    PAYMENT_CONFIRM: '/registration/payment/confirm',
   },
   CANDIDATE_FORMS: {
     PORTAL: '/candidate-forms',

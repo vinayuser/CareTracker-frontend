@@ -360,9 +360,10 @@ export default function TimeCard() {
                       Reg {formatHours(row.regularHours)} · OT {formatHours(row.overtimeHours)}
                     </p>
                     <p className="text-[12px] font-semibold text-emerald-600">{formatMoney(row.totalAmount)}</p>
-                    {Number(row.overtimeExtraPay) > 0 ? (
-                      <p className="text-[10px] text-amber-600">OT extra {formatMoney(row.overtimeExtraPay)}</p>
-                    ) : null}
+                    <p className="text-[10px] text-slate-500">
+                      Reg {formatMoney(row.regularPay)}
+                      {Number(row.overtimePay) > 0 ? ` · OT ${formatMoney(row.overtimePay)}` : ''}
+                    </p>
                   </td>
                   <td className="px-3 py-3 text-center">
                     <button
@@ -439,7 +440,7 @@ export default function TimeCard() {
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
         title="Time card details"
-        width="2xl"
+        width="3xl"
       >
         {detailLoading || !detail ? (
           <p className="py-6 text-sm text-slate-500">Loading time card…</p>
@@ -459,27 +460,60 @@ export default function TimeCard() {
                   </p>
                 </div>
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 <div className="rounded-lg bg-slate-50 px-3 py-2">
-                  <p className="text-[11px] font-medium text-slate-500">Hours</p>
+                  <p className="text-[11px] font-medium text-slate-500">Hours worked</p>
                   <p className="text-lg font-bold text-slate-900">{formatHours(detail.totalHours)}</p>
+                  <p className="text-[10px] text-slate-500">
+                    {Number(detail.hourlyPayRate) > 0 ? `${formatMoney(detail.hourlyPayRate)}/hr` : 'No rate set'}
+                  </p>
                 </div>
                 <div className="rounded-lg bg-slate-50 px-3 py-2">
-                  <p className="text-[11px] font-medium text-slate-500">Regular</p>
+                  <p className="text-[11px] font-medium text-slate-500">Regular hours</p>
                   <p className="text-lg font-bold text-slate-900">{formatHours(detail.regularHours)}</p>
+                  <p className="text-[10px] text-slate-500">
+                    Limit {formatHours(detail.regularWeeklyHours)}h/wk
+                  </p>
+                </div>
+                <div className="rounded-lg bg-sky-50 px-3 py-2">
+                  <p className="text-[11px] font-medium text-sky-700">Regular pay</p>
+                  <p className="text-lg font-bold text-sky-800">{formatMoney(detail.regularPay)}</p>
+                  <p className="text-[10px] text-sky-700/80">
+                    {formatHours(detail.regularHours)}h × {formatMoney(detail.hourlyPayRate)}
+                  </p>
                 </div>
                 <div className="rounded-lg bg-amber-50 px-3 py-2">
-                  <p className="text-[11px] font-medium text-amber-700">Overtime</p>
+                  <p className="text-[11px] font-medium text-amber-700">Overtime hours</p>
                   <p className="text-lg font-bold text-amber-700">{formatHours(detail.overtimeHours)}</p>
                   <p className="text-[10px] text-amber-600/80">
-                    Limit {formatHours(detail.regularWeeklyHours)}h/wk
-                    {Number(detail.overtimeExtraPerHour) > 0 ? ` · +${formatMoney(detail.overtimeExtraPerHour)}/hr` : ''}
+                    {Number(detail.overtimeExtraPerHour) > 0
+                      ? `+${formatMoney(detail.overtimeExtraPerHour)}/hr OT`
+                      : 'No OT extra rate'}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-amber-50/80 px-3 py-2">
+                  <p className="text-[11px] font-medium text-amber-700">OT pay</p>
+                  <p className="text-lg font-bold text-amber-700">{formatMoney(detail.overtimePay)}</p>
+                  <p className="text-[10px] text-amber-600/80">
+                    Extra {formatMoney(detail.overtimeExtraPay)}
                   </p>
                 </div>
                 <div className="rounded-lg bg-emerald-50 px-3 py-2">
-                  <p className="text-[11px] font-medium text-emerald-700">OT pay</p>
-                  <p className="text-lg font-bold text-emerald-700">{formatMoney(detail.overtimePay)}</p>
-                  <p className="text-[10px] text-emerald-700/80">Extra {formatMoney(detail.overtimeExtraPay)}</p>
+                  <p className="text-[11px] font-medium text-emerald-700">Total pay</p>
+                  <p className="text-lg font-bold text-emerald-700">{formatMoney(detail.totalAmount)}</p>
+                  <p className="text-[10px] text-emerald-700/80">
+                    Reg + OT
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[12px] text-slate-600">
+                <p className="font-semibold text-slate-800">Pay breakdown</p>
+                <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+                  <span>Regular: <strong className="text-slate-900">{formatMoney(detail.regularPay)}</strong></span>
+                  <span>OT: <strong className="text-amber-700">{formatMoney(detail.overtimePay)}</strong></span>
+                  <span>OT extra only: <strong className="text-amber-700">{formatMoney(detail.overtimeExtraPay)}</strong></span>
+                  <span>Total: <strong className="text-emerald-700">{formatMoney(detail.totalAmount)}</strong></span>
                 </div>
               </div>
             </div>

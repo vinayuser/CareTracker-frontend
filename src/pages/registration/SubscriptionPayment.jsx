@@ -1,32 +1,21 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { CreditCard, CheckCircle2, Lock } from 'lucide-react';
+import { toast } from 'react-toastify';
+import { CheckCircle2 } from 'lucide-react';
 import { ROUTES } from '../../routes/routes';
 import { fetchActivePlans } from '../../redux/slices/subscriptionPlanSlice';
-import {
-  processRegistrationPayment,
-  submitRegistration,
-} from '../../redux/slices/registrationSlice';
+import { submitRegistration } from '../../redux/slices/registrationSlice';
 import { getInvitePlan } from '../../utils/subscriptionStore';
+import { getRegistrationData } from '../../utils/registrationStore';
 import PlanLimitsDisplay from '../../components/ui/PlanLimitsDisplay';
-
-const inputClass =
-  'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20';
-
-const labelClass = 'mb-1.5 block text-sm font-medium text-gray-700';
+import StripeRegistrationCheckout from '../../components/registration/StripeRegistrationCheckout';
 
 export default function SubscriptionPayment() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const registrationData = getRegistrationData();
   const [plan, setPlan] = useState(null);
-  const [paymentData, setPaymentData] = useState({
-    cardNumber: '',
-    expiry: '',
-    cvv: '',
-    nameOnCard: '',
-  });
-  const [loading, setLoading] = useState(false);
   const [paid, setPaid] = useState(false);
 
   useEffect(() => {
@@ -41,28 +30,25 @@ export default function SubscriptionPayment() {
     }
   }, [dispatch]);
 
-  const handlePayment = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const handlePaid = async (payment) => {
+    if (!plan?.id) {
+      toast.error('Subscription plan is still loading. Please wait.');
+      return;
+    }
     try {
-      const payment = await dispatch(
-        processRegistrationPayment({
-          planId: plan.id,
-          amount: plan.price,
-          ...paymentData,
-        }),
-      ).unwrap();
       await dispatch(submitRegistration({
         planId: plan.id,
         transactionId: payment?.transactionId,
         amount: payment?.amount ?? plan.price,
         paymentMethod: payment?.paymentMethod || undefined,
+        ...registrationData,
       })).unwrap();
-    } catch {
-      // Demo mode
+      setPaid(true);
+    } catch (err) {
+      const message = typeof err === 'string' ? err : err?.message || 'Registration failed.';
+      toast.error(message);
+      throw err;
     }
-    setPaid(true);
-    setLoading(false);
   };
 
   if (paid) {
@@ -125,84 +111,12 @@ export default function SubscriptionPayment() {
         </div>
 
         <div className="lg:col-span-3">
-          <form onSubmit={handlePayment} className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center gap-2">
-              <CreditCard size={18} className="text-gray-500" />
-              <h2 className="text-base font-semibold text-gray-900">Payment Details</h2>
-              <Lock size={14} className="ml-auto text-gray-400" />
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className={labelClass}>Name on Card *</label>
-                <input
-                  type="text"
-                  required
-                  value={paymentData.nameOnCard}
-                  onChange={(e) => setPaymentData({ ...paymentData, nameOnCard: e.target.value })}
-                  placeholder="John Doe"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Card Number *</label>
-                <input
-                  type="text"
-                  required
-                  maxLength={19}
-                  value={paymentData.cardNumber}
-                  onChange={(e) => setPaymentData({ ...paymentData, cardNumber: e.target.value })}
-                  placeholder="1234 5678 9012 3456"
-                  className={inputClass}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={labelClass}>Expiry Date *</label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={5}
-                    value={paymentData.expiry}
-                    onChange={(e) => setPaymentData({ ...paymentData, expiry: e.target.value })}
-                    placeholder="MM/YY"
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>CVV *</label>
-                  <input
-                    type="password"
-                    required
-                    maxLength={4}
-                    value={paymentData.cvv}
-                    onChange={(e) => setPaymentData({ ...paymentData, cvv: e.target.value })}
-                    placeholder="123"
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {plan && (
-              <div className="mt-5 flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3">
-                <span className="text-sm text-gray-600">Total due today</span>
-                <span className="text-lg font-bold text-gray-900">${plan.price}</span>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading || !plan}
-              className="mt-5 w-full rounded-lg bg-primary py-2.5 text-sm font-medium text-white hover:bg-primary-hover disabled:opacity-60"
-            >
-              {loading ? 'Processing...' : `Pay $${plan?.price ?? '—'} & Complete Registration`}
-            </button>
-
-            <p className="mt-3 text-center text-xs text-gray-400">
-              Your payment is secured with 256-bit SSL encryption.
-            </p>
-          </form>
+          <StripeRegistrationCheckout
+            plan={plan}
+            email={registrationData.email}
+            name={registrationData.fullName}
+            onPaid={handlePaid}
+          />
         </div>
       </div>
 

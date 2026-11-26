@@ -51,7 +51,19 @@ export const processRegistrationPayment = createAsyncThunk(
   'registration/processPayment',
   async (payload, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.post(API_ROUTES.REGISTRATION.PAYMENT, payload);
+      const response = await axiosInstance.post(API_ROUTES.REGISTRATION.PAYMENT_CONFIRM, payload);
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  },
+);
+
+export const createRegistrationPaymentIntent = createAsyncThunk(
+  'registration/createPaymentIntent',
+  async (payload, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post(API_ROUTES.REGISTRATION.PAYMENT_INTENT, payload);
       return response.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);
