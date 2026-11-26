@@ -41,6 +41,7 @@ jobs:
             git clean -fd
             git checkout -B "${BRANCH}" "origin/${BRANCH}"
             git reset --hard "origin/${BRANCH}"
+            node -e 'const fs=require("fs");const p=".env";const k="VITE_STRIPE_PUBLISHABLE_KEY";const v=String(process.env.VITE_STRIPE_PUBLISHABLE_KEY||"").trim();if(!v){console.log(k+" secret is empty");process.exit(0);}const text=fs.existsSync(p)?fs.readFileSync(p,"utf8"):"";const lines=text.split(/\r?\n/);let f=false;const out=lines.map((l)=>{if(l.startsWith(k+"=")){f=true;return k+"="+v;}return l;});if(!f){if(out.length&&out[out.length-1]!=="")out.push("");out.push(k+"="+v);}fs.writeFileSync(p,out.join("\n").replace(/\n+$/,"\n"));console.log(k+" synced into frontend .env");'
             # Stop either legacy compose name or Actions image name
             docker stop caretracker-frontend caretracker-admin || true
             docker rm caretracker-frontend caretracker-admin || true
@@ -55,4 +56,3 @@ jobs:
               --restart unless-stopped \
               -p 5173:5173 \
               caretracker-frontend
-            echo "Frontend deploy complete"
