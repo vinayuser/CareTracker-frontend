@@ -21,6 +21,8 @@ jobs:
         uses: appleboy/ssh-action@v1.2.0
         env:
           DEPLOY_BRANCH: ${{ inputs.branch }}
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
@@ -28,7 +30,7 @@ jobs:
           port: 22
           script_stop: true
           command_timeout: 40m
-          envs: DEPLOY_BRANCH
+          envs: DEPLOY_BRANCH,VITE_API_BASE_URL,VITE_STRIPE_PUBLISHABLE_KEY
           script: |
             set -e
             BRANCH="${DEPLOY_BRANCH:-main}"
@@ -42,10 +44,12 @@ jobs:
             docker rmi caretracker-frontend caretracker-admin:latest || true
             docker system prune -af
             docker build --no-cache \
-              --build-arg VITE_API_BASE_URL="${VITE_API_BASE_URL:-}" \
+              --build-arg "VITE_API_BASE_URL=${VITE_API_BASE_URL:-}" \
+              --build-arg "VITE_STRIPE_PUBLISHABLE_KEY=${VITE_STRIPE_PUBLISHABLE_KEY:-}" \
               -t caretracker-frontend .
             docker run -d \
               --name caretracker-frontend \
               --restart unless-stopped \
               -p 5173:5173 \
               caretracker-frontend
+            echo "Frontend deploy complete"

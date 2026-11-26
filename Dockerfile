@@ -17,6 +17,10 @@ WORKDIR /app
 ARG VITE_API_BASE_URL=
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
+# Stripe publishable key only (never bake sk_ keys into the image)
+ARG VITE_STRIPE_PUBLISHABLE_KEY=
+ENV VITE_STRIPE_PUBLISHABLE_KEY=$VITE_STRIPE_PUBLISHABLE_KEY
+
 COPY package.json package-lock.json ./
 RUN npm ci
 
